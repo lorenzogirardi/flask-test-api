@@ -3,6 +3,7 @@ name: Python application
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -65,10 +66,7 @@ jobs:
               # build on feature branches, push only on main branch
               push: true
               run: docker push lgirardi/pytbak:v-${{ github.run_number }}
-          - name: Image digest
-            run: echo ${{ steps.docker_build.outputs.digest }}
-            name: Checkout
-            uses: actions/checkout@v3
+
   modifygit:
     needs: docker
     runs-on: ubuntu-latest
@@ -89,6 +87,5 @@ jobs:
           git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
           git push origin main
         env:
-          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
-          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+          GIT_PASSWORD: ${{ secrets.GIT_TOKEN }}
           RUN_NUMBER: ${{ github.run_number }}
