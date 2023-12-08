@@ -1,71 +1,54 @@
-name: Python application
+name: Build and Publish
 
 on:
-  push:
-    branches: [ "main" ]
+  pull_request:
+    branches:
+      - dependencies
+      - master
   workflow_dispatch:
 
+
 jobs:
-
-  docker:
-        runs-on: ubuntu-latest
-        steps:
-
-        - name: Checkout code
-          uses: actions/checkout@v3
-
-        # setup Docker buld action
-        - name: Set up Docker Buildx
-          id: buildx
-          uses: docker/setup-buildx-action@v2
-
-        - name: Login to DockerHub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-        - name: Login to Github Packages
-          uses: docker/login-action@v2
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GIT_TOKEN }}
-      
-        - name: Build image and push to Docker Hub and GitHub Container Registry
-          uses: docker/build-push-action@v4
-          with:
-          # relative path to the place where source code with Dockerfile is located
-            context: ./docker
-            platforms: linux/amd64,linux/arm64
-            # Note: tags has to be all lower-case
-            tags: |
-              lgirardi/pytbak:v-${{ github.run_number }}
-          # build on feature branches, push only on main branch
-            push: true
-            run: docker push lgirardi/pytbak:v-${{ github.run_number }}
-        - name: Image digest
-          run: echo ${{ steps.docker_build.outputs.digest }}
-
-  modifygit:
-    needs: docker
+  # define job to build and publish docker image
+  build-and-push-docker-image:
+    name: Build Docker image and push to repositories
+    # run only when code is compiling and tests are passing
     runs-on: ubuntu-latest
+
+    # steps to perform in job
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-     
-      - name: modify the image
-        run: |
-          git config user.email l@k8s.it
-          git config user.name l
-          cd kubernetes/
-          cat 04-dpl-pytbak.yaml
-          pwd
-          sed -i "s+lgirardi/pytbak.*+lgirardi/pytbak:v-$RUN_NUMBER+g" 04-dpl-pytbak.yaml
-          cat 04-dpl-pytbak.yaml
-          git add .
-          git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
-          git push origin main
-        env:
-          GIT_PASSWORD: ${{ secrets.GIT_TOKEN }}
-          RUN_NUMBER: ${{ github.run_number }}
+
+      # setup Docker buld action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GIT_TOKEN }}
+      
+      - name: Build image and push to Docker Hub and GitHub Container Registry
+        uses: docker/build-push-action@v4
+        with:
+          # relative path to the place where source code with Dockerfile is located
+          context: ./docker
+          platforms: linux/amd64,linux/arm64
+          # Note: tags has to be all lower-case
+          tags: |
+            lgirardi/pytbak:edge
+          # build on feature branches, push only on main branch
+          push: true
+          run: docker push lgirardi/pytbak:edge
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
