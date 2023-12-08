@@ -9,70 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-        context: ./docker/
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-  docker:
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
 
-        - name: Checkout code
-          uses: actions/checkout@v3
-        - name: Set up QEMU
-          uses: docker/setup-qemu-action@v2
-        # setup Docker buld action
-        - name: Set up Docker Buildx
-          id: buildx
-          uses: docker/setup-buildx-action@v2
-
-        - name: Login to DockerHub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-        - name: Login to Github Packages
-          uses: docker/login-action@v2
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GIT_TOKEN }}
-      
-        - name: Build image and push to Docker Hub and GitHub Container Registry
-          uses: docker/build-push-action@v4
-          with:
-          # relative path to the place where source code with Dockerfile is located
-            context: ./docker
-            platforms: linux/amd64,linux/arm64
-            # Note: tags has to be all lower-case
-            tags: |
-              lgirardi/pytbak:v-${{ github.run_number }}
-          # build on feature branches, push only on main branch
-            push: true
-            run: docker push lgirardi/pytbak:v-${{ github.run_number }}
-        - name: Image digest
-          run: echo ${{ steps.docker_build.outputs.digest }}
 
   modifygit:
-    needs: docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
