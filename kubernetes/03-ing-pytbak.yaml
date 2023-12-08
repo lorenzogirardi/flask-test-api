@@ -9,7 +9,7 @@ metadata:
     ingress.kubernetes.io/proxy-send-timeout: "30"
 spec:
   rules:
-  - host: pytbak.test
+  - host: oracolo.k8s.it
     http:
       paths:
       - path: /api/
