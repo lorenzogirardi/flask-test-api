@@ -9,7 +9,6 @@ from os import getenv
 import requests
 from flask import Response
 from requests import get
-from flask_zipkin import Zipkin
 
 
 app = Flask(__name__, static_url_path = "")
