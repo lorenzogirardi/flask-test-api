@@ -163,7 +163,7 @@ def count():
  
 @app.route('/api/redisping')
 def proxy():
-    return get(f'{SITE_NAME}/ping', headers=headers).content
+    return get(f'{SITE_NAME}/ping').content
    
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0")
