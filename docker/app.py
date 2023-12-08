@@ -4,37 +4,26 @@ from flask import Flask, jsonify, abort, request, make_response, url_for, render
 from prometheus_flask_exporter import PrometheusMetrics
 import logging
 from flask_compress import Compress
-import os
-
-
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.urllib import URLLibInstrumentor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import (
-    ConsoleSpanExporter,
-    BatchSpanProcessor,
-)
-
-trace.set_tracer_provider(TracerProvider())
-trace.get_tracer_provider().add_span_processor(
-    BatchSpanProcessor(ConsoleSpanExporter())
-)
-tracer = trace.get_tracer(__name__)
-
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from redis import Redis
+from os import getenv
+import requests
+from flask import Response
+from requests import get
+from flask_zipkin import Zipkin
 
 
 app = Flask(__name__, static_url_path = "")
-FlaskInstrumentor().instrument_app(app)
-URLLibInstrumentor().instrument()
 metrics = PrometheusMetrics(app)
 Compress(app)
 
-trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(
-OTLPSpanExporter(endpoint=os.environ.get("192.168.64.7:32014"), insecure=True)))
+zipkin = Zipkin(app, sample_rate=100)
 
+
+REDIS_HOST = getenv("REDIS_HOST", default="localhost")
+REDIS_PORT = getenv("REDIS_PORT", default=6379)
+REDIS_DB = getenv("REDIS_DB", default=0)
+r = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+SITE_NAME = 'http://webdis-svc.webdis:7379'
 
 logging.basicConfig(
 	level=logging.INFO, 
@@ -83,11 +72,7 @@ context = [
 
 @app.route('/api/')
 def index():
-#    with tracer.start_as_current_span(
-#        "server_request",
-#        attributes={"endpoint": "/api"}
-#    ):
-        return render_template('index.html')
+    return render_template('index.html')
 
 def make_public_task(task):
     new_task = {}
@@ -165,7 +150,25 @@ def delay(x):
     time.sleep(x)
     return "delayed by " +(str(x)) +" seconds"
 
-    
+@app.route('/api/count')
+def count():
+    r.incr('hits')
+    counter = str(r.get('hits'),'utf-8')
+    return counter
+
+#@app.route('/api/redisping')
+#def ping():
+#    wd = requests.get("http://webdis-svc.webdis:7379/PING")
+#    return Response(
+#        wd.text,
+#        status=wd.status_code,
+#    )
+ 
+@app.route('/api/redisping')
+def proxy():
+    headers = {}
+    headers.update(zipkin.create_http_headers_for_new_span())
+    return get(f'{SITE_NAME}/ping', headers=headers).content
+   
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0")
-
