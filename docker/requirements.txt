@@ -1,13 +1,6 @@
 Flask
 prometheus-flask-exporter
 flask-compress
-opentelemetry-api
-opentelemetry-sdk
-opentelemetry-instrumentation-flask
-opentelemetry-instrumentation-urllib
-opentelemetry-instrumentation-flask
-opentelemetry-exporter-otlp
-opentelemetry-exporter-otlp-proto-grpc
-opentelemetry-exporter-otlp-proto-http
-opentelemetry-distro
-backoff==1.11.1
+redis
+requests
+flask_zipkin
