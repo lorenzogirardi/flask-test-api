@@ -163,8 +163,6 @@ def count():
  
 @app.route('/api/redisping')
 def proxy():
-    headers = {}
-    headers.update(zipkin.create_http_headers_for_new_span())
     return get(f'{SITE_NAME}/ping', headers=headers).content
    
 if __name__ == "__main__":
