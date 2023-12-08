@@ -15,8 +15,6 @@ app = Flask(__name__, static_url_path = "")
 metrics = PrometheusMetrics(app)
 Compress(app)
 
-zipkin = Zipkin(app, sample_rate=100)
-
 
 REDIS_HOST = getenv("REDIS_HOST", default="localhost")
 REDIS_PORT = getenv("REDIS_PORT", default=6379)
