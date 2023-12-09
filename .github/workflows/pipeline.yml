@@ -80,11 +80,32 @@ jobs:
         with:
           image: lgirardi/pytbak:v-${{ github.run_number }}
           fail-build: false
+          output-format: json
 
-            
+  quality-gate:
+    needs: security-gate-grype
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so follow-up steps can access it
+      - uses: actions/checkout@v3
+
+      - name: Checkov GitHub Action
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          # This will add both a CLI output to the console and create a results.sarif file
+          directory: .
+          output_format: sarif
+          continue-on-error: true
+          quiet: true
 
   modifygit:
-    needs: security-gate-grype
+    needs: quality-gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
