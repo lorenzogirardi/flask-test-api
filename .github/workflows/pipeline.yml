@@ -74,7 +74,7 @@ jobs:
   security-gate-gype:
     needs: docker
     runs-on: ubuntu-latest
-
+    steps:
       - name: Scan image
         uses: anchore/scan-action@v3
         with:
