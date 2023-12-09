@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-37
+        image: lgirardi/pytbak:v-39
         resources:
           limits:
             cpu: 300m
