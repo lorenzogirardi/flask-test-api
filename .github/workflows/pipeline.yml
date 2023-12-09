@@ -101,7 +101,7 @@ jobs:
           # This will add both a CLI output to the console and create a results.sarif file
           directory: .
           output_format: sarif
-          continue-on-error: true
+          soft_fail: true
           quiet: true
 
   modifygit:
