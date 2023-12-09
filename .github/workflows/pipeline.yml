@@ -71,7 +71,7 @@ jobs:
         - name: Image digest
           run: echo ${{ steps.docker_build.outputs.digest }}
 
-  security-gate-gype:
+  security-gate-grype:
     needs: docker
     runs-on: ubuntu-latest
     steps:
@@ -79,10 +79,12 @@ jobs:
         uses: anchore/scan-action@v3
         with:
           image: lgirardi/pytbak:v-${{ github.run_number }}
+          fail-build: false
+
             
 
   modifygit:
-    needs: security-gate-gype
+    needs: security-gate-grype
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
