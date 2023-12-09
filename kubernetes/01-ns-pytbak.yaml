@@ -4,3 +4,4 @@ metadata:
   name: "pytbak"
   labels:
     name: "pytbak"
+    istio-injection: enabled
