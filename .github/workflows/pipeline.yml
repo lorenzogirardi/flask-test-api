@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python 3.12
       uses: actions/setup-python@v3
       with:
@@ -71,8 +71,18 @@ jobs:
         - name: Image digest
           run: echo ${{ steps.docker_build.outputs.digest }}
 
-  modifygit:
+  security-gate-gype:
     needs: docker
+    runs-on: ubuntu-latest
+
+      - name: Scan image
+        uses: anchore/scan-action@v3
+        with:
+          image: lgirardi/pytbak:v-${{ github.run_number }}
+            
+
+  modifygit:
+    needs: security-gate-gype
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
