@@ -4,6 +4,9 @@ metadata:
   labels:
     app: pytbak
     track: pytbak-stable
+    tags.datadoghq.com/env: home-remote
+    tags.datadoghq.com/service: pytbak
+    tags.datadoghq.com/version: stable
   name: pytbak-stable
   namespace: pytbak
 spec:
@@ -22,12 +25,17 @@ spec:
   template:
     metadata:
       annotations:
+        admission.datadoghq.com/python-lib.version: v2.4.0
         prometheus.io/path: /metrics
         prometheus.io/port: "5000"
         prometheus.io/scrape: "true"
       labels:
+        admission.datadoghq.com/enabled: "true"
         app: pytbak
         track: pytbak-stable
+        tags.datadoghq.com/env: home-remote
+        tags.datadoghq.com/service: pytbak
+        tags.datadoghq.com/version: stable
     spec:
       containers:
       - name: pytbak
