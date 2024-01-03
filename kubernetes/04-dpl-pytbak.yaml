@@ -40,6 +40,13 @@ spec:
       containers:
       - name: pytbak
         image: lgirardi/pytbak:v-48
+        env:
+          - name: DD_PROFILING_ENABLED
+            value: "true"
+          - name: DD_LOGS_INJECTION
+            value: "true"
+          - name: DD_TRACE_SAMPLE_RATE
+            value: "1"
         resources:
           limits:
             cpu: 300m
