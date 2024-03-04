@@ -1,8 +1,6 @@
-FROM python:3.12-alpine
+FROM lgirardi/lg-flaskimg-alpine:edge
 COPY . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
-#ENTRYPOINT ["python"]
-#CMD ["app.py"]
-CMD ["ddtrace-run", "python", "app.py"]
+CMD ["ddtrace-run", "python3", "app.py"]
 
