@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-53
+        image: lgirardi/pytbak:v-54
         env:
           - name: DD_PROFILING_ENABLED
             value: "true"
