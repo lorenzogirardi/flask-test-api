@@ -84,6 +84,7 @@ jobs:
           image: lgirardi/pytbak:v-${{ github.run_number }}
           fail-build: false
           severity-cutoff: high
+          acs-report-enable: true
 
   quality-gate:
     needs: security-gate-grype
