@@ -8,6 +8,6 @@ COPY --chown=worker:worker requirements.txt requirements.txt
 COPY --chown=worker:worker . . 
 COPY . /app
 WORKDIR /app
-RUN pip install --user -r requirements.txt
+RUN pip install -r requirements.txt
 CMD ["ddtrace-run", "python3", "app.py"]
 
