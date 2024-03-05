@@ -84,10 +84,6 @@ jobs:
           image: lgirardi/pytbak:v-${{ github.run_number }}
           fail-build: false
           severity-cutoff: high
-      - name: upload Anchore scan SARIF report
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
 
   quality-gate:
     needs: security-gate-grype
