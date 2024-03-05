@@ -77,10 +77,15 @@ jobs:
     steps:
       - name: Scan image
         uses: anchore/scan-action@v3
+        id: scan
         with:
           image: lgirardi/pytbak:v-${{ github.run_number }}
           fail-build: false
-          output-format: json
+          severity-cutoff: high
+      - name: upload Anchore scan SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
   quality-gate:
     needs: security-gate-grype
