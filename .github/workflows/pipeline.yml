@@ -84,10 +84,22 @@ jobs:
           image: lgirardi/pytbak:v-${{ github.run_number }}
           fail-build: false
           severity-cutoff: high
-          acs-report-enable: true
+          output-format: table
+             
+  docker-sbom:
+    needs: security-gate-grype
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sbom image
+        uses: anchore/sbom-action@v0
+        continue-on-error: true
+        id: sbom
+        with:
+          image: lgirardi/pytbak:v-${{ github.run_number }}
+          artifact-name: SBOM.spdx
 
   quality-gate:
-    needs: security-gate-grype
+    needs: docker-sbom
     permissions:
       contents: read # for actions/checkout to fetch code
       
