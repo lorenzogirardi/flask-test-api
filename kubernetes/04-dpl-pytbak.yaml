@@ -40,6 +40,7 @@ spec:
       containers:
       - name: pytbak
         image: lgirardi/pytbak:v-68
+        imagePullPolicy:Always
         env:
           - name: DD_PROFILING_ENABLED
             value: "true"
@@ -57,4 +58,15 @@ spec:
         ports:
         - name: http
           containerPort: 5000
-        
+        livenessProbe:
+          httpGet:
+            path: /api/
+            port: 5000
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          httpGet:
+            path: /api/fib/1000
+            port: 5000
+          initialDelaySeconds: 10
+          timeoutSeconds: 4
