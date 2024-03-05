@@ -9,5 +9,6 @@ COPY --chown=worker:worker . .
 COPY . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
+ENV PATH="/home/worker/.local/bin:${PATH}" 
 CMD ["ddtrace-run", "python3", "app.py"]
 
