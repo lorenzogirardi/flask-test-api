@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-70
+        image: lgirardi/pytbak:v-71
         imagePullPolicy: Always
         env:
           - name: DD_PROFILING_ENABLED
