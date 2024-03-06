@@ -4,4 +4,4 @@ flask-compress
 redis
 requests
 flask_zipkin
-ddtrace==2.7.0
+ddtrace==2.7.1
