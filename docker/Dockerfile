@@ -1,14 +1,30 @@
 FROM lgirardi/lg-flaskimg-alpine:edge
+
+ENV US=worker
+ENV GP=$US-group
+ENV UID=3001
+ENV GID=3000
+
 RUN touch /var/log/app.log
-RUN adduser -D worker
-RUN chown -R worker:worker /var/log/app.log
-USER worker
-WORKDIR /home/worker
-COPY --chown=worker:worker requirements.txt requirements.txt
-COPY --chown=worker:worker . . 
+
+RUN addgroup \
+    --gid "$GID" \
+    "$GP" \
+&&  adduser \
+    --disabled-password \
+    --ingroup "$GP" \
+    -D \
+    --uid "$UID" \
+    $US
+
+RUN chown -R $UID:$UID /var/log/app.log
+USER $US
+WORKDIR /home/$US
+COPY --chown=$US:$US requirements.txt requirements.txt
+COPY --chown=$US:$US . . 
 COPY . /app
 WORKDIR /app
-RUN pip install -r requirements.txt
-ENV PATH="/home/worker/.local/bin:${PATH}" 
+RUN pip install --user -r requirements.txt
+ENV PATH="/home/$US/.local/bin:${PATH}" 
 CMD ["ddtrace-run", "python3", "app.py"]
 
