@@ -2,8 +2,8 @@ FROM lgirardi/lg-flaskimg-alpine:edge
 
 ENV US=worker
 ENV GP=$US-group
-ENV UID=3001
-ENV GID=3000
+ENV UID=10001
+ENV GID=10000
 
 RUN touch /var/log/app.log
 
