@@ -43,7 +43,7 @@ spec:
         imagePullPolicy: Always
         securityContext:
           runAsNonRoot: true
-          runAsUser: 3001
+          runAsUser: 30001
         env:
           - name: DD_PROFILING_ENABLED
             value: "true"

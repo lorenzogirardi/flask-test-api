@@ -19,7 +19,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
-        context: ./docker/
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -69,7 +68,6 @@ jobs:
               lgirardi/pytbak:v-${{ github.run_number }}
           # build on feature branches, push only on main branch
             push: true
-            run: docker push lgirardi/pytbak:v-${{ github.run_number }}
         - name: Image digest
           run: echo ${{ steps.docker_build.outputs.digest }}
 
@@ -96,7 +94,6 @@ jobs:
         id: sbom
         with:
           image: lgirardi/pytbak:v-${{ github.run_number }}
-          artifact-name: SBOM.spdx
 
   quality-gate:
     needs: docker-sbom
@@ -113,9 +110,11 @@ jobs:
 
       - name: Checkov GitHub Action
         uses: bridgecrewio/checkov-action@v12
+        id: checkov
         with:
           # This will add both a CLI output to the console and create a results.sarif file
-          directory: .
+          framework: kubernetes
+          directory: ./kubernetes/
           output_format: sarif
           soft_fail: true
           quiet: true
