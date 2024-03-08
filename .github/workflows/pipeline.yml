@@ -94,6 +94,11 @@ jobs:
         id: sbom
         with:
           image: lgirardi/pytbak:v-${{ github.run_number }}
+          output-file: "${{ github.event.repository.name }}-sbom.spdx.json"
+      - name: Scan SBOM
+        uses: anchore/scan-action@v3
+        with:
+          sbom: "${{ github.event.repository.name }}-sbom.spdx.json"
 
   quality-gate:
     needs: docker-sbom
@@ -107,7 +112,10 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so follow-up steps can access it
       - uses: actions/checkout@v4
-
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
       - name: Checkov GitHub Action
         uses: bridgecrewio/checkov-action@v12
         id: checkov
