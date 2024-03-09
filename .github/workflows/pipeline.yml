@@ -152,8 +152,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Configuration
+        run: |
+          cat << EOF > config.yaml
+          apiVersion: kind.x-k8s.io/v1alpha4
+          kind: Cluster
+          name: k8s-ci
+          nodes:
+          - role: control-plane
+            extraPortMappings:
+            - containerPort: 30180
+              hostPort: 30180
+              listenAddress: "0.0.0.0"
+              protocol: TCP
+          EOF
+          cat << EOF > nodeport.yaml
+          apiVersion: v1
+          kind: Service
+          metadata:
+            labels:
+              run: kube-check
+            name: kube-check
+          spec:
+            ports:
+            - port: 5000
+              protocol: TCP
+              targetPort: 5000
+              nodePort: 30180
+            selector:
+              run: kube-check
+            type: NodePort
+          EOF
       - name: Testing on a k8s Kind Cluster
-        uses: helm/kind-action@v1.4.0
+        uses: helm/kind-action@v1.9.0
+        with:
+          config: ./config.yaml
       - run: |
           kubectl cluster-info
           kubectl get nodes
@@ -162,8 +195,8 @@ jobs:
           kubectl run kube-check --image=lgirardi/pytbak:v-${{ github.run_number }} --port=5000
           sleep 20
           kubectl get po
-          kubectl port-forward kube-check 5000:5000 &>/dev/null &
-          sleep 5
-          kubectl port-forward kube-check 5000:5000 &>/dev/null &
+          kubectl get all -o wide
+          kubectl expose pod kube-check --port=5000 --target-port=5000  --type=NodePort
+          kubectl apply -f nodeport.yaml
       - run: |
-          curl -I http://localhost:5000/api/
+          curl -I http://localhost:30180/api/
