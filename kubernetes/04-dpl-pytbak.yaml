@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-84
+        image: lgirardi/pytbak:v-85
         imagePullPolicy: Always
         securityContext:
           runAsNonRoot: true
