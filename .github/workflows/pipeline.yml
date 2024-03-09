@@ -145,3 +145,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
           RUN_NUMBER: ${{ github.run_number }}
+
+  k8s-check:
+    needs: modifygit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Testing on a k8s Kind Cluster
+        uses: helm/kind-action@v1.4.0
+      - run: |
+          kubectl cluster-info
+          kubectl get nodes
+      - name : Preparing cluster for kube-check
+        run: |
+          kubectl run kube-check --image=lgirardi/pytbak:v-81 --port=5000
+          sleep 20
+          kubectl get po
+          kubectl port-forward kube-check 5000:5000 &>/dev/null &
+      - run: |
+          curl -I http://localhost:5000/api/
