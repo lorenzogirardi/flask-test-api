@@ -163,5 +163,7 @@ jobs:
           sleep 20
           kubectl get po
           kubectl port-forward kube-check 5000:5000 &>/dev/null &
+          sleep 5
+          kubectl port-forward kube-check 5000:5000 &>/dev/null &
       - run: |
           curl -I http://localhost:5000/api/
