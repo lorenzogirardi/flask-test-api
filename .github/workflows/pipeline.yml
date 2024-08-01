@@ -61,8 +61,8 @@ jobs:
           uses: docker/build-push-action@v6
           with:
             context: ./docker
-              - cache-from: type=gha
-              - cache-to: type=gha,mode=max
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
             platforms: linux/amd64,linux/arm64
             tags: |
               lgirardi/pytbak:v-${{ github.run_number }}
