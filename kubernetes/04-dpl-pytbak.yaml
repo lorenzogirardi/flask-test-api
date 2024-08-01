@@ -44,6 +44,8 @@ spec:
         volumeMounts:
         - name: applogs
           mountPath: /var/log
+        - name: tmp
+          mountPath: /tmp
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
@@ -89,3 +91,5 @@ spec:
       volumes:
       - name: applogs
         emptyDir: {} 
+      - name: tmp
+        emptyDir: {}
