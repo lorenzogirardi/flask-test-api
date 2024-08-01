@@ -41,9 +41,14 @@ spec:
       - name: pytbak
         image: lgirardi/pytbak:v-93
         imagePullPolicy: Always
+        volumeMounts:
+        - name: applog
+          mountPath: /var/log
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
         env:
           - name: DD_PROFILING_ENABLED
             value: "true"
@@ -81,3 +86,6 @@ spec:
           periodSeconds: 2
           successThreshold: 3
           timeoutSeconds: 2
+      volumes:
+      - name: applogs
+        emptyDir: {} 
