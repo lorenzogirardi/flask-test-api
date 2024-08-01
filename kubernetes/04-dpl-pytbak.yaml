@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-93
+        image: lgirardi/pytbak:v-94
         imagePullPolicy: Always
         volumeMounts:
         - name: applog
