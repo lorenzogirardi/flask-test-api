@@ -60,13 +60,12 @@ jobs:
         - name: Build image and push to Docker Hub and GitHub Container Registry
           uses: docker/build-push-action@v6
           with:
-          # relative path to the place where source code with Dockerfile is located
             context: ./docker
+              - cache-from: type=gha
+              - cache-to: type=gha,mode=max
             platforms: linux/amd64,linux/arm64
-            # Note: tags has to be all lower-case
             tags: |
               lgirardi/pytbak:v-${{ github.run_number }}
-          # build on feature branches, push only on main branch
             push: true
         - name: Image digest
           run: echo ${{ steps.docker_build.outputs.digest }}
