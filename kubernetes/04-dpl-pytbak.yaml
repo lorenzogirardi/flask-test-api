@@ -42,7 +42,7 @@ spec:
         image: lgirardi/pytbak:v-94
         imagePullPolicy: Always
         volumeMounts:
-        - name: applog
+        - name: applogs
           mountPath: /var/log
         securityContext:
           runAsNonRoot: true
