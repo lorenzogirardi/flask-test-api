@@ -38,6 +38,10 @@ jobs:
         needs: build
         runs-on: ubuntu-latest
         steps:
+        - name: Harden Runner
+          uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+          with:
+            egress-policy: audit
 
         - name: Checkout code
           uses: actions/checkout@v4
@@ -74,23 +78,33 @@ jobs:
         - name: Image digest
           run: echo ${{ steps.docker_build.outputs.digest }}
 
-  security-gate-grype:
+  security-gate-trivy:
     needs: docker
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          egress-policy: audit
       - name: Scan image
-        uses: anchore/scan-action@v4
+        uses: aquasecurity/trivy-action@0.20.0
         id: scan
         with:
-          image: lgirardi/pytbak:v-${{ github.run_number }}
-          fail-build: false
-          severity-cutoff: high
-          output-format: table
+          image-ref: lgirardi/pytbak:v-${{ github.run_number }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
              
   docker-sbom:
-    needs: security-gate-grype
+    needs: security-gate-trivy
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          egress-policy: audit
       - name: Sbom image
         uses: anchore/sbom-action@v0
         continue-on-error: true
@@ -109,6 +123,10 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          egress-policy: audit
       # Checks-out your repository under $GITHUB_WORKSPACE, so follow-up steps can access it
       - uses: actions/checkout@v4
       - name: Set up Python 3.8
@@ -130,6 +148,10 @@ jobs:
     needs: quality-gate
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          egress-policy: audit
       - name: Checkout code
         uses: actions/checkout@v4
      
@@ -153,6 +175,10 @@ jobs:
     needs: modifygit
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          egress-policy: audit
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Testing on a k8s Kind Cluster
