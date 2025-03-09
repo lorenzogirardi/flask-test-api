@@ -1,6 +1,6 @@
 # python rest api test application
 
-Working most of the times (always) in Platform i'm usually play with the infrastructure, however sometimes to create prototype i need backends that are done for the specific purpose.  
+Working most of the times (always) in Platform I'm usually play with the infrastructure, however sometimes to create prototype i need backends that are done for the specific purpose.  
 
 ## GOALS:
  - The application must be a REST api
