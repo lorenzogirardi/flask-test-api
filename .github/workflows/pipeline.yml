@@ -15,13 +15,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: OpenAI ChatGPT Code Review
-      uses: adshao/chatgpt-code-review-action@v0.2.5
-      with:
-          REVIEW_COMMENT_PREFIX: 'chatgpt:'
-          FULL_REVIEW_COMMENT: 'chatgpt'
-          OPENAI_TOKEN: ${{ secrets.OPENAI_API_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Code Review GPT
+        uses: mattzcarey/code-review-gpt@v0.1.11
+        with:
           GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: "gpt-4o"
+          REVIEW_LANGUAGE: "English"
 
   build:
     needs: explain-commit-changes 
