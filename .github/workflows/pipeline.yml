@@ -15,15 +15,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: OpenAI code review
-        uses: sshnaidm/gpt-code-review-action@v2.1
-        with:
-          openai-key: ${{ secrets.OPENAI_API_KEY }}
-
+    - name: OpenAI ChatGPT Code Review
+      uses: adshao/chatgpt-code-review-action@v0.2
+      with:
+          REVIEW_COMMENT_PREFIX: 'chatgpt:'
+          FULL_REVIEW_COMMENT: 'chatgpt'
+          OPENAI_TOKEN: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
 
   build:
     needs: explain-commit-changes 
