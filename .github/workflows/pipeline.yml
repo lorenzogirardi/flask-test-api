@@ -164,7 +164,7 @@ jobs:
 
 
   modifygit:
-    needs: chatgpt-review
+    needs: code_review_job
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
