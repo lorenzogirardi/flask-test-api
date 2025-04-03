@@ -11,24 +11,7 @@ permissions:
   actions: read
 
 jobs:
-  explain-commit-changes:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Code Review GPT
-        uses: mattzcarey/code-review-gpt@v0.8.0
-        with:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          MODEL: "gpt-4o"
-          REVIEW_LANGUAGE: "English"
-
   build:
-    needs: explain-commit-changes 
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
