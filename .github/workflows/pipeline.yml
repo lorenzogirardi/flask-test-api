@@ -11,7 +11,107 @@ permissions:
   actions: read
 
 jobs:
+  explain-commit-changes:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Per ottenere il commit corrente e quello precedente
+      
+      - name: Get commit diff and explain with ChatGPT
+        run: |
+          # Ottieni l'ID del commit corrente e del commit precedente
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          PREVIOUS_COMMIT=$(git rev-parse HEAD~1)
+          
+          echo "Analisi delle modifiche tra $PREVIOUS_COMMIT e $CURRENT_COMMIT"
+          
+          # Ottieni la diff tra il commit corrente e quello precedente
+          COMMIT_DIFF=$(git diff $PREVIOUS_COMMIT $CURRENT_COMMIT)
+          
+          # Se la diff è troppo grande, prendiamo solo l'inizio
+          if [ ${#COMMIT_DIFF} -gt 4000 ]; then
+            COMMIT_DIFF="${COMMIT_DIFF:0:4000}... (diff troncata)"
+          fi
+          
+          # Salva la diff in un file
+          echo "$COMMIT_DIFF" > commit_diff.txt
+          
+          # Installa la libreria Python necessaria
+          pip install requests
+          
+          # Crea lo script Python per interagire con ChatGPT
+          cat > explain.py << 'EOF'
+import os
+import requests
+import json
+
+# Leggi la diff dal file
+with open('commit_diff.txt', 'r') as file:
+    diff_content = file.read()
+
+# Configura la richiesta all'API di OpenAI
+api_key = os.environ.get('OPENAI_API_KEY')
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': f'Bearer {api_key}'
+}
+
+# Prepara il payload con il prompt
+data = {
+    'model': 'gpt-3.5-turbo',
+    'messages': [
+        {'role': 'system', 'content': 'Sei un assistente esperto di programmazione che analizza e spiega le modifiche al codice.'},
+        {'role': 'user', 'content': f'Analizza questa diff di codice e fornisci una spiegazione chiara delle modifiche apportate:\n\n{diff_content}'}
+    ],
+    'max_tokens': 1000
+}
+
+# Invia la richiesta all'API
+response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
+result = response.json()
+
+# Salva la spiegazione in un file
+if 'choices' in result and len(result['choices']) > 0:
+    explanation = result['choices'][0]['message']['content']
+    with open('explanation.md', 'w') as file:
+        file.write("## Spiegazione delle modifiche nel commit:\n\n")
+        file.write(explanation)
+else:
+    with open('explanation.md', 'w') as file:
+        file.write("Errore nell'ottenere la spiegazione: " + json.dumps(result))
+EOF
+          
+          # Esegui lo script Python
+          python explain.py
+          
+          # Mostra la spiegazione nei log di GitHub Actions
+          echo "--- SPIEGAZIONE DEL COMMIT ---"
+          cat explanation.md
+          echo "-----------------------------"
+          
+          # Ottieni il messaggio del commit attuale
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          
+          # Crea un file README o aggiorna il file CHANGELOG con la spiegazione
+          mkdir -p .github/commit-explanations
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          cat explanation.md > .github/commit-explanations/$COMMIT_SHORT.md
+          
+          # Opzionale: Se vuoi creare un nuovo commit con la spiegazione
+          # Decommenta le righe seguenti se vuoi che l'action crei un commit
+          # git config --global user.name "GitHub Action Bot"
+          # git config --global user.email "action@github.com"
+          # git add .github/commit-explanations/$COMMIT_SHORT.md
+          # git commit -m "Add explanation for commit $COMMIT_SHORT"
+          # git push
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
   build:
+    needs: explain-commit-changes 
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
@@ -144,24 +244,8 @@ jobs:
           soft_fail: true
           quiet: true
 
-  code_review_job:
-    needs: quality-gate
-    runs-on: ubuntu-latest
-    name: ChatGPT Code Review
-    steps:
-    - name: AI Code Review
-      uses: AleksandrFurmenkovOfficial/ai-code-review@v0.8
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        owner: ${{ github.repository_owner }}
-        repo: ${{ github.event.repository.name }}
-        pr_number: ${{ github.event.number }}
-        ai_provider: 'openai'
-        openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-        openai_model: 'gpt-4o'
-
   modifygit:
-    needs: code_review_job
+    needs: quality-gate
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
