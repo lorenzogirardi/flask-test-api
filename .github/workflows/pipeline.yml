@@ -26,12 +26,8 @@ jobs:
 
       - name: Get Code Diff
         run: |
-          git fetch origin # Assicurati di avere la versione più recente del branch
-            if git rev-parse --verify origin/main; then
-            git diff origin/main...HEAD > diff.txt
-          else
-           echo "No previous commits to compare, skipping diff generation." > diff.txt
-          fi
+          git diff origin/main...HEAD > diff.txt
+          cat diff.txt # (opzionale) per fare il debug e visualizzare il diff generato 
 
       - name: Run ChatGPT Review
         run: python .github/scripts/chatgpt_review.py
