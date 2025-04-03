@@ -160,7 +160,7 @@ jobs:
           openai_max_tokens: 2048 # optional
           mode: files # files or patch
           language: en # optional, default is 'en'
-          custom_prompt: "" # optional
+          custom_prompt: "explain the difference with the  previous commit" # optional
 
 
   modifygit:
