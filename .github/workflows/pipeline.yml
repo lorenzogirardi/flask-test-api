@@ -149,19 +149,16 @@ jobs:
     runs-on: ubuntu-latest
     name: ChatGPT Code Review
     steps:
-      - name: GenAI Code Review
-        uses: dlidstrom/genai-code-review@v3.0.4
-        with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_PR_ID: ${{ github.event.pull_request.number }}
-          openai_model: "gpt-4o" # optional
-          openai_temperature: 0.5 # optional
-          openai_max_tokens: 2048 # optional
-          mode: files # files or patch
-          language: en # optional, default is 'en'
-          custom_prompt: "explain the difference with the  previous commit" # optional
-
+    - name: AI Code Review
+      uses: AleksandrFurmenkovOfficial/ai-code-review@v0.8
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        owner: ${{ github.repository_owner }}
+        repo: ${{ github.event.repository.name }}
+        pr_number: ${{ github.event.number }}
+        ai_provider: 'openai'
+        openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+        openai_model: 'gpt-4o'
 
   modifygit:
     needs: code_review_job
