@@ -170,7 +170,7 @@ jobs:
         run: pip install openai
 
       - name: Run ChatGPT Review
-        run: python .github/scripts/chatgpt_review.py
+        run: python $GITHUB_WORKSPACE/.github/scripts/chatgpt_review.py
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
