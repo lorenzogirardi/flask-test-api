@@ -164,7 +164,7 @@ jobs:
       - name: Install Python and Dependencies
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install OpenAI SDK
         run: pip install openai
