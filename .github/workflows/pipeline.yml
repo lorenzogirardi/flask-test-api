@@ -19,7 +19,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Get Code Diff
-        run: git diff HEAD^ > diff.txt
+        run: |
+    if git rev-parse --verify origin/main; then
+      git diff origin/main...HEAD > diff.txt
+    else
+      echo "No previous commits to compare, skipping diff generation."
+      touch diff.txt
+    fi
 
       - name: Run ChatGPT Review
         run: python .github/scripts/chatgpt_review.py
