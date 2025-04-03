@@ -143,9 +143,41 @@ jobs:
           output_format: sarif
           soft_fail: true
           quiet: true
+  
+  chatgpt-review:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Prende gli ultimi due commit per il diff
+
+      - name: Get Code Diff
+        run: git diff HEAD^ > diff.txt
+
+      - name: Install Python and Dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install OpenAI SDK
+        run: pip install openai
+
+      - name: Run ChatGPT Review
+        run: python .github/scripts/chatgpt_review.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+
 
   modifygit:
-    needs: quality-gate
+    needs: chatgpt-review
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
