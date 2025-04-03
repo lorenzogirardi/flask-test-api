@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-       - name: OpenAI code review
+      - name: OpenAI code review
         uses: sshnaidm/gpt-code-review-action@v2.0
         with:
           openai-key: ${{ secrets.OPENAI_API_KEY }}
