@@ -21,6 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Fetch latest changes
+        run: |
           git fetch origin main --unshallow  # Assicura di avere lo storico completo
           git branch -a  # Stampa i branch disponibili per debugging
           git log --oneline -n 5  # Stampa gli ultimi 5 commit per debugging
