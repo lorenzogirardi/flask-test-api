@@ -19,115 +19,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Get changed files and commit message
-        id: git-info
-        run: |
-          git diff --name-only HEAD~1 HEAD | grep -v "^\.github" > changed_files.txt
-          git log -1 --pretty=%B > commit_msg.txt
-          echo "CHANGED_FILES=$(cat changed_files.txt | tr '\n' ' ')" >> $GITHUB_ENV
-
-      - name: Generate diff content
-        id: diff-content
-        run: |
-          mkdir -p tmp
-          for file in $(cat changed_files.txt); do
-            if [ -f "$file" ]; then
-              echo "Processing file: $file"
-              echo "File: $file" >> tmp/diff_content.txt
-              git diff HEAD~1..HEAD -- "$file" >> tmp/diff_content.txt
-              echo -e "\n\n" >> tmp/diff_content.txt
-            fi
-          done
-
-      - name: Analyze with ChatGPT
-        id: openai-analysis
-        run: |
-          COMMIT_MSG=$(cat commit_msg.txt)
-          
-          # Creiamo un file temporaneo per il prompt
-          cat > tmp/prompt.txt << EOF
-          Agisci come un esperto sviluppatore software che deve spiegare modifiche al codice a persone non tecniche.
-          
-          Analizza le seguenti modifiche di codice e genera un report che:
-          1. Spieghi i cambiamenti in linguaggio semplice e comprensibile da non-tecnici
-          2. Evidenzi i potenziali problemi di sicurezza, se presenti
-          3. Suggerisca eventuali miglioramenti al codice
-          4. Esprima un giudizio generale sulla qualità delle modifiche
-          
-          Messaggio del commit: "${COMMIT_MSG}"
-          
-          Modifiche:
-          $(cat tmp/diff_content.txt)
-          EOF
-          
-          # Usiamo jq per creare il JSON della richiesta
-          jq -n --arg prompt "$(cat tmp/prompt.txt)" '{
-            "model": "gpt-4",
-            "messages": [
-              {"role": "system", "content": "You are a helpful assistant."},
-              {"role": "user", "content": $prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 2000
-          }' > tmp/request.json
-          
-          # Chiamiamo l'API di OpenAI
-          curl -s https://api.openai.com/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d @tmp/request.json > tmp/response.json
-          
-          # Estraiamo la risposta
-          jq -r '.choices[0].message.content' tmp/response.json > tmp/analysis.txt
-
-      - name: Display code review report
-        run: |
-          echo "==============================================================="
-          echo "                    ANALISI DELLE MODIFICHE                     "
-          echo "==============================================================="
-          echo ""
-          echo "Repository: ${{ github.repository }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Autore: ${{ github.actor }}"
-          echo "Messaggio: $(cat commit_msg.txt)"
-          echo "Data: $(date)"
-          echo ""
-          echo "File modificati:"
-          cat changed_files.txt | sed 's/^/- /'
-          echo ""
-          echo "==============================================================="
-          echo "                          ANALISI                              "
-          echo "==============================================================="
-          echo ""
-          cat tmp/analysis.txt
-          echo ""
-          echo "==============================================================="
-
-      - name: Create report file
-        run: |
-          mkdir -p reports
-          {
-            echo "# Analisi delle modifiche al codice - ${{ github.repository }}"
-            echo ""
-            echo "## Commit"
-            echo "- **Hash:** ${{ github.sha }}"
-            echo "- **Autore:** ${{ github.actor }}"
-            echo "- **Messaggio:** $(cat commit_msg.txt)"
-            echo "- **Data:** $(date)"
-            echo ""
-            echo "## File modificati"
-            cat changed_files.txt | sed 's/^/- /'
-            echo ""
-            echo "## Analisi"
-            cat tmp/analysis.txt
-          } > reports/code-review-${{ github.sha }}.md
-
-      - name: Upload report as artifact
-        uses: actions/upload-artifact@v4
+       - name: OpenAI code review
+        uses: sshnaidm/gpt-code-review-action@v2.0
         with:
-          name: code-review-report
-          path: reports/code-review-${{ github.sha }}.md
+          openai-key: ${{ secrets.OPENAI_API_KEY }}
+
 
   build:
     needs: explain-commit-changes 
