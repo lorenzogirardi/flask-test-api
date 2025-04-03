@@ -40,7 +40,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-116
+        image: lgirardi/pytbak:v-126
         imagePullPolicy: Always
         volumeMounts:
         - name: applogs
