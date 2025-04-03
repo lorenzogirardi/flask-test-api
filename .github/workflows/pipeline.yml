@@ -21,7 +21,9 @@ jobs:
           fetch-depth: 0
 
       - name: Fetch latest changes
-        run: git fetch origin
+          git fetch origin main --unshallow  # Assicura di avere lo storico completo
+          git branch -a  # Stampa i branch disponibili per debugging
+          git log --oneline -n 5  # Stampa gli ultimi 5 commit per debugging
 
       - name: Install dependencies
         run: |
@@ -36,6 +38,15 @@ jobs:
 
       - name: Show diff content
         run: cat diff.txt
+
+      - name: Debug Git Status
+        run: git status
+
+      - name: Debug Git Log
+        run: git log --oneline -n 10
+
+      - name: Debug Show Remote Branches
+        run: git branch -a
 
       - name: Run ChatGPT Review
         run: python .github/scripts/chatgpt_review.py
