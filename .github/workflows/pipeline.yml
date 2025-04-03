@@ -17,6 +17,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch latest changes
+        run: git fetch origin
 
       - name: Install dependencies
         run: |
@@ -28,6 +33,9 @@ jobs:
         run: |
           git diff origin/main...HEAD > diff.txt
           cat diff.txt # (opzionale) per fare il debug e visualizzare il diff generato 
+
+      - name: Show diff content
+        run: cat diff.txt
 
       - name: Run ChatGPT Review
         run: python .github/scripts/chatgpt_review.py
