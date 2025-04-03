@@ -83,7 +83,7 @@ jobs:
           EOF
 
       - name: Upload report as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-review-report
           path: reports/code-review-${{ github.sha }}.md
