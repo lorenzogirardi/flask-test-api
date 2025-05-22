@@ -55,8 +55,11 @@ WORKDIR /app
 # Install dependencies from wheels (no compilation needed)
 RUN pip install --user --no-index --find-links=/wheels -r requirements.txt
 
+# Install ddtrace separately
+RUN pip install --user ddtrace==3.3.0 || echo "ddtrace installation skipped"
+
 # Set PATH
 ENV PATH="/home/$US/.local/bin:${PATH}" 
 
 # Run the application
-CMD ["ddtrace-run", "python3", "app.py"]
+CMD ["python3", "app.py"]

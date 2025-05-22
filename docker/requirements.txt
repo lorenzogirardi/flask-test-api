@@ -4,5 +4,4 @@ flask-compress
 redis
 requests
 flask_zipkin
-ddtrace==3.3.0
 psutil

@@ -26,7 +26,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s',
     handlers=[
-        logging.FileHandler("/var/log/app.log"),
+        logging.FileHandler("app.log"),
         logging.StreamHandler()
     ]
 )
@@ -184,4 +184,4 @@ def system_info():
     })
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0")
+    app.run(debug=False, host="0.0.0.0", port=12000)
