@@ -71,6 +71,7 @@ The application answer on /api/ with the main html page with methods
 | PUT         | http://[hostname]/api/put/context/[context_id]    | Update an existing context |
 | DELETE      | http://[hostname]/api/delete/context/[context_id] | Delete acontext            |  
 | GET         | http://[hostname]/api/fib/[number]                | Generate Fibonacci         |
+| GET         | http://[hostname]/sys                             | Container system metrics   |
 
 Following the methods example
 
@@ -252,3 +253,74 @@ $ docker exec -ti 5a6205570016 cat /var/log/app.log
 2021-08-17 11:51:52,795 INFO werkzeug Thread-9 : 172.17.0.1 - - [17/Aug/2021 11:51:52] "GET /A/get/context/error HTTP/1.1" 404 -
 2021-08-17 11:51:57,628 INFO werkzeug Thread-10 : 172.17.0.1 - - [17/Aug/2021 11:51:57] "GET /A/get/context/nocontext HTTP/1.1" 404 -  
 ```
+
+### System Metrics Endpoint
+
+The application provides a `/sys` endpoint that returns real-time container system metrics in JSON format:
+
+```
+$ curl -i http://localhost:5000/sys
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 579
+Server: Werkzeug/2.1.2 Python/3.9.13
+Date: Tue, 22 May 2025 10:15:23 GMT
+
+{
+  "cpu": {
+    "cpu_percent": 2.5,
+    "cpu_count": 4,
+    "per_cpu_percent": [1.0, 3.0, 2.0, 4.0]
+  },
+  "memory": {
+    "total": 8589934592,
+    "available": 4294967296,
+    "percent": 50.0,
+    "used": 4294967296,
+    "free": 4294967296
+  },
+  "network": {
+    "bytes_sent": 1024,
+    "bytes_recv": 2048,
+    "packets_sent": 10,
+    "packets_recv": 20,
+    "errin": 0,
+    "errout": 0,
+    "dropin": 0,
+    "dropout": 0
+  },
+  "disk": {
+    "total": 107374182400,
+    "used": 32212254720,
+    "free": 75161927680,
+    "percent": 30.0
+  },
+  "timestamp": 1716379323.456789
+}
+```
+
+This endpoint can be extended in the future to include additional system metrics as needed.
+
+### Multi-Architecture Build Support
+
+The Dockerfile has been updated to support building on both macOS Silicon (ARM64) and Intel (AMD64) CPUs using a multi-stage build approach:
+
+1. The first stage uses a builder container to compile all dependencies
+2. The second stage copies the pre-built wheels from the builder stage
+3. No compilation is needed in the runtime container
+
+To build for multiple architectures:
+
+```bash
+# Build for the current architecture
+docker build --tag pytbak:0.1 .
+
+# Build for multiple architectures using buildx
+docker buildx create --name multiarch-builder --use
+docker buildx build --platform linux/amd64,linux/arm64 --tag pytbak:0.1 .
+```
+
+This approach ensures that:
+- No external packages are needed for compilation in the running container
+- The image can be built on both macOS Silicon and Intel CPUs
+- The runtime container remains lightweight

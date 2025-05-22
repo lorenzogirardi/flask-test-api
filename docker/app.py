@@ -6,6 +6,7 @@ import logging
 from os import getenv
 import requests
 import time  # Added this import for time module
+import psutil  # For system resource monitoring
 
 app = Flask(__name__, static_url_path="")
 metrics = PrometheusMetrics(app)
@@ -125,6 +126,62 @@ def count():
 @app.route('/api/redisping')
 def proxy():
     return requests.get(f'{SITE_NAME}/ping').content
+
+@app.route('/sys')
+def system_info():
+    """
+    Endpoint to show container CPU and network usage.
+    This can be extended in the future to include other system metrics.
+    """
+    # Get CPU usage
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    cpu_count = psutil.cpu_count()
+    cpu_stats = {
+        'cpu_percent': cpu_percent,
+        'cpu_count': cpu_count,
+        'per_cpu_percent': psutil.cpu_percent(interval=0.1, percpu=True)
+    }
+    
+    # Get memory usage
+    memory = psutil.virtual_memory()
+    memory_stats = {
+        'total': memory.total,
+        'available': memory.available,
+        'percent': memory.percent,
+        'used': memory.used,
+        'free': memory.free
+    }
+    
+    # Get network usage
+    net_io = psutil.net_io_counters()
+    network_stats = {
+        'bytes_sent': net_io.bytes_sent,
+        'bytes_recv': net_io.bytes_recv,
+        'packets_sent': net_io.packets_sent,
+        'packets_recv': net_io.packets_recv,
+        'errin': net_io.errin,
+        'errout': net_io.errout,
+        'dropin': net_io.dropin,
+        'dropout': net_io.dropout
+    }
+    
+    # Get disk usage
+    disk = psutil.disk_usage('/')
+    disk_stats = {
+        'total': disk.total,
+        'used': disk.used,
+        'free': disk.free,
+        'percent': disk.percent
+    }
+    
+    # Return all stats as JSON
+    return jsonify({
+        'cpu': cpu_stats,
+        'memory': memory_stats,
+        'network': network_stats,
+        'disk': disk_stats,
+        'timestamp': time.time()
+    })
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0")
