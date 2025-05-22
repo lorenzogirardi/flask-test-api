@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, abort, request, make_response, url_for, render_template
+from flask import Flask, jsonify, abort, request, make_response, url_for, render_template, redirect
 from flask_compress import Compress
 from prometheus_flask_exporter import PrometheusMetrics
 from redis import Redis
@@ -6,6 +6,8 @@ import logging
 from os import getenv
 import requests
 import time  # Added this import for time module
+import psutil  # For system and network monitoring
+import socket  # For network socket types
 
 app = Flask(__name__, static_url_path="")
 metrics = PrometheusMetrics(app)
@@ -52,6 +54,10 @@ def make_public_task(task):
     return {'uri': url_for('get_task', task_id=task['id'], _external=True), **task}
 
 # Routes
+@app.route('/')
+def root():
+    return redirect(url_for('index'))
+
 @app.route('/api/')
 def index():
     return render_template('index.html')
@@ -126,5 +132,68 @@ def count():
 def proxy():
     return requests.get(f'{SITE_NAME}/ping').content
 
+@app.route('/api/sys')
+def sys_info():
+    """
+    Endpoint to display system network usage information as HTML
+    """
+    # Get network statistics and connections using the helper function
+    network_stats, connections_data = get_network_data()
+    
+    return render_template('sys.html', network_stats=network_stats, connections=connections_data)
+
+@app.route('/api/sys/network', methods=['GET'])
+def sys_network_api():
+    """
+    REST API endpoint to provide system network usage information as JSON
+    """
+    # Get network statistics and connections using the helper function
+    network_stats, connections_data = get_network_data()
+    
+    # Convert network stats to a more JSON-friendly format
+    network_stats_json = {}
+    for iface, stats in network_stats.items():
+        network_stats_json[iface] = {
+            'bytes_sent': stats.bytes_sent,
+            'bytes_recv': stats.bytes_recv,
+            'packets_sent': stats.packets_sent,
+            'packets_recv': stats.packets_recv,
+            'errin': stats.errin,
+            'errout': stats.errout,
+            'dropin': stats.dropin,
+            'dropout': stats.dropout
+        }
+    
+    # Return the data as JSON
+    return jsonify({
+        'network_interfaces': network_stats_json,
+        'network_connections': connections_data
+    })
+
+def get_network_data():
+    """
+    Helper function to get network statistics and connections data
+    """
+    # Get network statistics
+    network_stats = psutil.net_io_counters(pernic=True)
+    
+    # Get network connections
+    connections_data = []
+    try:
+        for conn in psutil.net_connections(kind='inet'):
+            conn_info = {
+                'type': 'TCP' if conn.type == socket.SOCK_STREAM else 'UDP',
+                'laddr': f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else "N/A",
+                'raddr': f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else "N/A",
+                'status': conn.status,
+                'pid': conn.pid if conn.pid else "N/A"
+            }
+            connections_data.append(conn_info)
+    except (psutil.AccessDenied, PermissionError):
+        # Handle permission issues when accessing network connections
+        connections_data = [{'type': 'N/A', 'laddr': 'Permission denied', 'raddr': 'N/A', 'status': 'N/A', 'pid': 'N/A'}]
+    
+    return network_stats, connections_data
+
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0")
+    app.run(debug=False, host="0.0.0.0", port=12000)
