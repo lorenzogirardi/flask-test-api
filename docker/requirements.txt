@@ -5,4 +5,4 @@ redis
 requests
 flask_zipkin
 ddtrace==3.3.0
-psutil
+psutil==5.9.5 --only-binary :all:
