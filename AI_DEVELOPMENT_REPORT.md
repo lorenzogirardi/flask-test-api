@@ -153,8 +153,108 @@ def system_metrics():
     return jsonify(response)
 ```
 
+### Test Suite Implementation
+
+```python
+class TestSysEndpoint(unittest.TestCase):
+    """Test cases for the /sys endpoint"""
+
+    def setUp(self):
+        """Set up test client"""
+        self.app = app.test_client()
+        self.app.testing = True
+
+    def test_sys_endpoint_returns_200(self):
+        """Test that the /sys endpoint returns a 200 status code"""
+        response = self.app.get('/sys')
+        self.assertEqual(response.status_code, 200)
+
+    def test_sys_endpoint_returns_json(self):
+        """Test that the /sys endpoint returns valid JSON"""
+        response = self.app.get('/sys')
+        try:
+            json_data = json.loads(response.data)
+            self.assertTrue(True)
+        except ValueError:
+            self.fail("Response is not valid JSON")
+
+    def test_sys_endpoint_contains_required_fields(self):
+        """Test that the /sys endpoint returns the required fields"""
+        response = self.app.get('/sys')
+        json_data = json.loads(response.data)
+        
+        # Check that all required sections are present
+        self.assertIn('cpu', json_data)
+        self.assertIn('memory', json_data)
+        self.assertIn('network', json_data)
+        self.assertIn('disk', json_data)
+        self.assertIn('timestamp', json_data)
+        
+        # Check CPU section
+        self.assertIn('cpu_count', json_data['cpu'])
+        self.assertIn('cpu_percent', json_data['cpu'])
+        self.assertIn('per_cpu_percent', json_data['cpu'])
+```
+
+## Actual System Metrics Output
+
+When the endpoint was tested, it produced the following output:
+
+```json
+{
+    "cpu": {
+        "cpu_count": 4,
+        "cpu_percent": 14.6,
+        "per_cpu_percent": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "disk": {
+        "free": 278524391424,
+        "percent": 10.7,
+        "total": 311993479168,
+        "used": 33452310528
+    },
+    "memory": {
+        "available": 13439602688,
+        "free": 308842496,
+        "percent": 19.8,
+        "total": 16762695680,
+        "used": 2923905024
+    },
+    "network": {
+        "bytes_recv": 361091542,
+        "bytes_sent": 188001192,
+        "dropin": 0,
+        "dropout": 0,
+        "errin": 0,
+        "errout": 0,
+        "packets_recv": 50823,
+        "packets_sent": 38498
+    },
+    "timestamp": 1747919082.7976184
+}
+```
+
 ## Conclusion
 
-This project demonstrates how AI can assist developers in implementing new features efficiently. The AI was able to understand the requirements, explore the codebase, implement the feature, create tests, and prepare a pull request—all while following best practices and ensuring cross-platform compatibility.
+This project demonstrates how AI can transform the software development process. The AI assistant was able to:
 
-By leveraging AI assistance, developers can focus on higher-level design decisions while the AI handles implementation details, resulting in faster development cycles and higher-quality code.
+1. **Understand complex requirements** - Quickly grasped the need for system metrics and cross-platform compatibility
+2. **Explore and comprehend the codebase** - Navigated the repository structure and understood the existing application
+3. **Implement a complete solution** - Added the endpoint with all required metrics and cross-platform build support
+4. **Create comprehensive tests** - Developed a test suite to verify the functionality
+5. **Document the changes** - Provided detailed documentation in the code and pull request
+6. **Manage version control** - Created a feature branch and pull request with proper descriptions
+
+By leveraging AI assistance, developers can:
+- Focus on higher-level design decisions and business requirements
+- Reduce development time for implementing new features
+- Ensure consistent code quality with automated testing
+- Maintain comprehensive documentation
+- Follow best practices in software development
+
+This approach represents a powerful new paradigm in software development, where AI serves as a collaborative partner that enhances developer productivity and code quality.
