@@ -5,6 +5,10 @@ ENV GP=$US-group
 ENV UID=10001
 ENV GID=10000
 
+# Install build dependencies for psutil
+USER root
+RUN apk add --no-cache gcc python3-dev musl-dev linux-headers
+
 RUN touch /var/log/app.log
 
 RUN addgroup \
