@@ -87,7 +87,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Scan image
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.32.0
         id: scan
         with:
           image-ref: lgirardi/pytbak:v-${{ github.run_number }}
