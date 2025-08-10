@@ -132,7 +132,7 @@ jobs:
       - name: Set up Python 3.8
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.13
       - name: Checkov GitHub Action
         uses: bridgecrewio/checkov-action@v12
         id: checkov
