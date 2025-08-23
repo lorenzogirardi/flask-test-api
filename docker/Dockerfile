@@ -1,30 +1,18 @@
-FROM lgirardi/lg-flaskimg-alpine:edge
+# Base image
+FROM python:3.9-slim
 
-ENV US=worker
-ENV GP=$US-group
-ENV UID=10001
-ENV GID=10000
-
-RUN touch /var/log/app.log
-
-RUN addgroup \
-    --gid "$GID" \
-    "$GP" \
-&&  adduser \
-    --disabled-password \
-    --ingroup "$GP" \
-    -D \
-    --uid "$UID" \
-    $US
-
-RUN chown -R $UID:$UID /var/log/app.log
-USER $US
-WORKDIR /home/$US
-COPY --chown=$US:$US requirements.txt requirements.txt
-COPY --chown=$US:$US . . 
-COPY . /app
+# Set working directory
 WORKDIR /app
-RUN pip install --user -r requirements.txt
-ENV PATH="/home/$US/.local/bin:${PATH}" 
-CMD ["ddtrace-run", "python3", "app.py"]
 
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ /app
+
+# Expose port
+EXPOSE 5000
+
+# Run the application
+CMD ["python", "-m", "app.main"]
