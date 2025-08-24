@@ -30,6 +30,7 @@ app.config['SWAGGER'] = {
     'specs_route': '/api/apidocs/'
 }
 swagger = Swagger(app, template=swagger_template, config={
+    'headers': [],
     'specs': [
         {
             'endpoint': 'apispec_1',
