@@ -4,7 +4,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from ddtrace import tracer
 from flasgger import Swagger
 from .utils import get_redis_connection
-from .health import health_bp
+from .mgmt import mgmt_bp
 from . import business
 import logging
 import json
@@ -12,7 +12,7 @@ import time
 
 # Initialize Flask App
 app = Flask(__name__)
-app.register_blueprint(health_bp)
+app.register_blueprint(mgmt_bp)
 app.config['SWAGGER'] = {
     'title': 'pytbak API',
     'uiversion': 3,

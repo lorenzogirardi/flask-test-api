@@ -121,6 +121,17 @@ The primary source for API documentation is the `/api/apidocs/` endpoint, which 
 | GET         | `/api/count`       | Increment a counter        |
 | GET         | `/api/redisping`   | Ping Redis                 |
 
+### 4.2. Management Endpoints
+
+| HTTP Method | URI                | Action                               |
+| ----------- | ------------------ | ------------------------------------ |
+| GET         | `/mgmt/health`     | Check application health             |
+| GET         | `/mgmt/info`       | Display application info             |
+| GET         | `/mgmt/env`        | Display whitelisted environment vars |
+| GET         | `/mgmt/mappings`   | Display all URL mappings             |
+| GET         | `/mgmt/threaddump` | Provide a thread dump                |
+| GET         | `/mgmt/metrics`    | Link to the Prometheus metrics       |
+
 ## 5. API Usage Examples
 
 The following examples assume the application is running at `http://localhost:5000`.
