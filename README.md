@@ -196,6 +196,8 @@ Content-Length: 17
 
 ### 5.6. Calculate Fibonacci number
 
+Note: The maximum value for this endpoint is 20,000.
+
 ```bash
 curl -i http://localhost:5000/api/fib/10
 ```

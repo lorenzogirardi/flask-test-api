@@ -206,8 +206,8 @@ def fib(x):
       400:
         description: Bad request, input too large
     """
-    if x > 1000:
-        return make_response(jsonify({'error': 'Input too large, max 1000'}), 400)
+    if x > 20000:
+        return make_response(jsonify({'error': 'Input too large, max 20000'}), 400)
     a, b = 0, 1
     for _ in range(x):
         a, b = b, a + b
