@@ -15,38 +15,71 @@ app = Flask(__name__)
 app.register_blueprint(mgmt_bp)
 
 # --- Flasgger Configuration for two separate UIs ---
+# We define a single Swagger instance but configure it to generate two
+# different spec files based on a rule filter. Then we serve two
+# separate HTML pages for the UIs.
 
-# 1. Main Application API documentation
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'app_spec',
+            "route": '/api/spec.json',
+            "rule_filter": lambda rule: 'mgmt.' not in rule.endpoint and rule.endpoint != 'static',
+            "model_filter": lambda tag: True,
+        },
+        {
+            "endpoint": 'mgmt_spec',
+            "route": '/mgmt/spec.json',
+            "rule_filter": lambda rule: 'mgmt.' in rule.endpoint,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "swagger_ui": False # We are serving the UI manually
+}
+
+# The template is used as a base for generating the specs
 swagger_template = {
     "swagger": "2.0",
     "info": {
-        "title": "pytbak Application API",
-        "description": "API for application-specific endpoints",
+        "title": "pytbak API",
         "version": "1.0.0"
     }
 }
-app.config['SWAGGER'] = {
-    'uiversion': 3,
-    'specs_route': '/api/apidocs/'
-}
-swagger = Swagger(app, template=swagger_template, config={
-    'headers': [],
-    'specs': [
-        {
-            'endpoint': 'apispec_1',
-            'route': '/api/spec.json',
-            'rule_filter': lambda rule: 'mgmt.' not in rule.endpoint and rule.endpoint != 'static',
-            'model_filter': lambda tag: True,
-        }
-    ]
-})
 
-# 2. Management API documentation (manual setup)
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
+
+@app.route('/api/apidocs/')
+def api_apidocs():
+    """Serves the Swagger UI for the Application API."""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Application API</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3/swagger-ui.css">
+    </head>
+    <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
+    <script>
+    const ui = SwaggerUIBundle({
+        url: "/api/spec.json",
+        dom_id: '#swagger-ui',
+        presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+    })
+    </script>
+    </body>
+    </html>
+    '''
+
 @app.route('/mgmt/apidocs/')
 def mgmt_apidocs():
-    """
-    Serves the Swagger UI for the Management API.
-    """
+    """Serves the Swagger UI for the Management API."""
     return '''
     <!DOCTYPE html>
     <html>
@@ -71,32 +104,6 @@ def mgmt_apidocs():
     </body>
     </html>
     '''
-
-@app.route('/mgmt/spec.json')
-def mgmt_spec():
-    """
-    Generates the OpenAPI spec for the Management API.
-    """
-    mgmt_template = {
-        "swagger": "2.0",
-        "info": {
-            "title": "pytbak Management API",
-            "description": "API for management and observability endpoints",
-            "version": "1.0.0"
-        }
-    }
-    # Temporarily get a swagger object with a different config
-    swag = swagger.get_swagger(template=mgmt_template, config={
-        'specs': [
-            {
-                'endpoint': 'mgmtspec',
-                'route': '/mgmt/spec.json',
-                'rule_filter': lambda rule: 'mgmt.' in rule.endpoint,
-                'model_filter': lambda tag: True,
-            }
-        ]
-    })
-    return jsonify(swag)
 
 # --- End Flasgger Configuration ---
 
