@@ -5,6 +5,7 @@ from ddtrace import tracer
 from flasgger import Swagger
 from .utils import get_redis_connection
 from .health import health_bp
+from .net import net_bp
 from . import business
 import logging
 import json
@@ -13,6 +14,7 @@ import time
 # Initialize Flask App
 app = Flask(__name__)
 app.register_blueprint(health_bp)
+app.register_blueprint(net_bp)
 app.config['SWAGGER'] = {
     'title': 'pytbak API',
     'uiversion': 3,
@@ -47,6 +49,10 @@ def not_found(error):
 @app.route('/api/', methods=['GET'])
 def index():
     return render_template('index.html')
+
+@app.route('/api/net', methods=['GET'])
+def net_page():
+    return render_template('net.html')
 
 @app.route('/api/contexts', methods=['GET'])
 def get_contexts():

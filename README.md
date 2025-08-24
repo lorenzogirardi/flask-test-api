@@ -120,6 +120,7 @@ The primary source for API documentation is the `/api/apidocs/` endpoint, which 
 | GET         | `/api/sleep/{n}`   | Sleep for n seconds        |
 | GET         | `/api/count`       | Increment a counter        |
 | GET         | `/api/redisping`   | Ping Redis                 |
+| GET         | `/api/net`         | View live network stats    |
 
 ## 5. API Usage Examples
 

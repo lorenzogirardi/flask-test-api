@@ -6,3 +6,4 @@ requests
 flask_zipkin
 ddtrace==3.3.0
 flasgger
+psutil

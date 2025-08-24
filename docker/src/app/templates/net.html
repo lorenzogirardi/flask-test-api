@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Statistics</title>
+    <style>
+        body { font-family: monospace; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Network Statistics (iftop-like)</h1>
+    <table id="net-stats-table">
+        <thead>
+            <tr>
+                <th>Interface</th>
+                <th>Bytes Sent</th>
+                <th>Bytes Received</th>
+                <th>Packets Sent</th>
+                <th>Packets Received</th>
+                <th>Rate (Sent)</th>
+                <th>Rate (Received)</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        let lastStats = {};
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        async function fetchNetStats() {
+            const response = await fetch('/api/net/stats');
+            const currentStats = await response.json();
+            const tableBody = document.querySelector('#net-stats-table tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            const currentTime = currentStats.timestamp;
+
+            for (const iface in currentStats.interfaces) {
+                const current = currentStats.interfaces[iface];
+                const last = lastStats[iface] || {
+                    timestamp: currentTime - 5, // Assume 5s interval for first run
+                    data: { bytes_sent: 0, bytes_recv: 0 }
+                };
+
+                const timeDiff = currentTime - last.timestamp;
+                const sentRate = (current.bytes_sent - last.data.bytes_sent) / timeDiff;
+                const recvRate = (current.bytes_recv - last.data.bytes_recv) / timeDiff;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${iface}</td>
+                    <td>${formatBytes(current.bytes_sent)}</td>
+                    <td>${formatBytes(current.bytes_recv)}</td>
+                    <td>${current.packets_sent}</td>
+                    <td>${current.packets_recv}</td>
+                    <td>${formatBytes(sentRate)}/s</td>
+                    <td>${formatBytes(recvRate)}/s</td>
+                `;
+                tableBody.appendChild(row);
+
+                lastStats[iface] = {
+                    timestamp: currentTime,
+                    data: current
+                };
+            }
+        }
+
+        // Fetch stats immediately on page load, and then every 5 seconds
+        fetchNetStats();
+        setInterval(fetchNetStats, 5000);
+    </script>
+</body>
+</html>
