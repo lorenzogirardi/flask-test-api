@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant Client
+    participant FlaskApp (main.py)
+    participant BusinessLogic (business.py)
+    participant Redis
+
+    Client->>+FlaskApp (main.py): POST /api/contexts (json)
+    FlaskApp (main.py)->>+BusinessLogic (business.py): create_new_context(data)
+    BusinessLogic (business.py)->>+Redis: SET context:{id} {json}
+    Redis-->>-BusinessLogic (business.py): OK
+    BusinessLogic (business.py)-->>-FlaskApp (main.py): return context_object
+    FlaskApp (main.py)-->>-Client: 201 CREATED (json)

@@ -55,15 +55,34 @@ The application consists of the following components:
 *   `docker-compose.yml`: A file for running the application locally with Docker Compose.
 *   `kubernetes/`: Kubernetes manifests for deploying the application.
 
-## 3. Getting Started
+## 3. Sequence Diagram
 
-### 3.1. Prerequisites
+The following diagram illustrates the request flow for creating a new context.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant FlaskApp (main.py)
+    participant BusinessLogic (business.py)
+    participant Redis
+
+    Client->>+FlaskApp (main.py): POST /api/contexts (json)
+    FlaskApp (main.py)->>+BusinessLogic (business.py): create_new_context(data)
+    BusinessLogic (business.py)->>+Redis: SET context:{id} {json}
+    Redis-->>-BusinessLogic (business.py): OK
+    BusinessLogic (business.py)-->>-FlaskApp (main.py): return context_object
+    FlaskApp (main.py)-->>-Client: 201 CREATED (json)
+```
+
+## 4. Getting Started
+
+### 4.1. Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/) (optional, for local development)
 *   [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) (for Kubernetes deployment)
 
-### 3.2. Local Development
+### 4.2. Local Development
 
 To run the application locally for development, you can use Docker Compose. This will start the application and a Redis container.
 
@@ -89,7 +108,7 @@ To run the application locally for development, you can use Docker Compose. This
     docker-compose down
     ```
 
-### 3.3. Running in Kubernetes
+### 4.3. Running in Kubernetes
 
 To deploy the application to a Kubernetes cluster:
 
@@ -103,14 +122,14 @@ To deploy the application to a Kubernetes cluster:
 
     You will need to configure an Ingress controller to route traffic to the `pytbak-svc` service in the `pytbak` namespace. Refer to the `kubernetes/03-ing-pytbak.yaml` file for the Ingress configuration.
 
-## 4. API Documentation
+## 5. API Documentation
 
 The API documentation is split into two sections:
 
 -   **Application API:** Documentation for the main application endpoints is available at `/api/apidocs/`.
 -   **Management API:** Documentation for the management and observability endpoints is available at `/mgmt/apidocs/`.
 
-### 4.1. Endpoints
+### 5.1. Endpoints
 
 | HTTP Method | URI                | Action                     |
 | ----------- | ------------------ | -------------------------- |
@@ -124,7 +143,7 @@ The API documentation is split into two sections:
 | GET         | `/api/count`       | Increment a counter        |
 | GET         | `/api/redisping`   | Ping Redis                 |
 
-### 4.2. Management Endpoints
+### 5.2. Management Endpoints
 
 | HTTP Method | URI                | Action                               |
 | ----------- | ------------------ | ------------------------------------ |
@@ -135,11 +154,11 @@ The API documentation is split into two sections:
 | GET         | `/mgmt/threaddump` | Provide a thread dump                |
 | GET         | `/mgmt/metrics`    | Link to the Prometheus metrics       |
 
-## 5. API Usage Examples
+## 6. API Usage Examples
 
 The following examples assume the application is running at `http://localhost:5000`.
 
-### 5.1. Create a new context
+### 6.1. Create a new context
 
 ```bash
 curl -i -X POST -H "Content-Type: application/json" \
@@ -163,13 +182,13 @@ Content-Length: 123
 }
 ```
 
-### 5.2. Get all contexts
+### 6.2. Get all contexts
 
 ```bash
 curl -i http://localhost:5000/api/contexts
 ```
 
-### 5.3. Get a specific context
+### 6.3. Get a specific context
 
 Replace `{context_id}` with the ID of the context you want to retrieve.
 
@@ -177,7 +196,7 @@ Replace `{context_id}` with the ID of the context you want to retrieve.
 curl -i http://localhost:5000/api/contexts/{context_id}
 ```
 
-### 5.4. Update a context
+### 6.4. Update a context
 
 Replace `{context_id}` with the ID of the context you want to update.
 
@@ -187,7 +206,7 @@ curl -i -X PUT -H "Content-Type: application/json" \
     http://localhost:5000/api/contexts/{context_id}
 ```
 
-### 5.5. Delete a context
+### 6.5. Delete a context
 
 Replace `{context_id}` with the ID of the context you want to delete.
 
@@ -208,7 +227,7 @@ Content-Length: 17
 }
 ```
 
-### 5.6. Calculate Fibonacci number
+### 6.6. Calculate Fibonacci number
 
 Note: The maximum value for this endpoint is 20,000.
 
@@ -216,27 +235,27 @@ Note: The maximum value for this endpoint is 20,000.
 curl -i http://localhost:5000/api/fib/10
 ```
 
-### 5.7. Sleep for a number of seconds
+### 6.7. Sleep for a number of seconds
 
 ```bash
 curl -i http://localhost:5000/api/sleep/3
 ```
 
-### 5.8. Increment a counter
+### 6.8. Increment a counter
 
 ```bash
 curl -i http://localhost:5000/api/count
 ```
 
-### 5.9. Ping Redis
+### 6.9. Ping Redis
 
 ```bash
 curl -i http://localhost:5000/api/redisping
 ```
 
-## 6. Key Features in Depth
+## 7. Key Features in Depth
 
-### 6.1. Configuration
+### 7.1. Configuration
 
 The application is configured using environment variables.
 
@@ -246,7 +265,7 @@ The application is configured using environment variables.
 | `REDIS_PORT`   | The port of the Redis server.    | `6379`      |
 | `REDIS_DB`     | The Redis database to use.       | `0`         |
 
-### 6.2. Logging
+### 7.2. Logging
 
 The application uses structured logging in JSON format. This makes the logs easy to parse and analyze in a centralized logging system.
 
@@ -260,15 +279,15 @@ Example log entry:
 }
 ```
 
-### 6.3. Metrics
+### 7.3. Metrics
 
 The application exposes a `/metrics` endpoint in Prometheus format. This can be scraped by a Prometheus server to monitor the application's performance.
 
-### 6.4. Tracing
+### 7.4. Tracing
 
 The application is integrated with Datadog for distributed tracing. The Kubernetes deployment is configured to enable Datadog tracing.
 
-### 6.5. Security
+### 7.5. Security
 
 The application is designed with security in mind.
 
@@ -276,7 +295,7 @@ The application is designed with security in mind.
 *   **Input Validation:** The API performs basic validation of incoming requests.
 *   **No Sensitive Information in Logs:** The logs are configured to avoid logging sensitive information.
 
-## 7. Contributing
+## 8. Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
