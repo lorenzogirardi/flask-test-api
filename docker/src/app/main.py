@@ -13,6 +13,11 @@ import time
 # Initialize Flask App
 app = Flask(__name__)
 app.register_blueprint(health_bp)
+app.config['SWAGGER'] = {
+    'title': 'pytbak API',
+    'uiversion': 3,
+    'specs_route': '/api/apidocs/'
+}
 swagger = Swagger(app)
 Compress(app)
 metrics = PrometheusMetrics(app)
@@ -36,7 +41,7 @@ def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
 # Routes
-@app.route('/', methods=['GET'])
+@app.route('/api/', methods=['GET'])
 def index():
     return render_template('index.html')
 

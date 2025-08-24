@@ -75,7 +75,7 @@ To run the application locally for development, you can use Docker Compose. This
 
 2.  **Access the application:**
 
-    The application will be available at `http://localhost:5000`.
+    The application will be available at `http://localhost:5000/api/`.
 
 3.  **View the logs:**
 
@@ -105,7 +105,7 @@ To deploy the application to a Kubernetes cluster:
 
 ## 4. API Documentation
 
-The primary source for API documentation is the `/apidocs` endpoint, which provides an interactive Swagger UI.
+The primary source for API documentation is the `/api/apidocs/` endpoint, which provides an interactive Swagger UI.
 
 ### 4.1. Endpoints
 
