@@ -57,21 +57,35 @@ The application consists of the following components:
 
 ## 3. Sequence Diagram
 
-The following diagram illustrates the request flow for creating a new context.
+The following diagram illustrates the detailed request flow for a typical API endpoint, including interaction with observability components like metrics and logging.
 
 ```mermaid
 sequenceDiagram
     participant Client
+    participant Metrics (Middleware)
     participant FlaskApp (main.py)
+    participant Logging (Handler)
     participant BusinessLogic (business.py)
     participant Redis
 
-    Client->>+FlaskApp (main.py): POST /api/contexts (json)
-    FlaskApp (main.py)->>+BusinessLogic (business.py): create_new_context(data)
-    BusinessLogic (business.py)->>+Redis: SET context:{id} {json}
-    Redis-->>-BusinessLogic (business.py): OK
-    BusinessLogic (business.py)-->>-FlaskApp (main.py): return context_object
-    FlaskApp (main.py)-->>-Client: 201 CREATED (json)
+    Client->>+Metrics (Middleware): Request (e.g., GET /api/contexts)
+    note right of Metrics (Middleware): Increment in-progress requests metric
+    Metrics (Middleware)->>+FlaskApp (main.py): Continue request
+
+    FlaskApp (main.py)->>+BusinessLogic (business.py): get_all_contexts()
+    BusinessLogic (business.py)->>+Redis: KEYS context:*
+    Redis-->>-BusinessLogic (business.py): List of keys
+    BusinessLogic (business.py)->>+Redis: GET context:{id1}
+    Redis-->>-BusinessLogic (business.py): context1_json
+    note right of BusinessLogic (business.py): ... (loops for all keys)
+    BusinessLogic (business.py)-->>-FlaskApp (main.py): List of context objects
+
+    FlaskApp (main.py)->>+Logging (Handler): Log request info (e.g., 200 OK)
+    Logging (Handler)-->>-FlaskApp (main.py): Logged to file & stream
+
+    FlaskApp (main.py)-->>-Metrics (Middleware): Response
+    note right of Metrics (Middleware): Decrement in-progress requests<br/>Record request latency<br/>Increment total requests by status code
+    Metrics (Middleware)-->>-Client: 200 OK (json)
 ```
 
 ## 4. Getting Started
