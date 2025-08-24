@@ -40,9 +40,11 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: pytbak
-        image: lgirardi/pytbak:v-new
+        image: lgirardi/pytbak:v-164
         imagePullPolicy: Always
         volumeMounts:
+        - name: applogs
+          mountPath: /var/log
         - name: tmp
           mountPath: /tmp
         securityContext:
@@ -60,6 +62,8 @@ spec:
             value: "true"
           - name: DD_LOGS_INJECTION
             value: "true"
+          - name: DD_TRACE_SAMPLE_RATE
+            value: "1"
         resources:
           limits:
             cpu: 300m
@@ -73,7 +77,7 @@ spec:
         livenessProbe:
           failureThreshold: 3
           httpGet:
-            path: /mgmt/health
+            path: /api/
             port: 5000
             scheme: HTTP
           initialDelaySeconds: 4
@@ -83,7 +87,7 @@ spec:
         readinessProbe:
           failureThreshold: 2
           httpGet:
-            path: /mgmt/health
+            path: /api/fib/1000
             port: 5000
             scheme: HTTP
           initialDelaySeconds: 4
@@ -91,5 +95,7 @@ spec:
           successThreshold: 3
           timeoutSeconds: 2
       volumes:
+      - name: applogs
+        emptyDir: {}
       - name: tmp
         emptyDir: {}
