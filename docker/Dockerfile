@@ -1,5 +1,5 @@
 # Base image
-FROM lgirardi/lg-flaskimg-alpine:edge
+FROM mirror.gcr.io/library/python:3.9-alpine
 
 # Set user and group variables
 ARG UID=10001
@@ -27,11 +27,11 @@ RUN mkdir -p /var/log && \
     chown -R ${US}:${GP} /var/log
 
 # Copy requirements and install dependencies
-COPY --chown=${US}:${GP} requirements.txt .
+COPY --chown=${US}:${GP} docker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY --chown=${US}:${GP} src/ /app
+COPY --chown=${US}:${GP} docker/src/ /app
 
 # Switch to non-root user
 USER $US

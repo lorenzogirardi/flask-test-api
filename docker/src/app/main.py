@@ -5,6 +5,7 @@ from ddtrace import tracer
 from flasgger import Swagger
 from .utils import get_redis_connection
 from .mgmt import mgmt_bp
+from .diag import diag_bp
 from . import business
 import requests
 import logging
@@ -14,6 +15,7 @@ import time
 # Initialize Flask App
 app = Flask(__name__)
 app.register_blueprint(mgmt_bp)
+app.register_blueprint(diag_bp)
 
 # --- Flasgger Configuration for two separate UIs ---
 # We define a single Swagger instance but configure it to generate two

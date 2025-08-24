@@ -164,6 +164,13 @@ The API documentation is split into two sections:
 | GET         | `/api/sleep/{n}`   | Sleep for n seconds        |
 | GET         | `/api/count`       | Increment a counter        |
 | GET         | `/api/redisping`   | Ping Redis                 |
+| GET         | `/api/ping`           | Runs a ping command to a specified host.         |
+| GET         | `/api/dns`            | Resolves DNS A/AAAA records for a given domain.  |
+| GET         | `/api/curl`           | Performs an HTTP GET request to a specified URL. |
+| GET         | `/api/tcp-check`      | Attempts a TCP connection to a host and port.    |
+| GET, POST   | `/api/headers`        | Echoes back the request headers.                 |
+| POST, PUT   | `/api/echo`           | Echoes back the request body.                    |
+| GET         | `/api/random-error`   | Returns a random HTTP error status.              |
 
 ### 5.2. Management Endpoints
 
@@ -273,6 +280,48 @@ curl -i http://localhost:5000/api/count
 
 ```bash
 curl -i http://localhost:5000/api/redisping
+```
+
+### 6.10. Ping a host
+
+```bash
+curl -u admin:password "http://localhost:5000/api/ping?host=google.com&count=3"
+```
+
+### 6.11. Resolve DNS
+
+```bash
+curl -u admin:password "http://localhost:5000/api/dns?name=google.com"
+```
+
+### 6.12. Curl a URL
+
+```bash
+curl -u admin:password "http://localhost:5000/api/curl?url=https://www.google.com"
+```
+
+### 6.13. TCP Check
+
+```bash
+curl -u admin:password "http://localhost:5000/api/tcp-check?host=google.com&port=443"
+```
+
+### 6.14. Echo Headers
+
+```bash
+curl -u admin:password http://localhost:5000/api/headers
+```
+
+### 6.15. Echo Body
+
+```bash
+curl -u admin:password -X POST -d "hello world" http://localhost:5000/api/echo
+```
+
+### 6.16. Random Error
+
+```bash
+curl -i -u admin:password http://localhost:5000/api/random-error
 ```
 
 ## 7. Key Features in Depth
