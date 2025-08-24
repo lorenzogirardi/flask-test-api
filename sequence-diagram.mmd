@@ -4,23 +4,31 @@ sequenceDiagram
     participant FlaskApp (main.py)
     participant Logging (Handler)
     participant BusinessLogic (business.py)
+    participant MgmtLogic (mgmt.py)
     participant Redis
 
-    Client->>+Metrics (Middleware): Request (e.g., GET /api/contexts)
-    note right of Metrics (Middleware): Increment in-progress requests metric
+    Client->>+Metrics (Middleware): HTTP Request
+    note right of Metrics (Middleware): Increment in-progress requests
     Metrics (Middleware)->>+FlaskApp (main.py): Continue request
 
-    FlaskApp (main.py)->>+BusinessLogic (business.py): get_all_contexts()
-    BusinessLogic (business.py)->>+Redis: KEYS context:*
-    Redis-->>-BusinessLogic (business.py): List of keys
-    BusinessLogic (business.py)->>+Redis: GET context:{id1}
-    Redis-->>-BusinessLogic (business.py): context1_json
-    note right of BusinessLogic (business.py): ... (loops for all keys)
-    BusinessLogic (business.py)-->>-FlaskApp (main.py): List of context objects
+    alt Application Endpoint (e.g. /api/contexts)
+        FlaskApp (main.py)->>+BusinessLogic (business.py): Call business function
+        BusinessLogic (business.py)->>+Redis: Database operation(s)
+        Redis-->>-BusinessLogic (business.py): DB Result
+        BusinessLogic (business.py)-->>-FlaskApp (main.py): Result
+    else Simple Endpoint (e.g. /api/fib)
+        note over FlaskApp (main.py): Handle directly
+        FlaskApp (main.py) ->> Redis: (Optional) e.g., INCR for /count
+        Redis -->> FlaskApp (main.py): (Optional) Result
+    else Management Endpoint (e.g. /mgmt/health)
+        FlaskApp (main.py)->>+MgmtLogic (mgmt.py): Call mgmt function
+        note over MgmtLogic (mgmt.py): Get info, health, etc.
+        MgmtLogic (mgmt.py)-->>-FlaskApp (main.py): Result
+    end
 
-    FlaskApp (main.py)->>+Logging (Handler): Log request info (e.g., 200 OK)
+    FlaskApp (main.py)->>+Logging (Handler): Log request info
     Logging (Handler)-->>-FlaskApp (main.py): Logged to file & stream
 
-    FlaskApp (main.py)-->>-Metrics (Middleware): Response
-    note right of Metrics (Middleware): Decrement in-progress requests<br/>Record request latency<br/>Increment total requests by status code
-    Metrics (Middleware)-->>-Client: 200 OK (json)
+    FlaskApp (main.py)-->>-Metrics (Middleware): HTTP Response
+    note right of Metrics (Middleware): Finalize metrics (latency, status code)
+    Metrics (Middleware)-->>-Client: HTTP Response
