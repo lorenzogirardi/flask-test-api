@@ -116,6 +116,10 @@ The primary source for API documentation is the `/apidocs` endpoint, which provi
 | POST        | `/api/contexts`    | Create a new context       |
 | PUT         | `/api/contexts/{id}`| Update an existing context |
 | DELETE      | `/api/contexts/{id}`| Delete a context           |
+| GET         | `/api/fib/{n}`     | Calculate Fibonacci number |
+| GET         | `/api/sleep/{n}`   | Sleep for n seconds        |
+| GET         | `/api/count`       | Increment a counter        |
+| GET         | `/api/redisping`   | Ping Redis                 |
 
 ## 5. API Usage Examples
 
@@ -188,6 +192,30 @@ Content-Length: 17
 {
   "result": true
 }
+```
+
+### 5.6. Calculate Fibonacci number
+
+```bash
+curl -i http://localhost:5000/api/fib/10
+```
+
+### 5.7. Sleep for a number of seconds
+
+```bash
+curl -i http://localhost:5000/api/sleep/3
+```
+
+### 5.8. Increment a counter
+
+```bash
+curl -i http://localhost:5000/api/count
+```
+
+### 5.9. Ping Redis
+
+```bash
+curl -i http://localhost:5000/api/redisping
 ```
 
 ## 6. Key Features in Depth

@@ -8,6 +8,7 @@ from .health import health_bp
 from . import business
 import logging
 import json
+import time
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -186,6 +187,78 @@ def delete_context(context_id):
     if not business.delete_context_by_id(context_id):
         return make_response(jsonify({'error': 'Not found'}), 404)
     return jsonify({'result': True})
+
+# Extra routes
+@app.route('/api/fib/<int:x>')
+def fib(x):
+    """
+    Calculate Fibonacci number
+    ---
+    parameters:
+      - name: x
+        in: path
+        type: integer
+        required: true
+        description: The number for Fibonacci calculation
+    responses:
+      200:
+        description: The calculated Fibonacci number
+      400:
+        description: Bad request, input too large
+    """
+    if x > 1000:
+        return make_response(jsonify({'error': 'Input too large, max 1000'}), 400)
+    a, b = 0, 1
+    for _ in range(x):
+        a, b = b, a + b
+    return str(a)
+
+@app.route('/api/sleep/<int:x>')
+def delay(x):
+    """
+    Sleep for x seconds
+    ---
+    parameters:
+      - name: x
+        in: path
+        type: integer
+        required: true
+        description: The number of seconds to sleep
+    responses:
+      200:
+        description: A message indicating the delay
+      400:
+        description: Bad request, sleep time too long
+    """
+    if x > 10:
+        return make_response(jsonify({'error': 'Sleep time too long, max 10 seconds'}), 400)
+    time.sleep(x)
+    return f"Delayed by {x} seconds"
+
+@app.route('/api/count')
+def count():
+    """
+    Increment a counter in Redis
+    ---
+    responses:
+      200:
+        description: The current value of the counter
+    """
+    r = get_redis_connection()
+    counter = r.incr('hits')
+    return str(counter)
+
+@app.route('/api/redisping')
+def proxy():
+    """
+    Ping Redis
+    ---
+    responses:
+      200:
+        description: Redis ping response
+    """
+    r = get_redis_connection()
+    return 'PONG' if r.ping() else 'FAIL'
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0")
