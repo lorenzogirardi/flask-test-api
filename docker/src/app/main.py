@@ -6,6 +6,7 @@ from flasgger import Swagger
 from .utils import get_redis_connection
 from .mgmt import mgmt_bp
 from . import business
+import requests
 import logging
 import json
 import time
@@ -344,17 +345,11 @@ def count():
     counter = r.incr('hits')
     return str(counter)
 
+SITE_NAME = 'http://webdis-svc.webdis:7379'
+
 @app.route('/api/redisping')
 def proxy():
-    """
-    Ping Redis
-    ---
-    responses:
-      200:
-        description: Redis ping response
-    """
-    r = get_redis_connection()
-    return 'PONG' if r.ping() else 'FAIL'
+    return requests.get(f'{SITE_NAME}/ping').content
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0")
