@@ -1,5 +1,5 @@
 # Base image
-FROM mirror.gcr.io/library/python:3.9-alpine
+FROM mirror.gcr.io/library/python:3.13-alpine
 
 # Set user and group variables
 ARG UID=10001
