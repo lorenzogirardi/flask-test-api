@@ -105,7 +105,10 @@ To deploy the application to a Kubernetes cluster:
 
 ## 4. API Documentation
 
-The primary source for API documentation is the `/api/apidocs/` endpoint, which provides an interactive Swagger UI.
+The API documentation is split into two sections:
+
+-   **Application API:** Documentation for the main application endpoints is available at `/api/apidocs/`.
+-   **Management API:** Documentation for the management and observability endpoints is available at `/mgmt/apidocs/`.
 
 ### 4.1. Endpoints
 

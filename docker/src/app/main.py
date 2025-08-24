@@ -13,12 +13,92 @@ import time
 # Initialize Flask App
 app = Flask(__name__)
 app.register_blueprint(mgmt_bp)
+
+# --- Flasgger Configuration for two separate UIs ---
+
+# 1. Main Application API documentation
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "pytbak Application API",
+        "description": "API for application-specific endpoints",
+        "version": "1.0.0"
+    }
+}
 app.config['SWAGGER'] = {
-    'title': 'pytbak API',
     'uiversion': 3,
     'specs_route': '/api/apidocs/'
 }
-swagger = Swagger(app)
+swagger = Swagger(app, template=swagger_template, config={
+    'specs': [
+        {
+            'endpoint': 'apispec_1',
+            'route': '/api/spec.json',
+            'rule_filter': lambda rule: 'mgmt.' not in rule.endpoint and rule.endpoint != 'static',
+            'model_filter': lambda tag: True,
+        }
+    ]
+})
+
+# 2. Management API documentation (manual setup)
+@app.route('/mgmt/apidocs/')
+def mgmt_apidocs():
+    """
+    Serves the Swagger UI for the Management API.
+    """
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Management API</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3/swagger-ui.css">
+    </head>
+    <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
+    <script>
+    const ui = SwaggerUIBundle({
+        url: "/mgmt/spec.json",
+        dom_id: '#swagger-ui',
+        presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+    })
+    </script>
+    </body>
+    </html>
+    '''
+
+@app.route('/mgmt/spec.json')
+def mgmt_spec():
+    """
+    Generates the OpenAPI spec for the Management API.
+    """
+    mgmt_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "pytbak Management API",
+            "description": "API for management and observability endpoints",
+            "version": "1.0.0"
+        }
+    }
+    # Temporarily get a swagger object with a different config
+    swag = swagger.get_swagger(template=mgmt_template, config={
+        'specs': [
+            {
+                'endpoint': 'mgmtspec',
+                'route': '/mgmt/spec.json',
+                'rule_filter': lambda rule: 'mgmt.' in rule.endpoint,
+                'model_filter': lambda tag: True,
+            }
+        ]
+    })
+    return jsonify(swag)
+
+# --- End Flasgger Configuration ---
+
 Compress(app)
 metrics = PrometheusMetrics(app)
 
