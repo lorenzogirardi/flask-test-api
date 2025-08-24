@@ -1,254 +1,326 @@
-# python rest api test application
+# Python REST API Test Application
 
-Working most of the times (always) in Platform I'm usually play with the infrastructure, however sometimes to create prototype i need backends that are done for the specific purpose.  
+## 1. Overview
 
-## GOALS:
- - The application must be a REST api
- - Run in kubernetes
-<br/><br/>
-<br/><br/>
-### Docker and kubernetes  
-The application is working with GET, POST, PUT, DELETE  
-enouth to cover most of the usages based on rest api.  
+This project provides a sample Python REST API application built with Flask. It is designed to be a starting point for building robust, observable, and secure microservices. The application is containerized with Docker and ready to be deployed to Kubernetes.
 
-Inside the docker path you can run easly as local docker  
+The application serves as a simple "context" management service, allowing users to perform CRUD (Create, Read, Update, Delete) operations on context items.
 
-```docker build --tag pytbak:0.1 .```  
-```docker run -t -p 5000:5000 pytbak:0.1```  
-and access on it with ```locahost:5000/api/```
+### 1.1. Architecture
 
-instead if you want to run it in kubernetes ,  
-starting from the main folder you can  apply the kubernetes folder on your environment  
-```kubectl apply -f kubernetes/ ```  
+The application consists of the following components:
+
+*   **Flask Application:** The core of the application, providing the REST API.
+*   **Redis:** Used as a persistent data store for the context items.
+*   **Docker:** The application is containerized for portability and ease of deployment.
+*   **Kubernetes:** The project includes Kubernetes manifests for deploying the application to a cluster.
+*   **Prometheus:** The application exposes a `/metrics` endpoint for Prometheus to scrape.
+*   **Datadog:** The application is integrated with Datadog for distributed tracing.
+
+## 2. Project Structure
 
 ```
-$ kubectl  get pods -n pytbak
-NAME                             READY   STATUS    RESTARTS   AGE
-pytbak-stable-5dfb4fbfd4-n64kx   1/1     Running   0          40m
+.
+├── docker
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── src
+│       └── app
+│           ├── __init__.py
+│           ├── business.py
+│           ├── health.py
+│           ├── main.py
+│           ├── templates
+│           │   └── index.html
+│           └── utils.py
+├── docker-compose.yml
+├── kubernetes
+│   ├── 01-ns-pytbak.yaml
+│   ├── 02-svc-pytbak.yaml
+│   ├── 03-ing-pytbak.yaml
+│   ├── 04-dpl-pytbak.yaml
+│   ├── 05-hpa-pytbak.yaml
+│   └── 06-istio-pytbak.yaml
+└── README.md
 ```
 
-Remember to change the host in the ingress file configuration  
+*   `docker/Dockerfile`: The Dockerfile for building the application image.
+*   `docker/requirements.txt`: The Python dependencies.
+*   `docker/src/app/`: The Python source code for the application.
+    *   `main.py`: The main entry point for the Flask application, containing the API routes.
+    *   `business.py`: The business logic for the application.
+    *   `health.py`: The health check endpoint.
+    *   `utils.py`: Utility functions, such as getting a Redis connection.
+    *   `templates/index.html`: The HTML for the main page.
+*   `docker-compose.yml`: A file for running the application locally with Docker Compose.
+*   `kubernetes/`: Kubernetes manifests for deploying the application.
+
+## 3. Sequence Diagram
+
+The following diagram illustrates the general architectural flow for different types of requests, including interaction with observability components.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Metrics (Middleware)
+    participant FlaskApp (main.py)
+    participant Logging (Handler)
+    participant BusinessLogic (business.py)
+    participant MgmtLogic (mgmt.py)
+    participant Redis
+
+    Client->>+Metrics (Middleware): HTTP Request
+    note right of Metrics (Middleware): Increment in-progress requests
+    Metrics (Middleware)->>+FlaskApp (main.py): Continue request
+
+    alt Application Endpoint (e.g. /api/contexts)
+        FlaskApp (main.py)->>+BusinessLogic (business.py): Call business function
+        BusinessLogic (business.py)->>+Redis: Database operation(s)
+        Redis-->>-BusinessLogic (business.py): DB Result
+        BusinessLogic (business.py)-->>-FlaskApp (main.py): Result
+    else Simple Endpoint (e.g. /api/fib)
+        note over FlaskApp (main.py): Handle directly
+        FlaskApp (main.py) ->> Redis: (Optional) e.g., INCR for /count
+        Redis -->> FlaskApp (main.py): (Optional) Result
+    else Management Endpoint (e.g. /mgmt/health)
+        FlaskApp (main.py)->>+MgmtLogic (mgmt.py): Call mgmt function
+        note over MgmtLogic (mgmt.py): Get info, health, etc.
+        MgmtLogic (mgmt.py)-->>-FlaskApp (main.py): Result
+    end
+
+    FlaskApp (main.py)->>+Logging (Handler): Log request info
+    Logging (Handler)-->>-FlaskApp (main.py): Logged to file & stream
+
+    FlaskApp (main.py)-->>-Metrics (Middleware): HTTP Response
+    note right of Metrics (Middleware): Finalize metrics (latency, status code)
+    Metrics (Middleware)-->>-Client: HTTP Response
 ```
-$ cat 03-ing-pytbak.yaml
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: pytbak-ingress
-  namespace: pytbak
-  annotations:
-    ingress.kubernetes.io/proxy-connect-timeout: "10"
-    ingress.kubernetes.io/proxy-read-timeout: "30"
-    ingress.kubernetes.io/proxy-send-timeout: "30"
-spec:
-  rules:
-  - host: pytbak.ing.h4x0r3d.lan
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: pytbak-svc
-          servicePort: 5000
+
+## 4. Getting Started
+
+### 4.1. Prerequisites
+
+*   [Docker](https://docs.docker.com/get-docker/)
+*   [Docker Compose](https://docs.docker.com/compose/install/) (optional, for local development)
+*   [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) (for Kubernetes deployment)
+
+### 4.2. Local Development
+
+To run the application locally for development, you can use Docker Compose. This will start the application and a Redis container.
+
+1.  **Build and start the containers:**
+
+    ```bash
+    docker-compose up --build -d
+    ```
+
+2.  **Access the application:**
+
+    The application will be available at `http://localhost:5000/api/`.
+
+3.  **View the logs:**
+
+    ```bash
+    docker-compose logs -f web
+    ```
+
+4.  **Stop the containers:**
+
+    ```bash
+    docker-compose down
+    ```
+
+### 4.3. Running in Kubernetes
+
+To deploy the application to a Kubernetes cluster:
+
+1.  **Apply the Kubernetes manifests:**
+
+    ```bash
+    kubectl apply -f kubernetes/
+    ```
+
+2.  **Access the application:**
+
+    You will need to configure an Ingress controller to route traffic to the `pytbak-svc` service in the `pytbak` namespace. Refer to the `kubernetes/03-ing-pytbak.yaml` file for the Ingress configuration.
+
+## 5. API Documentation
+
+The API documentation is split into two sections:
+
+-   **Application API:** Documentation for the main application endpoints is available at `/api/apidocs/`.
+-   **Management API:** Documentation for the management and observability endpoints is available at `/mgmt/apidocs/`.
+
+### 5.1. Endpoints
+
+| HTTP Method | URI                | Action                     |
+| ----------- | ------------------ | -------------------------- |
+| GET         | `/api/contexts`    | Retrieve list of contexts  |
+| GET         | `/api/contexts/{id}`| Retrieve a context         |
+| POST        | `/api/contexts`    | Create a new context       |
+| PUT         | `/api/contexts/{id}`| Update an existing context |
+| DELETE      | `/api/contexts/{id}`| Delete a context           |
+| GET         | `/api/fib/{n}`     | Calculate Fibonacci number |
+| GET         | `/api/sleep/{n}`   | Sleep for n seconds        |
+| GET         | `/api/count`       | Increment a counter        |
+| GET         | `/api/redisping`   | Ping Redis                 |
+
+### 5.2. Management Endpoints
+
+| HTTP Method | URI                | Action                               |
+| ----------- | ------------------ | ------------------------------------ |
+| GET         | `/mgmt/health`     | Check application health             |
+| GET         | `/mgmt/info`       | Display application info             |
+| GET         | `/mgmt/env`        | Display whitelisted environment vars |
+| GET         | `/mgmt/mappings`   | Display all URL mappings             |
+| GET         | `/mgmt/threaddump` | Provide a thread dump                |
+| GET         | `/mgmt/metrics`    | Link to the Prometheus metrics       |
+
+## 6. API Usage Examples
+
+The following examples assume the application is running at `http://localhost:5000`.
+
+### 6.1. Create a new context
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" \
+    -d '{"title": "My First Context", "description": "This is a test context."}' \
+    http://localhost:5000/api/contexts
 ```
 
-*host: pytbak.ing.h4x0r3d.lan* this is my ingress dns resolution
+The server will respond with the newly created context, including its unique ID.
 
-TIPS: for ingress endpoints you can manage multiple namespace creating an A record in your DNS (as a subdomain) with a wildcard dedicated only for ingress matching the namespace and the host created
-
-in my case i have the home dns as ```h4x0r3d.lan```  
-and ```*.ing.h4x0r3d.lan``` as a record A of my kubernetes ingress  
-in this way if i create a namespace *pippo* the dns that i have to call to reach it out will be *pippo.ing.4x0r3d.lan* with no change on DNS.
-<br/><br/>
-<br/><br/>
-### Usage
-
-The application answer on /api/ with the main html page with methods  
-
-| HTTP Method |                       URI                         | Action                     |
-|-------------|:-------------------------------------------------:|----------------------------|
-| GET         | http://[hostname]/api/get/context                 | Retrieve list of context   |
-| GET         | http://[hostname]/api/get/context/[context_id]    | Retrieve a context         |
-| POST        | http://[hostname]/api/post/context                | Create a new context       |
-| PUT         | http://[hostname]/api/put/context/[context_id]    | Update an existing context |
-| DELETE      | http://[hostname]/api/delete/context/[context_id] | Delete acontext            |  
-| GET         | http://[hostname]/api/fib/[number]                | Generate Fibonacci         |
-
-Following the methods example
-
-```
-$ curl -i http://pytbak.ing.h4x0r3d.lan/api/get/context
-HTTP/1.1 200 OK
-Server: openresty/1.15.8.1
-Date: Wed, 28 Oct 2020 20:02:02 GMT
-Content-Type: application/json
-Content-Length: 696
-Connection: keep-alive
-Vary: Accept-Encoding
-
-{
-  "context": [
-    {
-      "description": "RHEL 6 based",
-      "done": false,
-      "title": "Cento 6",
-      "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/1"
-    },
-    {
-      "description": "RHEL 7 based",
-      "done": false,
-      "title": "Centos 7",
-      "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/2"
-    },
-    {
-      "description": "RHEL 8 based",
-      "done": false,
-      "title": "Centos 8",
-      "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/3"
-    },
-    {
-      "description": "Fedora + RHEL based",
-      "done": false,
-      "title": "Centos stream",
-      "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/4"
-    }
-  ]
-```  
-<br/><br/>
-```
-$ curl -i -H "Content-Type: application/json" -X POST -d '{"title":"Ubuntu 20.04 LTS", "description":"focal"}' http://pytbak.ing.h4x0r3d.lan/api/post/context
+```json
 HTTP/1.1 201 CREATED
-Server: openresty/1.15.8.1
-Date: Wed, 28 Oct 2020 19:49:31 GMT
 Content-Type: application/json
-Content-Length: 165
-Connection: keep-alive
+Content-Length: 123
+...
 
 {
-  "task": {
-    "description": "focal",
-    "done": false,
-    "title": "Ubuntu 20.04 LTS",
-    "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/5"
-  }
+  "description": "This is a test context.",
+  "done": false,
+  "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+  "title": "My First Context"
 }
 ```
-<br/><br/>
 
+### 6.2. Get all contexts
+
+```bash
+curl -i http://localhost:5000/api/contexts
 ```
-$ curl -i -H "Content-Type: application/json" -X PUT -d '{"description":"Focal Fossa"}' http://pytbak.ing.h4x0r3d.lan/api/put/context/5
+
+### 6.3. Get a specific context
+
+Replace `{context_id}` with the ID of the context you want to retrieve.
+
+```bash
+curl -i http://localhost:5000/api/contexts/{context_id}
+```
+
+### 6.4. Update a context
+
+Replace `{context_id}` with the ID of the context you want to update.
+
+```bash
+curl -i -X PUT -H "Content-Type: application/json" \
+    -d '{"done": true}' \
+    http://localhost:5000/api/contexts/{context_id}
+```
+
+### 6.5. Delete a context
+
+Replace `{context_id}` with the ID of the context you want to delete.
+
+```bash
+curl -i -X DELETE http://localhost:5000/api/contexts/{context_id}
+```
+
+The server will respond with a confirmation message.
+
+```json
 HTTP/1.1 200 OK
-Server: openresty/1.15.8.1
-Date: Wed, 28 Oct 2020 20:02:43 GMT
 Content-Type: application/json
-Content-Length: 171
-Connection: keep-alive
-
-{
-  "task": {
-    "description": "Focal Fossa",
-    "done": false,
-    "title": "Ubuntu 20.04 LTS",
-    "uri": "http://pytbak.ing.h4x0r3d.lan/api/get/context/5"
-  }
-}
-```
-<br/><br/>
-
-```
-$ curl -i -H "Content-Type: application/json" -X DELETE http://pytbak.ing.h4x0r3d.lan/api/delete/context/5
-HTTP/1.1 200 OK
-Server: openresty/1.15.8.1
-Date: Wed, 28 Oct 2020 20:04:47 GMT
-Content-Type: application/json
-Content-Length: 21
-Connection: keep-alive
+Content-Length: 17
+...
 
 {
   "result": true
 }
-$ curl -i http://pytbak.ing.h4x0r3d.lan/api/get/context/5
-HTTP/1.1 404 NOT FOUND
-Server: openresty/1.15.8.1
-Date: Wed, 28 Oct 2020 20:04:54 GMT
-Content-Type: application/json
-Content-Length: 27
-Connection: keep-alive
+```
 
+### 6.6. Calculate Fibonacci number
+
+Note: The maximum value for this endpoint is 20,000.
+
+```bash
+curl -i http://localhost:5000/api/fib/10
+```
+
+### 6.7. Sleep for a number of seconds
+
+```bash
+curl -i http://localhost:5000/api/sleep/3
+```
+
+### 6.8. Increment a counter
+
+```bash
+curl -i http://localhost:5000/api/count
+```
+
+### 6.9. Ping Redis
+
+```bash
+curl -i http://localhost:5000/api/redisping
+```
+
+## 7. Key Features in Depth
+
+### 7.1. Configuration
+
+The application is configured using environment variables.
+
+| Variable       | Description                  | Default     |
+| -------------- | ---------------------------- | ----------- |
+| `REDIS_HOST`   | The hostname of the Redis server. | `localhost` |
+| `REDIS_PORT`   | The port of the Redis server.    | `6379`      |
+| `REDIS_DB`     | The Redis database to use.       | `0`         |
+
+### 7.2. Logging
+
+The application uses structured logging in JSON format. This makes the logs easy to parse and analyze in a centralized logging system.
+
+Example log entry:
+
+```json
 {
-  "error": "Not found"
+    "timestamp": "2023-10-27 10:00:00,000",
+    "level": "INFO",
+    "message": "127.0.0.1 - - [27/Oct/2023 10:00:00] \"GET /api/contexts HTTP/1.1\" 200 -"
 }
 ```
-<br/><br/>  
 
-```
-$ curl -i localhost:5000/api/fib/100
-HTTP/1.0 200 OK
-Content-Type: text/html; charset=utf-8
-Content-Length: 21
-Server: Werkzeug/2.0.3 Python/3.9.10
-Date: Mon, 21 Feb 2022 15:16:32 GMT
+### 7.3. Metrics
 
-354224848179261915075
-```
+The application exposes a `/metrics` endpoint in Prometheus format. This can be scraped by a Prometheus server to monitor the application's performance.
 
+### 7.4. Tracing
 
-<br/><br/>  
+The application is integrated with Datadog for distributed tracing. The Kubernetes deployment is configured to enable Datadog tracing.
 
-```
-$ time curl localhost:5000/api/sleep/5
-HTTP/1.1 200 OK
-Server: Werkzeug/2.1.2 Python/3.9.13
-Date: Fri, 01 Jul 2022 16:24:04 GMT
-Content-Type: text/html; charset=utf-8
-Content-Length: 20
-Vary: Accept-Encoding
-Connection: close
+### 7.5. Security
 
-delayed by 5 seconds
-real	0m5.014s
-user	0m0.005s
-sys	0m0.005s
-```
+The application is designed with security in mind.
 
+*   **Container Security:** The Docker container is run with a restrictive security context in Kubernetes, including a non-root user, a read-only root filesystem, and no privileges.
+*   **Input Validation:** The API performs basic validation of incoming requests.
+*   **No Sensitive Information in Logs:** The logs are configured to avoid logging sensitive information.
 
-### metrics
-application supports /metrics endpoint
-```
-$ curl localhost:5000/metrics
-# HELP python_gc_objects_collected_total Objects collected during gc
-# TYPE python_gc_objects_collected_total counter
-python_gc_objects_collected_total{generation="0"} 180.0
-python_gc_objects_collected_total{generation="1"} 316.0
-python_gc_objects_collected_total{generation="2"} 0.0
-# HELP python_gc_objects_uncollectable_total Uncollectable object found during GC
-# TYPE python_gc_objects_uncollectable_total counter
-python_gc_objects_uncollectable_total{generation="0"} 0.0
-python_gc_objects_uncollectable_total{generation="1"} 0.0
-python_gc_objects_uncollectable_total{generation="2"} 0.0
-# HELP python_gc_collections_total Number of times this generation was collected
-# TYPE python_gc_collections_total counter
-python_gc_collections_total{generation="0"} 75.0
-python_gc_collections_total{generation="1"} 6.0
-python_gc_collections_total{generation="2"} 0.0
-# HELP python_info Python platform information
-# TYPE python_info gauge
-python_info{implementation="CPython",major="3",minor="9",patchlevel="6",version="3.9.6"} 1.0
-etc etc ...
-```      
+## 8. Contributing
 
-### logs
+Contributions are welcome! Please follow these guidelines:
 
-application has a log handler that write INFO in /var/log/app.log
-```
-$ docker exec -ti 5a6205570016 cat /var/log/app.log
-2021-08-17 11:42:32,759 INFO werkzeug MainThread :  * Running on http://172.17.0.2:5000/ (Press CTRL+C to quit)
-2021-08-17 11:42:45,973 INFO werkzeug Thread-1 : 172.17.0.1 - - [17/Aug/2021 11:42:45] "GET /A/ HTTP/1.1" 200 -
-2021-08-17 11:42:55,778 INFO werkzeug Thread-2 : 172.17.0.1 - - [17/Aug/2021 11:42:55] "GET /A/get/context HTTP/1.1" 200 -
-2021-08-17 11:43:13,769 INFO werkzeug Thread-3 : 172.17.0.1 - - [17/Aug/2021 11:43:13] "GET /A/get/context HTTP/1.1" 200 -
-2021-08-17 11:43:44,240 INFO werkzeug Thread-4 : 172.17.0.1 - - [17/Aug/2021 11:43:44] "GET /A/get/context/1 HTTP/1.1" 200 -
-2021-08-17 11:48:51,725 INFO werkzeug Thread-5 : 172.17.0.1 - - [17/Aug/2021 11:48:51] "GET /metrics HTTP/1.1" 200 -
-2021-08-17 11:49:08,889 INFO werkzeug Thread-6 : 172.17.0.1 - - [17/Aug/2021 11:49:08] "GET /metrics HTTP/1.1" 200 -
-2021-08-17 11:49:30,101 INFO werkzeug Thread-7 : 172.17.0.1 - - [17/Aug/2021 11:49:30] "GET /metrics HTTP/1.1" 200 -
-2021-08-17 11:49:41,133 INFO werkzeug Thread-8 : 172.17.0.1 - - [17/Aug/2021 11:49:41] "GET /metrics HTTP/1.1" 200 -
-2021-08-17 11:51:52,795 INFO werkzeug Thread-9 : 172.17.0.1 - - [17/Aug/2021 11:51:52] "GET /A/get/context/error HTTP/1.1" 404 -
-2021-08-17 11:51:57,628 INFO werkzeug Thread-10 : 172.17.0.1 - - [17/Aug/2021 11:51:57] "GET /A/get/context/nocontext HTTP/1.1" 404 -  
-```
+*   **Code Style:** Follow the PEP 8 style guide for Python.
+*   **Pull Requests:** Create a pull request for any new features or bug fixes. Please provide a clear description of the changes.
+*   **Testing:** Please add or update tests for any changes you make.

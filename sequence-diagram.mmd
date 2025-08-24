@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant Client
+    participant Metrics (Middleware)
+    participant FlaskApp (main.py)
+    participant Logging (Handler)
+    participant BusinessLogic (business.py)
+    participant MgmtLogic (mgmt.py)
+    participant Redis
+
+    Client->>+Metrics (Middleware): HTTP Request
+    note right of Metrics (Middleware): Increment in-progress requests
+    Metrics (Middleware)->>+FlaskApp (main.py): Continue request
+
+    alt Application Endpoint (e.g. /api/contexts)
+        FlaskApp (main.py)->>+BusinessLogic (business.py): Call business function
+        BusinessLogic (business.py)->>+Redis: Database operation(s)
+        Redis-->>-BusinessLogic (business.py): DB Result
+        BusinessLogic (business.py)-->>-FlaskApp (main.py): Result
+    else Simple Endpoint (e.g. /api/fib)
+        note over FlaskApp (main.py): Handle directly
+        FlaskApp (main.py) ->> Redis: (Optional) e.g., INCR for /count
+        Redis -->> FlaskApp (main.py): (Optional) Result
+    else Management Endpoint (e.g. /mgmt/health)
+        FlaskApp (main.py)->>+MgmtLogic (mgmt.py): Call mgmt function
+        note over MgmtLogic (mgmt.py): Get info, health, etc.
+        MgmtLogic (mgmt.py)-->>-FlaskApp (main.py): Result
+    end
+
+    FlaskApp (main.py)->>+Logging (Handler): Log request info
+    Logging (Handler)-->>-FlaskApp (main.py): Logged to file & stream
+
+    FlaskApp (main.py)-->>-Metrics (Middleware): HTTP Response
+    note right of Metrics (Middleware): Finalize metrics (latency, status code)
+    Metrics (Middleware)-->>-Client: HTTP Response

@@ -1,12 +1,13 @@
+# Base image
 FROM lgirardi/lg-flaskimg-alpine:edge
 
-ENV US=worker
-ENV GP=$US-group
-ENV UID=10001
-ENV GID=10000
+# Set user and group variables
+ARG UID=10001
+ARG GID=10001
+ARG US=pytbak
+ARG GP=pytbak
 
-RUN touch /var/log/app.log
-
+# Create user and group
 RUN addgroup \
     --gid "$GID" \
     "$GP" \
@@ -17,14 +18,26 @@ RUN addgroup \
     --uid "$UID" \
     $US
 
-RUN chown -R $UID:$UID /var/log/app.log
-USER $US
-WORKDIR /home/$US
-COPY --chown=$US:$US requirements.txt requirements.txt
-COPY --chown=$US:$US . . 
-COPY . /app
+# Set working directory
 WORKDIR /app
-RUN pip install --user -r requirements.txt
-ENV PATH="/home/$US/.local/bin:${PATH}" 
-CMD ["ddtrace-run", "python3", "app.py"]
 
+# Create and set permissions for log file
+RUN mkdir -p /var/log && \
+    touch /var/log/app.log && \
+    chown -R ${US}:${GP} /var/log
+
+# Copy requirements and install dependencies
+COPY --chown=${US}:${GP} requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY --chown=${US}:${GP} src/ /app
+
+# Switch to non-root user
+USER $US
+
+# Expose port
+EXPOSE 5000
+
+# Run the application
+CMD ["python", "-m", "app.main"]
