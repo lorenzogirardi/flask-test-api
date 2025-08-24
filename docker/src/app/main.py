@@ -23,13 +23,16 @@ Compress(app)
 metrics = PrometheusMetrics(app)
 
 # Setup logging
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(json.dumps({
+stream_handler = logging.StreamHandler()
+file_handler = logging.FileHandler('/var/log/app.log')
+formatter = logging.Formatter(json.dumps({
     'timestamp': '%(asctime)s',
     'level': '%(levelname)s',
     'message': '%(message)s'
-})))
-logging.basicConfig(level=logging.INFO, handlers=[handler])
+}))
+stream_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+logging.basicConfig(level=logging.INFO, handlers=[stream_handler, file_handler])
 
 # Error handlers
 @app.errorhandler(400)
