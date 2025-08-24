@@ -5,6 +5,7 @@ sequenceDiagram
     participant Logging (Handler)
     participant BusinessLogic (business.py)
     participant MgmtLogic (mgmt.py)
+    participant DiagLogic (diag.py)
     participant Redis
 
     Client->>+Metrics (Middleware): HTTP Request
@@ -24,6 +25,10 @@ sequenceDiagram
         FlaskApp (main.py)->>+MgmtLogic (mgmt.py): Call mgmt function
         note over MgmtLogic (mgmt.py): Get info, health, etc.
         MgmtLogic (mgmt.py)-->>-FlaskApp (main.py): Result
+    else Diagnostic Endpoint (e.g. /api/ping)
+        FlaskApp (main.py)->>+DiagLogic (diag.py): Call diag function
+        note over DiagLogic (diag.py): Perform diagnostic action
+        DiagLogic (diag.py)-->>-FlaskApp (main.py): Result
     end
 
     FlaskApp (main.py)->>+Logging (Handler): Log request info

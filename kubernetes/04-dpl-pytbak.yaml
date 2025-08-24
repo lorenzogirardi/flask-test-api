@@ -64,6 +64,16 @@ spec:
             value: "true"
           - name: DD_TRACE_SAMPLE_RATE
             value: "1"
+          - name: DIAG_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: diag-credentials
+                key: DIAG_USERNAME
+          - name: DIAG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: diag-credentials
+                key: DIAG_PASSWORD
         resources:
           limits:
             cpu: 300m
