@@ -3,7 +3,7 @@ from flask_compress import Compress
 from prometheus_flask_exporter import PrometheusMetrics
 from ddtrace import tracer
 from flasgger import Swagger
-from .utils import get_redis_connection
+from .utils import get_redis_connection, sock
 from .mgmt import mgmt_bp
 from .diag import diag_bp
 from . import business
@@ -11,9 +11,11 @@ import requests
 import logging
 import json
 import time
+import os
 
 # Initialize Flask App
 app = Flask(__name__)
+sock.init_app(app)
 app.register_blueprint(mgmt_bp)
 app.register_blueprint(diag_bp)
 
@@ -114,16 +116,18 @@ Compress(app)
 metrics = PrometheusMetrics(app)
 
 # Setup logging
-stream_handler = logging.StreamHandler()
-file_handler = logging.FileHandler('/var/log/app.log')
-formatter = logging.Formatter(json.dumps({
-    'timestamp': '%(asctime)s',
-    'level': '%(levelname)s',
-    'message': '%(message)s'
-}))
-stream_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
-logging.basicConfig(level=logging.INFO, handlers=[stream_handler, file_handler])
+handlers = [logging.StreamHandler()]
+if not os.environ.get('TESTING'):
+    file_handler = logging.FileHandler('/var/log/app.log')
+    formatter = logging.Formatter(json.dumps({
+        'timestamp': '%(asctime)s',
+        'level': '%(levelname)s',
+        'message': '%(message)s'
+    }))
+    file_handler.setFormatter(formatter)
+    handlers.append(file_handler)
+
+logging.basicConfig(level=logging.INFO, handlers=handlers)
 
 # Error handlers
 @app.errorhandler(400)

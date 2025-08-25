@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request, Response
 from .auth import requires_auth
+from .utils import sock
+from simple_websocket.errors import ConnectionClosed
 import subprocess
 import socket
 import requests
@@ -192,6 +194,20 @@ def echo_body():
         description: The request body.
     """
     return Response(request.get_data(), mimetype=request.mimetype)
+
+
+@sock.route('/api/ws/echo')
+def echo(ws):
+    """
+    Echoes back messages sent over a WebSocket connection.
+    """
+    while True:
+        try:
+            data = ws.receive()
+            ws.send(data)
+        except ConnectionClosed:
+            break
+
 
 @diag_bp.route('/api/random-error', methods=['GET'])
 @requires_auth

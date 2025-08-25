@@ -1,8 +1,12 @@
 Flask
 prometheus-flask-exporter
 flask-compress
+flask-sock
 redis
 requests
 flask_zipkin
 ddtrace==3.12.2
 flasgger
+pytest
+pytest-flask
+websocket-client

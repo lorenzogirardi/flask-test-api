@@ -1,5 +1,8 @@
 import redis
 from os import getenv
+from flask_sock import Sock
+
+sock = Sock()
 
 def get_redis_connection():
     redis_host = getenv("REDIS_HOST", "localhost")
