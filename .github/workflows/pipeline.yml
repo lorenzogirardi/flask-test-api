@@ -20,7 +20,7 @@ jobs:
         egress-policy: audit
     - uses: actions/checkout@v5
     - name: Set up Python 3.12
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.13"
     - name: Install dependencies
@@ -130,7 +130,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so follow-up steps can access it
       - uses: actions/checkout@v5
       - name: Set up Python 3.8
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13
       - name: Checkov GitHub Action
