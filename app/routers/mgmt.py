@@ -4,9 +4,10 @@ import os
 import sys
 import traceback
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from loguru import logger
 
+from app.auth import verify_credentials
 from app.config import get_settings
 from app.models.database import get_session_factory
 from app.models.schemas import AppInfoResponse, HealthCheck, HealthResponse
@@ -79,7 +80,7 @@ async def app_info():
 async def app_env():
     safe_vars = [
         "PATH", "HOSTNAME", "REDIS_HOST", "REDIS_PORT", "REDIS_DB",
-        "REDIS_URL", "DATABASE_URL", "OTEL_ENABLED", "APP_ENV",
+        "OTEL_ENABLED", "APP_ENV",
         "DD_PROFILING_ENABLED", "DD_LOGS_INJECTION",
     ]
     return {k: v for k, v in os.environ.items() if k in safe_vars}
@@ -98,7 +99,11 @@ async def app_mappings(request: Request):
     return {"mappings": routes}
 
 
-@router.get("/threaddump", summary="Thread dump")
+@router.get(
+    "/threaddump",
+    summary="Thread dump",
+    dependencies=[Depends(verify_credentials)],
+)
 async def app_threaddump():
     dump = []
     for thread_id, stack in sys._current_frames().items():

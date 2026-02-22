@@ -72,10 +72,16 @@ async def delete_context(context_id: str):
 async def fibonacci(x: int):
     if x > 20000:
         raise HTTPException(status_code=400, detail="Input too large, max 20000")
-    a, b = 0, 1
-    for _ in range(x):
-        a, b = b, a + b
-    return {"result": str(a)}
+
+    def _compute(n: int) -> str:
+        a, b = 0, 1
+        for _ in range(n):
+            a, b = b, a + b
+        return str(a)
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, _compute, x)
+    return {"result": result}
 
 
 @router.get("/sleep/{seconds}", summary="Sleep for N seconds")

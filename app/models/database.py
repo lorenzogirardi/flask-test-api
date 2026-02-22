@@ -43,7 +43,13 @@ async def init_db() -> bool:
     if not settings.database_url:
         return False
     try:
-        _engine = create_async_engine(settings.database_url, echo=settings.debug, pool_pre_ping=True)
+        _engine = create_async_engine(
+            settings.database_url,
+            echo=settings.debug,
+            pool_pre_ping=True,
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+        )
         _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
         async with _engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

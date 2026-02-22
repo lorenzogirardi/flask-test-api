@@ -1,5 +1,6 @@
 """Application configuration via Pydantic Settings (env-based)."""
 
+import re
 from functools import lru_cache
 from typing import Literal
 
@@ -20,10 +21,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     host: str = "0.0.0.0"
     port: int = 8000
+    shutdown_timeout: int = Field(default=30, description="Graceful shutdown timeout in seconds")
 
     # --- Auth (basic auth for diag endpoints) ---
     diag_username: str = "admin"
     diag_password: str = "password"
+
+    # --- Debug endpoints ---
+    debug_endpoints_enabled: bool = Field(default=True, description="Set to false to disable /debug/* in production")
 
     # --- Redis ---
     redis_url: str | None = Field(default=None, description="redis://host:port/db or http(s) endpoint in prod")
@@ -35,6 +40,8 @@ class Settings(BaseSettings):
 
     # --- PostgreSQL ---
     database_url: str | None = Field(default=None, description="postgresql+asyncpg://user:pass@host/db")
+    db_pool_size: int = Field(default=5, description="SQLAlchemy connection pool size")
+    db_max_overflow: int = Field(default=10, description="SQLAlchemy max overflow connections")
 
     # --- Cache ---
     cache_ttl: int = Field(default=300, description="Local cache TTL in seconds")
@@ -42,10 +49,12 @@ class Settings(BaseSettings):
 
     # --- Rate limiting ---
     rate_limit: str = "100/minute"
+    debug_rate_limit: str = "10/minute"
 
     # --- OTEL ---
     otel_enabled: bool = False
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+    otel_exporter_timeout: int = Field(default=10, description="OTLP exporter timeout in seconds")
     otel_service_name: str = "pytbak"
 
     # --- Prometheus ---
@@ -60,6 +69,14 @@ class Settings(BaseSettings):
         if self.redis_url:
             return self.redis_url
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
+    @property
+    def sanitized_redis_url(self) -> str:
+        """Return Redis URL with password masked for logging."""
+        url = self.effective_redis_url
+        if not url:
+            return "not configured"
+        return re.sub(r"://[^@]*@", "://***@", url)
 
 
 @lru_cache

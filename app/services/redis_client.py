@@ -9,35 +9,38 @@ from app.config import get_settings
 
 _redis: aioredis.Redis | None = None
 _available: bool = False
+_lock = asyncio.Lock()
 
 
 async def init_redis() -> bool:
     """Initialize Redis connection. Returns True if successful."""
     global _redis, _available
-    settings = get_settings()
-    url = settings.effective_redis_url
-    if not url:
-        logger.warning("No Redis URL configured, running without Redis")
-        return False
-    try:
-        _redis = aioredis.from_url(url, decode_responses=True, socket_connect_timeout=5)
-        await _redis.ping()
-        _available = True
-        logger.info("Redis connected: {}", url)
-        return True
-    except Exception as e:
-        logger.warning("Redis unavailable ({}), fallback to local storage", e)
-        _redis = None
-        _available = False
-        return False
+    async with _lock:
+        settings = get_settings()
+        url = settings.effective_redis_url
+        if not url:
+            logger.warning("No Redis URL configured, running without Redis")
+            return False
+        try:
+            _redis = aioredis.from_url(url, decode_responses=True, socket_connect_timeout=5)
+            await _redis.ping()
+            _available = True
+            logger.info("Redis connected: {}", settings.sanitized_redis_url)
+            return True
+        except Exception as e:
+            logger.warning("Redis unavailable ({}), fallback to local storage", e)
+            _redis = None
+            _available = False
+            return False
 
 
 async def close_redis() -> None:
     global _redis, _available
-    if _redis:
-        await _redis.aclose()
-        _redis = None
-        _available = False
+    async with _lock:
+        if _redis:
+            await _redis.aclose()
+            _redis = None
+            _available = False
 
 
 def get_redis() -> aioredis.Redis | None:

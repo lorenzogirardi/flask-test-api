@@ -48,7 +48,7 @@ async def get_all_contexts() -> list[ContextResponse]:
         except Exception as e:
             logger.warning("PG get_all failed: {}", e)
 
-    # Try Redis
+    # Try Redis (with per-item error handling)
     if is_redis_available():
         r = get_redis()
         if r:
@@ -56,9 +56,12 @@ async def get_all_contexts() -> list[ContextResponse]:
                 keys = await r.keys("context:*")
                 contexts = []
                 for key in keys:
-                    data = await r.get(key)
-                    if data:
-                        contexts.append(ContextResponse(**json.loads(data)))
+                    try:
+                        data = await r.get(key)
+                        if data:
+                            contexts.append(ContextResponse(**json.loads(data)))
+                    except (json.JSONDecodeError, Exception) as e:
+                        logger.warning("Skipping corrupt Redis key {}: {}", key, e)
                 return contexts
             except Exception as e:
                 logger.warning("Redis get_all failed: {}", e)
@@ -132,6 +135,8 @@ async def create_context(data: ContextCreate) -> ContextResponse:
     cache = get_cache()
     cache.set(f"ctx:{context_id}", ctx)
 
+    pg_ok = False
+
     # Try PostgreSQL
     sf = get_session_factory()
     if sf:
@@ -147,11 +152,11 @@ async def create_context(data: ContextCreate) -> ContextResponse:
                 )
                 session.add(row)
                 await session.commit()
-                return _ctx_to_response(ctx)
+                pg_ok = True
         except Exception as e:
             logger.warning("PG create failed: {}", e)
 
-    # Try Redis (with retry)
+    # Try Redis (with retry) — best-effort secondary store
     if is_redis_available():
         await redis_op_with_retry(
             lambda: get_redis().set(f"context:{context_id}", json.dumps(ctx))
@@ -188,11 +193,10 @@ async def update_context(context_id: str, data: ContextUpdate) -> ContextRespons
                         setattr(row, k, v)
                     row.updated_at = _now()
                     await session.commit()
-                    return _ctx_to_response(updated)
         except Exception as e:
             logger.warning("PG update failed: {}", e)
 
-    # Try Redis
+    # Try Redis — best-effort sync
     if is_redis_available():
         await redis_op_with_retry(
             lambda: get_redis().set(f"context:{context_id}", json.dumps(updated))

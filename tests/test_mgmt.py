@@ -41,7 +41,13 @@ async def test_mappings(client):
 
 
 @pytest.mark.anyio
-async def test_threaddump(client):
+async def test_threaddump_requires_auth(client):
     resp = await client.get("/mgmt/threaddump")
+    assert resp.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_threaddump(client, auth_headers):
+    resp = await client.get("/mgmt/threaddump", headers=auth_headers)
     assert resp.status_code == 200
     assert "Thread" in resp.text

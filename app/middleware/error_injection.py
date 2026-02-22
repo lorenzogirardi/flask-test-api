@@ -2,10 +2,10 @@
 
 import asyncio
 import random
-import time
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -21,44 +21,51 @@ class ErrorInjectionMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        params = request.query_params
+        try:
+            params = request.query_params
 
-        # --- Delay ---
-        delay = params.get("delay_ms")
-        if delay:
-            if delay.lower() == "random":
-                ms = random.uniform(0, 5000)
-            else:
-                try:
-                    ms = float(delay)
-                except ValueError:
-                    ms = 0
-            if ms > 0:
-                await asyncio.sleep(ms / 1000.0)
+            # --- Delay ---
+            delay = params.get("delay_ms")
+            if delay:
+                if delay.lower() == "random":
+                    ms = random.uniform(0, 5000)
+                else:
+                    try:
+                        ms = float(delay)
+                    except ValueError:
+                        ms = 0
+                if ms > 0:
+                    await asyncio.sleep(ms / 1000.0)
 
-        # --- Error injection ---
-        error = params.get("inject_error")
-        if error:
-            if error.isdigit():
-                code = int(error)
-                return JSONResponse(
-                    status_code=code,
-                    content={"error": f"Injected error {code}", "injected": True},
-                )
-            if error == "validation_error":
-                return JSONResponse(
-                    status_code=422,
-                    content={"error": "Injected validation error", "injected": True},
-                )
-            if error.startswith("custom:"):
-                msg = error[7:]
+            # --- Error injection ---
+            error = params.get("inject_error")
+            if error:
+                if error.isdigit():
+                    code = int(error)
+                    return JSONResponse(
+                        status_code=code,
+                        content={"error": f"Injected error {code}", "injected": True},
+                    )
+                if error == "validation_error":
+                    return JSONResponse(
+                        status_code=422,
+                        content={"error": "Injected validation error", "injected": True},
+                    )
+                if error.startswith("custom:"):
+                    msg = error[7:]
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": msg, "injected": True},
+                    )
                 return JSONResponse(
                     status_code=500,
-                    content={"error": msg, "injected": True},
+                    content={"error": f"Injected error: {error}", "injected": True},
                 )
+
+            return await call_next(request)
+        except Exception as e:
+            logger.error("Unhandled error in middleware: {}", e)
             return JSONResponse(
                 status_code=500,
-                content={"error": f"Injected error: {error}", "injected": True},
+                content={"error": "Internal server error"},
             )
-
-        return await call_next(request)

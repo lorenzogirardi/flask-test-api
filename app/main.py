@@ -1,9 +1,12 @@
 """FastAPI application entry point."""
 
 import sys
+import time
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger
@@ -18,12 +21,14 @@ from app.services.redis_client import close_redis, init_redis
 def _setup_logging() -> None:
     settings = get_settings()
     logger.remove()
-    logger.add(
-        sys.stderr,
-        level=settings.log_level,
-        format="{time:YYYY-MM-DDTHH:mm:ss.SSS}Z | {level:<8} | {name}:{function}:{line} | {message}",
-        serialize=True,
-    )
+    if settings.app_env == "production":
+        logger.add(sys.stderr, level=settings.log_level, serialize=True)
+    else:
+        logger.add(
+            sys.stderr,
+            level=settings.log_level,
+            format="{time:YYYY-MM-DDTHH:mm:ss.SSS}Z | {level:<8} | {name}:{function}:{line} | {message}",
+        )
 
 
 # --- Lifespan ---
@@ -65,6 +70,33 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=500)
     app.add_middleware(ErrorInjectionMiddleware)
 
+    # --- CORS ---
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # --- Request logging middleware ---
+    @app.middleware("http")
+    async def request_logging(request: Request, call_next):
+        request_id = str(uuid.uuid4())[:8]
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = (time.monotonic() - start) * 1000
+        logger.info(
+            "{} {} {} {:.1f}ms [{}]",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed,
+            request_id,
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
+
     # --- Rate limiting ---
     try:
         from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -80,7 +112,6 @@ def create_app() -> FastAPI:
     # --- Prometheus metrics ---
     if settings.prometheus_enabled:
         try:
-            from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
             from prometheus_fastapi_instrumentator import Instrumentator
 
             Instrumentator().instrument(app).expose(app, endpoint="/metrics")
@@ -99,7 +130,10 @@ def create_app() -> FastAPI:
 
             resource = Resource.create({"service.name": settings.otel_service_name})
             provider = TracerProvider(resource=resource)
-            exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
+            exporter = OTLPSpanExporter(
+                endpoint=settings.otel_exporter_otlp_endpoint,
+                timeout=settings.otel_exporter_timeout,
+            )
             provider.add_span_processor(BatchSpanProcessor(exporter))
             trace.set_tracer_provider(provider)
             FastAPIInstrumentor.instrument_app(app)
@@ -109,12 +143,17 @@ def create_app() -> FastAPI:
 
     # --- Routers ---
     from app.routers.api import router as api_router
-    from app.routers.debug import router as debug_router
     from app.routers.mgmt import router as mgmt_router
 
     app.include_router(api_router)
-    app.include_router(debug_router)
     app.include_router(mgmt_router)
+
+    # Debug endpoints (can be disabled in production)
+    if settings.debug_endpoints_enabled:
+        from app.routers.debug import router as debug_router
+        app.include_router(debug_router)
+    else:
+        logger.info("Debug endpoints disabled (DEBUG_ENDPOINTS_ENABLED=false)")
 
     # --- Error handlers ---
     @app.exception_handler(404)
@@ -152,4 +191,10 @@ if __name__ == "__main__":
     import uvicorn
 
     settings = get_settings()
-    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=settings.debug)
+    uvicorn.run(
+        "app.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
+        timeout_graceful_shutdown=settings.shutdown_timeout,
+    )

@@ -42,10 +42,21 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 8000
@@ -55,6 +66,12 @@ spec:
                 name: {{ include "pytbak.fullname" . }}-config
             - secretRef:
                 name: {{ include "pytbak.fullname" . }}-auth
+          startupProbe:
+            httpGet:
+              path: /mgmt/ready
+              port: http
+            failureThreshold: 10
+            periodSeconds: 3
           livenessProbe:
             httpGet:
               path: /mgmt/health
@@ -71,3 +88,9 @@ spec:
             timeoutSeconds: 3
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

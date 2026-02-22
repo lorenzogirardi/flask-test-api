@@ -3,8 +3,8 @@
 import asyncio
 import multiprocessing
 import random
+import re
 import socket
-import subprocess
 import time
 
 import httpx
@@ -16,6 +16,20 @@ from app.models.schemas import CpuSpikeRequest, CpuSpikeResponse, NetworkScanRes
 
 router = APIRouter(prefix="/debug", tags=["Debug"])
 
+# Host validation: RFC-compliant hostname or IPv4
+_HOST_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$")
+_MAX_ECHO_BODY = 1024 * 1024  # 1 MB
+_MAX_CURL_RESPONSE = 10 * 1024 * 1024  # 10 MB
+
+# Track CPU spike processes for cleanup
+_active_cpu_procs: list[multiprocessing.Process] = []
+
+
+def _validate_host(host: str) -> None:
+    """Validate hostname against strict pattern."""
+    if not host or len(host) > 253 or not _HOST_RE.match(host):
+        raise HTTPException(status_code=400, detail="Invalid host")
+
 
 # ========== NETWORK SCAN (netshoot-like) ==========
 @router.get(
@@ -26,10 +40,7 @@ router = APIRouter(prefix="/debug", tags=["Debug"])
 )
 async def network_scan(target: str = Query(..., description="host:port or hostname")):
     host, port_str = (target.rsplit(":", 1) + [None])[:2]
-
-    # Validate host
-    if not all(c.isalnum() or c in ".-_" for c in host):
-        raise HTTPException(status_code=400, detail="Invalid host")
+    _validate_host(host)
 
     result = NetworkScanResult(target=target)
 
@@ -50,7 +61,10 @@ async def network_scan(target: str = Query(..., description="host:port or hostna
 
     # DNS
     try:
-        infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+        loop = asyncio.get_event_loop()
+        infos = await loop.run_in_executor(
+            None, lambda: socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+        )
         addresses = list({res[4][0] for res in infos})
         result.dns = {"addresses": addresses}
     except socket.gaierror as e:
@@ -58,15 +72,18 @@ async def network_scan(target: str = Query(..., description="host:port or hostna
 
     # TCP check
     if port_str:
+        sock = None
         try:
             port = int(port_str)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5)
             sock.connect((host, port))
-            sock.close()
             result.tcp_check = {"status": "open", "port": port}
         except Exception as e:
             result.tcp_check = {"status": "closed", "port": port_str, "error": str(e)}
+        finally:
+            if sock:
+                sock.close()
 
     # Traceroute
     try:
@@ -93,6 +110,22 @@ def _cpu_burn(duration: int) -> None:
         _ = sum(i * i for i in range(10000))
 
 
+async def _cleanup_cpu_procs(procs: list[multiprocessing.Process], duration: int) -> None:
+    """Wait for CPU spike processes and clean up."""
+    await asyncio.sleep(duration + 5)
+    for p in procs:
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=5)
+            if p.is_alive():
+                p.kill()
+        p.close()
+    # Remove from active list
+    for p in procs:
+        if p in _active_cpu_procs:
+            _active_cpu_procs.remove(p)
+
+
 @router.post(
     "/cpu/spike",
     response_model=CpuSpikeResponse,
@@ -102,9 +135,13 @@ def _cpu_burn(duration: int) -> None:
 async def cpu_spike(params: CpuSpikeRequest):
     procs = []
     for _ in range(params.cores):
-        p = multiprocessing.Process(target=_cpu_burn, args=(params.duration,))
+        p = multiprocessing.Process(target=_cpu_burn, args=(params.duration,), daemon=True)
         p.start()
         procs.append(p)
+        _active_cpu_procs.append(p)
+
+    # Schedule background cleanup
+    asyncio.create_task(_cleanup_cpu_procs(procs, params.duration))
 
     return CpuSpikeResponse(
         status="started",
@@ -117,8 +154,7 @@ async def cpu_spike(params: CpuSpikeRequest):
 # ========== DIAG ENDPOINTS (from original) ==========
 @router.get("/ping", summary="Ping a host", dependencies=[Depends(verify_credentials)])
 async def ping_host(host: str = Query(...), count: int = Query(default=3, ge=1, le=20)):
-    if not all(c.isalnum() or c in ".-" for c in host):
-        raise HTTPException(status_code=400, detail="Invalid host")
+    _validate_host(host)
     try:
         proc = await asyncio.create_subprocess_exec(
             "ping", "-c", str(count), host,
@@ -133,10 +169,12 @@ async def ping_host(host: str = Query(...), count: int = Query(default=3, ge=1, 
 
 @router.get("/dns", summary="DNS resolve", dependencies=[Depends(verify_credentials)])
 async def dns_resolve(name: str = Query(...)):
-    if not all(c.isalnum() or c in ".-" for c in name):
-        raise HTTPException(status_code=400, detail="Invalid name")
+    _validate_host(name)
     try:
-        results = socket.getaddrinfo(name, None, proto=socket.IPPROTO_TCP)
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None, lambda: socket.getaddrinfo(name, None, proto=socket.IPPROTO_TCP)
+        )
         addresses = list({res[4][0] for res in results})
         return {"addresses": addresses}
     except socket.gaierror as e:
@@ -146,25 +184,36 @@ async def dns_resolve(name: str = Query(...)):
 @router.get("/curl", summary="HTTP GET a URL", dependencies=[Depends(verify_credentials)])
 async def curl(url: str = Query(...)):
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(
+            timeout=5,
+            follow_redirects=False,
+            max_redirects=0,
+        ) as client:
             resp = await client.get(url)
-            return Response(content=resp.text, status_code=resp.status_code, media_type=resp.headers.get("content-type"))
+            body = resp.text[:_MAX_CURL_RESPONSE]
+            return Response(
+                content=body,
+                status_code=resp.status_code,
+                media_type=resp.headers.get("content-type"),
+            )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/tcp-check", summary="TCP connection check", dependencies=[Depends(verify_credentials)])
 async def tcp_check(host: str = Query(...), port: int = Query(..., ge=1, le=65535)):
-    if not all(c.isalnum() or c in ".-" for c in host):
-        raise HTTPException(status_code=400, detail="Invalid host")
+    _validate_host(host)
+    sock = None
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)
         sock.connect((host, port))
-        sock.close()
         return {"status": "success", "message": f"Successfully connected to {host}:{port}"}
     except (socket.timeout, socket.error) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        if sock:
+            sock.close()
 
 
 @router.api_route(
@@ -184,7 +233,12 @@ async def echo_headers(request: Request):
     dependencies=[Depends(verify_credentials)],
 )
 async def echo_body(request: Request):
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > _MAX_ECHO_BODY:
+        raise HTTPException(status_code=413, detail=f"Body too large, max {_MAX_ECHO_BODY} bytes")
     body = await request.body()
+    if len(body) > _MAX_ECHO_BODY:
+        raise HTTPException(status_code=413, detail=f"Body too large, max {_MAX_ECHO_BODY} bytes")
     return Response(content=body, media_type=request.headers.get("content-type", "application/octet-stream"))
 
 
