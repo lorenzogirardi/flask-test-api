@@ -18,6 +18,17 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        # Datadog autodiscovery: scrape Prometheus metrics from /metrics
+        ad.datadoghq.com/{{ .Chart.Name }}.checks: |
+          {
+            "openmetrics": {
+              "instances": [{
+                "openmetrics_endpoint": "http://%%host%%:8000/metrics",
+                "namespace": "pytbak",
+                "metrics": [".*"]
+              }]
+            }
+          }
     spec:
       {{- with .Values.nodeSelector }}
       nodeSelector:

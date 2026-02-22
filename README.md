@@ -101,6 +101,11 @@ helm install pytbak ./helm/pytbak \
 | `/docs` | Swagger UI (OpenAPI v3) |
 | `/redoc` | ReDoc |
 
+**Datadog integration** (production):
+- **Metrics**: Datadog Agent scrapes `/metrics` via openmetrics autodiscovery (annotations in Helm deployment)
+- **Traces**: App exports OTEL traces via OTLP to Datadog Agent (`OTEL_EXPORTER_OTLP_ENDPOINT=http://datadog-agent:4317`)
+- No sidecar containers needed — both are code libraries in the app
+
 ## Debug Features
 
 ### Error Injection (any endpoint)

@@ -41,9 +41,12 @@ postgresql:
   # url: "postgresql+asyncpg://user:pass@your-pg.example.com:5432/pytbak"
   url: ""
 
+# Observability — both consumed by Datadog Agent in production:
+#   - Traces: OTEL via OTLP -> Datadog Agent (port 4317)
+#   - Metrics: /metrics endpoint -> Datadog Agent (openmetrics check or autodiscovery)
 otel:
   enabled: false
-  endpoint: "http://otel-collector:4317"
+  endpoint: "http://datadog-agent:4317"
   serviceName: pytbak
 
 # Secrets (create a secret named pytbak-auth externally or set here)
