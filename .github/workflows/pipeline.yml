@@ -34,6 +34,10 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Run tests
+      run: |
+        pip install anyio httpx pytest-anyio
+        pytest tests/ -v
   docker:
         needs: build
         runs-on: ubuntu-latest
@@ -64,11 +68,11 @@ jobs:
             registry: ghcr.io
             username: ${{ github.actor }}
             password: ${{ secrets.GIT_TOKEN }}
-      
+
         - name: Build image and push to Docker Hub and GitHub Container Registry
           uses: docker/build-push-action@v6
           with:
-            context: ./docker
+            context: .
             cache-from: type=gha
             cache-to: type=gha,mode=max
             platforms: linux/amd64,linux/arm64
@@ -96,7 +100,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL'
-             
+
   docker-sbom:
     needs: security-gate-trivy
     runs-on: ubuntu-latest
@@ -117,7 +121,7 @@ jobs:
     needs: docker-sbom
     permissions:
       contents: read # for actions/checkout to fetch code
-      
+
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -138,8 +142,8 @@ jobs:
         id: checkov
         with:
           # This will add both a CLI output to the console and create a results.sarif file
-          framework: kubernetes
-          directory: ./kubernetes/
+          framework: helm
+          directory: ./helm/
           output_format: sarif
           soft_fail: true
           quiet: true
@@ -154,16 +158,15 @@ jobs:
           egress-policy: audit
       - name: Checkout code
         uses: actions/checkout@v5
-     
+
       - name: modify the image
         run: |
           git config user.email l@k8s.it
           git config user.name l
-          cd kubernetes/
-          cat 04-dpl-pytbak.yaml
-          pwd
-          sed -i "s+lgirardi/pytbak.*+lgirardi/pytbak:v-$RUN_NUMBER+g" 04-dpl-pytbak.yaml
-          cat 04-dpl-pytbak.yaml
+          cd helm/pytbak/
+          cat values.yaml
+          sed -i "s+tag:.*+tag: \"v-$RUN_NUMBER\"+g" values.yaml
+          cat values.yaml
           git add .
           git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
           git push origin main
@@ -188,11 +191,11 @@ jobs:
           kubectl get nodes
       - name : Preparing cluster for kube-check
         run: |
-          kubectl run kube-check --image=lgirardi/pytbak:v-${{ github.run_number }} --port=5000
+          kubectl run kube-check --image=lgirardi/pytbak:v-${{ github.run_number }} --port=8000
           sleep 20
           kubectl get po
-          kubectl port-forward kube-check 5000:5000 &>/dev/null &
+          kubectl port-forward kube-check 8000:8000 &>/dev/null &
           sleep 5
-          kubectl port-forward kube-check 5000:5000 &>/dev/null &
+          kubectl port-forward kube-check 8000:8000 &>/dev/null &
       - run: |
-          curl -I http://localhost:5000/api/
+          curl -I http://localhost:8000/api/
