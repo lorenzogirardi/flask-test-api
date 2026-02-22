@@ -144,4 +144,4 @@ graph TD
 | **Medium** | Add CORS configuration for browser-based access | Low (FastAPI middleware) |
 | **Medium** | Add request body size limit for echo/POST endpoints | Low (Uvicorn config) |
 | **Low** | Add API key auth as alternative to Basic Auth | Medium (new auth module) |
-| **Low** | Network policies to restrict `/debug/curl` SSRF scope | Medium (K8s NetworkPolicy) |
+| **Low** | ~~Network policies to restrict `/debug/curl` SSRF scope~~ | ~~Medium~~ — **Done**: NetworkPolicy limits egress to DNS, PG, Redis, OTLP, HTTP/HTTPS only |

@@ -180,7 +180,22 @@ spec:
 
 Key: `instrumentation.enabled: false` disables global injection. Pods must opt-in via labels.
 
-## 10.7 Troubleshooting
+## 10.7 NetworkPolicy
+
+The Helm chart includes a `NetworkPolicy` that restricts pod traffic:
+
+| Direction | Port | Protocol | Purpose |
+|---|---|---|---|
+| **Ingress** | 8000 | TCP | Application traffic (from any namespace) |
+| **Egress** | 53 | UDP/TCP | DNS resolution |
+| **Egress** | 5432 | TCP | PostgreSQL |
+| **Egress** | 6379 | TCP | Redis |
+| **Egress** | 4317 | TCP | OTLP (Datadog Agent) |
+| **Egress** | 80, 443 | TCP | HTTP/HTTPS (debug endpoints: curl, tcp-check) |
+
+> **Note**: ICMP ping (`/debug/ping`) is blocked by `drop: ALL` capabilities in the container securityContext (`CAP_NET_RAW` required). Use `/debug/tcp-check` as an alternative.
+
+## 10.8 Troubleshooting
 
 ### Pod in CrashLoopBackOff after DD injection
 
