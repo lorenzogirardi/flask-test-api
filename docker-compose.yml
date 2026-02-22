@@ -1,18 +1,75 @@
-version: '3.8'
+# Development docker-compose — includes Redis, PostgreSQL, Prometheus, OTEL Collector
 services:
-  redis:
-    image: "redis:alpine"
-    ports:
-      - "6379:6379"
+  # === App ===
   web:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "8000:8000"
+    env_file: .env
     environment:
-      - REDIS_HOST=redis
-      - DIAG_USERNAME=admin
-      - DIAG_PASSWORD=password
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://pytbak:pytbak@postgres:5432/pytbak
+      REDIS_URL: redis://redis:6379/0
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      PROMETHEUS_ENABLED: "true"
+      DIAG_USERNAME: admin
+      DIAG_PASSWORD: password
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # === PostgreSQL (DEV only, in prod use external endpoint) ===
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pytbak
+      POSTGRES_PASSWORD: pytbak
+      POSTGRES_DB: pytbak
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pytbak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # === Redis (DEV only, in prod use external endpoint) ===
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # === Prometheus ===
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - web
+
+  # === OpenTelemetry Collector ===
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Collector metrics
+    volumes:
+      - ./otel/otel-collector.yml:/etc/otelcol-contrib/config.yaml
+
+volumes:
+  pgdata:
