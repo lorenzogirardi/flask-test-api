@@ -70,8 +70,8 @@ spec:
             httpGet:
               path: /mgmt/ready
               port: http
-            failureThreshold: 10
-            periodSeconds: 3
+            failureThreshold: 20
+            periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /mgmt/health

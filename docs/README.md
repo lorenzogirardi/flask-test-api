@@ -16,6 +16,7 @@ C4 Model compliant, OWASP-reviewed, PCI-DSS/GDPR annotated.
 | 7 | [Sequence Diagrams](07-sequence-diagrams.md) | Developers, QA | Request flows, fallbacks, error paths |
 | 8 | [Diagrams & Graphs](08-diagrams.md) | All | Deployment, dependency, health flows |
 | 9 | [ADR: Flask to FastAPI](09-adr-flask-to-fastapi.md) | Architects, Management | Migration decision record |
+| 10 | [Datadog Integration](10-datadog-integration.md) | DevOps, SRE | APM auto-instrumentation, metrics, troubleshooting |
 
 ## How to View
 
