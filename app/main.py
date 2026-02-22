@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import pathlib
 import sys
 import time
 import uuid
@@ -8,7 +9,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from app.config import get_settings
@@ -141,12 +143,18 @@ def create_app() -> FastAPI:
         except ImportError:
             logger.warning("OpenTelemetry packages not installed, tracing disabled")
 
+    # --- Static files ---
+    static_dir = pathlib.Path(__file__).resolve().parent / "static"
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     # --- Routers ---
     from app.routers.api import router as api_router
+    from app.routers.home import router as home_router
     from app.routers.mgmt import router as mgmt_router
 
     app.include_router(api_router)
     app.include_router(mgmt_router)
+    app.include_router(home_router)
 
     # Debug endpoints (can be disabled in production)
     if settings.debug_endpoints_enabled:
@@ -163,24 +171,6 @@ def create_app() -> FastAPI:
     @app.exception_handler(400)
     async def bad_request_handler(request: Request, exc):
         return JSONResponse(status_code=400, content={"error": "Bad request"})
-
-    # --- Root / index ---
-    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    @app.get("/api/", response_class=HTMLResponse, include_in_schema=False)
-    async def index():
-        return """<!DOCTYPE html>
-<html>
-<head><title>pytbak API</title></head>
-<body>
-<h1>pytbak API v2</h1>
-<ul>
-  <li><a href="/docs">Swagger UI</a></li>
-  <li><a href="/redoc">ReDoc</a></li>
-  <li><a href="/mgmt/health">Health</a></li>
-  <li><a href="/metrics">Metrics</a></li>
-</ul>
-</body>
-</html>"""
 
     return app
 
