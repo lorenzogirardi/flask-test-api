@@ -2,9 +2,8 @@
 (function () {
   'use strict';
 
-  const BASE = document.head.querySelector('meta[name="base-path"]')?.content || '';
+  const BASE = '/api';
   const POLL_MS = 5000;
-  let pollTimer = null;
 
   /* ── Theme toggle ── */
   function initTheme() {
@@ -24,7 +23,7 @@
     if (btn) btn.textContent = theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
   }
 
-  /* ── Fetch helpers ── */
+  /* ── Fetch helper ── */
   async function fetchJSON(path) {
     try {
       const r = await fetch(BASE + path, { cache: 'no-store' });
@@ -37,56 +36,60 @@
   function statusColor(s) {
     if (!s) return 'gray';
     s = s.toUpperCase();
-    if (s === 'UP' || s === 'READY' || s === 'CONNECTED') return 'green';
-    if (s === 'DEGRADED' || s === 'NOT_CONFIGURED') return 'yellow';
+    if (['CONNECTED', 'ENABLED', 'UP'].includes(s)) return 'green';
+    if (['NOT_CONFIGURED', 'DISABLED', 'DEGRADED'].includes(s)) return 'yellow';
     return 'red';
   }
+  function statusColorClass(s) {
+    const c = statusColor(s);
+    return c === 'gray' ? '' : c;
+  }
 
-  /* ── Update health panel ── */
-  async function refreshHealth() {
-    const data = await fetchJSON('/mgmt/health');
+  /* ── Single poll: /api/status ── */
+  async function poll() {
+    const data = await fetchJSON('/status');
     if (!data) return;
 
-    // overall dot
+    // App info
+    const verEl = document.getElementById('app-version');
+    if (verEl) verEl.textContent = 'v' + data.app.version + ' \u00b7 ' + data.app.environment;
+
+    // Overall dot
     const dot = document.getElementById('overall-dot');
     if (dot) {
-      dot.className = 'dot ' + (data.status === 'UP' ? '' : 'degraded');
+      const anyDown = Object.values(data.infra).some(v => v === 'Down');
+      dot.className = 'dot' + (anyDown ? ' degraded' : '');
     }
 
-    // per-check status
-    (data.checks || []).forEach(c => {
-      const el = document.getElementById('status-' + c.name);
-      if (!el) return;
-      const dotEl = el.querySelector('.status-dot');
-      const detailEl = el.querySelector('.status-detail');
-      if (dotEl) {
-        dotEl.className = 'status-dot pulse ' + statusColor(c.status);
-      }
-      if (detailEl) {
-        detailEl.textContent = c.status + (c.error ? ' — ' + c.error : '');
-      }
+    // KPI: endpoints
+    const epEl = document.getElementById('kpi-endpoints');
+    if (epEl) epEl.textContent = data.endpoints;
+
+    // KPI: PG
+    const pgEl = document.getElementById('kpi-pg');
+    if (pgEl) { pgEl.textContent = data.infra.pg_status; pgEl.className = 'kpi-value ' + statusColorClass(data.infra.pg_status); }
+
+    // KPI: Redis
+    const rdEl = document.getElementById('kpi-redis');
+    if (rdEl) { rdEl.textContent = data.infra.redis_status; rdEl.className = 'kpi-value ' + statusColorClass(data.infra.redis_status); }
+
+    // Status cards
+    ['postgresql', 'redis', 'otel', 'prom'].forEach(name => {
+      const key = name === 'postgresql' ? 'pg_status' : name === 'prom' ? 'prom_status' : name + '_status';
+      const val = data.infra[key];
+      if (!val) return;
+      const card = document.getElementById('status-' + name);
+      if (!card) return;
+      const dotEl = card.querySelector('.status-dot');
+      const detEl = card.querySelector('.status-detail');
+      if (dotEl) dotEl.className = 'status-dot pulse ' + statusColor(val);
+      if (detEl) detEl.textContent = val;
     });
-  }
 
-  /* ── Update info ── */
-  async function refreshInfo() {
-    const data = await fetchJSON('/mgmt/info');
-    if (!data?.app) return;
-    const el = document.getElementById('app-version');
-    if (el) el.textContent = 'v' + data.app.version + ' · ' + data.app.environment;
-  }
-
-  /* ── Update mappings count ── */
-  async function refreshMappings() {
-    const data = await fetchJSON('/mgmt/mappings');
-    if (!data?.mappings) return;
-    const el = document.getElementById('kpi-endpoints');
-    if (el) el.textContent = data.mappings.length;
-
-    // build endpoints table
+    // Endpoints table
     const tbody = document.getElementById('endpoints-tbody');
     if (!tbody) return;
-    const routes = data.mappings
+    const routes = (data.routes || [])
       .filter(m => m.name && !['openapi','swagger_ui_html','swagger_ui_redirect','redoc_html'].includes(m.name))
       .sort((a, b) => a.path.localeCompare(b.path));
 
@@ -94,7 +97,7 @@
       const methods = (r.methods || []).map(m =>
         '<span class="method-badge ' + m.toLowerCase() + '">' + m + '</span>'
       ).join(' ');
-      const authTag = (r.path.startsWith('/debug/') || r.path === '/mgmt/threaddump')
+      const authTag = (r.path.includes('/debug/') || r.path === '/mgmt/threaddump')
         ? ' <span class="tag-auth">auth</span>' : '';
       return '<tr>' +
         '<td>' + methods + '</td>' +
@@ -110,7 +113,7 @@
     const btn = e.target.closest('.copy-btn');
     if (!btn) return;
     const path = btn.dataset.path;
-    const url = location.origin + BASE + path;
+    const url = location.origin + path;
     navigator.clipboard.writeText(url).then(() => {
       btn.classList.add('copied');
       btn.textContent = '\u2713';
@@ -124,8 +127,7 @@
     let t = document.getElementById('toast');
     if (!t) {
       t = document.createElement('div');
-      t.id = 'toast';
-      t.className = 'toast';
+      t.id = 'toast'; t.className = 'toast';
       document.body.appendChild(t);
     }
     t.textContent = msg;
@@ -134,7 +136,7 @@
   }
 
   /* ── Uptime counter ── */
-  let startTime = Date.now();
+  const startTime = Date.now();
   function updateUptime() {
     const el = document.getElementById('kpi-uptime');
     if (!el) return;
@@ -145,19 +147,13 @@
     el.textContent = (h > 0 ? h + 'h ' : '') + m + 'm ' + s + 's';
   }
 
-  /* ── Poll cycle ── */
-  async function poll() {
-    await Promise.all([refreshHealth(), refreshInfo(), refreshMappings()]);
-    updateUptime();
-  }
-
   /* ── Init ── */
   function init() {
     initTheme();
     document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
     document.addEventListener('click', handleCopy);
     poll();
-    pollTimer = setInterval(poll, POLL_MS);
+    setInterval(poll, POLL_MS);
     setInterval(updateUptime, 1000);
   }
 

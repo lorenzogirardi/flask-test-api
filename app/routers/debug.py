@@ -14,7 +14,7 @@ from loguru import logger
 from app.auth import verify_credentials
 from app.models.schemas import CpuSpikeRequest, CpuSpikeResponse, NetworkScanResult
 
-router = APIRouter(prefix="/debug", tags=["Debug"])
+router = APIRouter(prefix="/api/debug", tags=["Debug"])
 
 # Host validation: RFC-compliant hostname or IPv4
 _HOST_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$")

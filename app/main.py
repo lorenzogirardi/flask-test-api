@@ -63,8 +63,8 @@ def create_app() -> FastAPI:
         title="pytbak API",
         description="Python REST API Test & Debug Application (FastAPI)",
         version=settings.app_version,
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
         lifespan=lifespan,
     )
 
@@ -145,7 +145,7 @@ def create_app() -> FastAPI:
 
     # --- Static files ---
     static_dir = pathlib.Path(__file__).resolve().parent / "static"
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    app.mount("/api/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # --- Routers ---
     from app.routers.api import router as api_router

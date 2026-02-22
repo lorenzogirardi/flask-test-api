@@ -41,6 +41,6 @@ async def test_delay_ms(client):
 
 @pytest.mark.anyio
 async def test_index_page(client):
-    resp = await client.get("/")
+    resp = await client.get("/api/")
     assert resp.status_code == 200
     assert "pytbak" in resp.text

@@ -13,7 +13,7 @@ from app.services.redis_client import is_redis_available
 _TEMPLATES_DIR = pathlib.Path(__file__).resolve().parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
-router = APIRouter(tags=["Dashboard"])
+router = APIRouter(prefix="/api", tags=["Dashboard"])
 
 
 def _status_dot(status: str) -> str:
@@ -28,15 +28,11 @@ def _status_dot(status: str) -> str:
     return "gray"
 
 
-@router.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def dashboard(request: Request):
+async def _get_infra_status() -> dict:
+    """Collect infrastructure status for dashboard and API."""
     settings = get_settings()
 
-    # Determine base path from request (handles reverse proxy prefix)
-    # If behind ingress at /api, request.scope["root_path"] will be "/api"
-    base_path = request.scope.get("root_path", "").rstrip("/")
-
-    # PostgreSQL status
+    # PostgreSQL
     sf = get_session_factory()
     if sf:
         try:
@@ -49,7 +45,7 @@ async def dashboard(request: Request):
     else:
         pg_status = "Not Configured"
 
-    # Redis status
+    # Redis
     if is_redis_available():
         from app.services.redis_client import get_redis
         try:
@@ -60,23 +56,65 @@ async def dashboard(request: Request):
     else:
         redis_status = "Not Configured"
 
-    # OTEL / Prometheus status
     otel_status = "Enabled" if settings.otel_enabled else "Disabled"
     prom_status = "Enabled" if settings.prometheus_enabled else "Disabled"
+
+    return {
+        "pg_status": pg_status,
+        "redis_status": redis_status,
+        "otel_status": otel_status,
+        "prom_status": prom_status,
+    }
+
+
+@router.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def dashboard(request: Request):
+    settings = get_settings()
+    base_path = "/api"
+    infra = await _get_infra_status()
 
     return templates.TemplateResponse(request, "index.html", {
         "base_path": base_path,
         "app_name": settings.app_name,
         "version": settings.app_version,
         "environment": settings.app_env,
-        "pg_status": pg_status,
-        "pg_color": "green" if pg_status == "Connected" else "yellow",
-        "pg_dot": _status_dot(pg_status),
-        "redis_status": redis_status,
-        "redis_color": "green" if redis_status == "Connected" else "yellow",
-        "redis_dot": _status_dot(redis_status),
-        "otel_status": otel_status,
-        "otel_dot": _status_dot(otel_status),
-        "prom_status": prom_status,
-        "prom_dot": _status_dot(prom_status),
+        "pg_status": infra["pg_status"],
+        "pg_color": "green" if infra["pg_status"] == "Connected" else "yellow",
+        "pg_dot": _status_dot(infra["pg_status"]),
+        "redis_status": infra["redis_status"],
+        "redis_color": "green" if infra["redis_status"] == "Connected" else "yellow",
+        "redis_dot": _status_dot(infra["redis_status"]),
+        "otel_status": infra["otel_status"],
+        "otel_dot": _status_dot(infra["otel_status"]),
+        "prom_status": infra["prom_status"],
+        "prom_dot": _status_dot(infra["prom_status"]),
     })
+
+
+@router.get("/status", summary="Dashboard status API", tags=["Dashboard"])
+async def dashboard_status(request: Request):
+    """Returns infrastructure status + route mappings for the real-time dashboard."""
+    settings = get_settings()
+    infra = await _get_infra_status()
+
+    # Collect routes
+    routes = []
+    for route in request.app.routes:
+        info = {
+            "path": getattr(route, "path", str(route)),
+            "methods": sorted(getattr(route, "methods", set())),
+            "name": getattr(route, "name", None),
+        }
+        if info["name"]:
+            routes.append(info)
+
+    return {
+        "app": {
+            "name": settings.app_name,
+            "version": settings.app_version,
+            "environment": settings.app_env,
+        },
+        "infra": infra,
+        "endpoints": len(routes),
+        "routes": routes,
+    }
