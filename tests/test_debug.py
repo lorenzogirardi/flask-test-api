@@ -42,6 +42,32 @@ async def test_debug_requires_auth(client):
 
 
 @pytest.mark.anyio
+async def test_auth_rate_limit(client):
+    """After 3 failed attempts, subsequent requests should be rate limited (429)."""
+    import base64
+    from app.auth import _fail_tracker
+
+    # Clear any previous state
+    _fail_tracker.clear()
+
+    bad_creds = base64.b64encode(b"admin:wrongpass").decode()
+    bad_headers = {"Authorization": f"Basic {bad_creds}"}
+
+    # First 3 attempts: 401
+    for _ in range(3):
+        resp = await client.get("/debug/headers", headers=bad_headers)
+        assert resp.status_code == 401
+
+    # 4th attempt: 429 rate limited
+    resp = await client.get("/debug/headers", headers=bad_headers)
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+
+    # Clean up
+    _fail_tracker.clear()
+
+
+@pytest.mark.anyio
 async def test_cpu_spike(client, auth_headers):
     resp = await client.post(
         "/debug/cpu/spike",

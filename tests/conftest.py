@@ -9,7 +9,7 @@ os.environ["REDIS_URL"] = ""
 os.environ["OTEL_ENABLED"] = "false"
 os.environ["PROMETHEUS_ENABLED"] = "false"
 os.environ["DIAG_USERNAME"] = "admin"
-os.environ["DIAG_PASSWORD"] = "password"
+os.environ["DIAG_PASSWORD"] = "test-password-only"
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -38,5 +38,5 @@ async def client(app):
 @pytest.fixture
 def auth_headers():
     import base64
-    creds = base64.b64encode(b"admin:password").decode()
+    creds = base64.b64encode(b"admin:test-password-only").decode()
     return {"Authorization": f"Basic {creds}"}

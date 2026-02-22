@@ -52,7 +52,8 @@ otel:
 # Secrets (create a secret named pytbak-auth externally or set here)
 auth:
   username: admin
-  password: password
+  # password: set via --set auth.password=<value> or external secret
+  password: ""
 
 resources:
   requests:
