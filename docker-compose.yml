@@ -1,4 +1,7 @@
-# Development docker-compose — includes Redis, PostgreSQL, Prometheus, OTEL Collector
+# Development docker-compose — web + PostgreSQL + Redis
+# Prometheus and OTEL are code libraries in the app (not containers).
+# /metrics is exposed by the app itself (prometheus-fastapi-instrumentator).
+# OTEL traces are exported via env var OTEL_EXPORTER_OTLP_ENDPOINT to any external collector.
 services:
   # === App ===
   web:
@@ -12,9 +15,10 @@ services:
       APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://pytbak:pytbak@postgres:5432/pytbak
       REDIS_URL: redis://redis:6379/0
-      OTEL_ENABLED: "true"
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       PROMETHEUS_ENABLED: "true"
+      # OTEL: disabled by default in dev, enable and point to external collector:
+      # OTEL_ENABLED: "true"
+      # OTEL_EXPORTER_OTLP_ENDPOINT: http://your-collector:4317
       DIAG_USERNAME: admin
       DIAG_PASSWORD: password
     depends_on:
@@ -50,26 +54,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  # === Prometheus ===
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml
-    depends_on:
-      - web
-
-  # === OpenTelemetry Collector ===
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8888:8888"   # Collector metrics
-    volumes:
-      - ./otel/otel-collector.yml:/etc/otelcol-contrib/config.yaml
 
 volumes:
   pgdata:

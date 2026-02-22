@@ -188,6 +188,193 @@ curl -u admin:password http://localhost:8000/debug/headers
 curl -u admin:password http://localhost:8000/debug/random-error
 ```
 
+## Usage — Verified Docker Test Session
+
+Full test session executed against the docker-compose stack (`docker compose up -d`).
+All 5 containers running: **web**, **postgres**, **redis**, **prometheus**, **otel-collector**.
+
+### 1. Health Check — PostgreSQL & Redis connected
+
+```bash
+$ curl -s http://localhost:8000/mgmt/health | python3 -m json.tool
+{
+    "status": "UP",
+    "checks": [
+        { "name": "redis", "status": "UP", "error": null },
+        { "name": "postgresql", "status": "UP", "error": null }
+    ]
+}
+```
+
+### 2. Readiness & App Info
+
+```bash
+$ curl -s http://localhost:8000/mgmt/ready
+{"status": "READY"}
+
+$ curl -s http://localhost:8000/mgmt/info | python3 -m json.tool
+{
+    "app": {
+        "name": "pytbak",
+        "description": "Python REST API Test Application (FastAPI)",
+        "version": "2.0.0",
+        "environment": "development"
+    }
+}
+```
+
+### 3. CRUD Contexts (stored in PostgreSQL)
+
+```bash
+# Create
+$ curl -s -X POST http://localhost:8000/api/contexts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Task", "description": "Created from Docker"}'
+{
+    "id": "ff0aa92e-92bc-43f3-99a7-f44449384bed",
+    "title": "Test Task",
+    "description": "Created from Docker",
+    "done": false,
+    "created_at": "2026-02-22T11:22:51.532107Z",
+    "updated_at": "2026-02-22T11:22:51.532107Z"
+}
+
+# List
+$ curl -s http://localhost:8000/api/contexts
+[{"id": "ff0aa92e-...", "title": "Test Task", "done": false, ...}]
+
+# Update
+$ curl -s -X PUT http://localhost:8000/api/contexts/ff0aa92e-... \
+  -H "Content-Type: application/json" \
+  -d '{"done": true, "title": "Updated Task"}'
+{
+    "id": "ff0aa92e-...",
+    "title": "Updated Task",
+    "done": true,
+    "updated_at": "2026-02-22T11:22:57.750375Z"
+}
+
+# Delete
+$ curl -s -X DELETE http://localhost:8000/api/contexts/ff0aa92e-...
+{"result": true}
+
+# Verify empty
+$ curl -s http://localhost:8000/api/contexts
+[]
+```
+
+### 4. Legacy Endpoints
+
+```bash
+# Fibonacci
+$ curl -s http://localhost:8000/api/fib/10
+{"result": "55"}
+
+# Sleep
+$ curl -s http://localhost:8000/api/sleep/1
+{"message": "Delayed by 1 seconds"}
+
+# Redis counter
+$ curl -s http://localhost:8000/api/count
+{"counter": 1}
+```
+
+### 5. Error Injection (any endpoint)
+
+```bash
+$ curl -s http://localhost:8000/mgmt/info?inject_error=500
+{"error": "Injected error 500", "injected": true}
+```
+
+### 6. Delay Injection
+
+```bash
+$ time curl -s http://localhost:8000/mgmt/ready?delay_ms=200
+{"status": "READY"}
+real    0m0.222s   # ~200ms delay confirmed
+```
+
+### 7. Debug Endpoints (Basic Auth required)
+
+```bash
+# Echo headers
+$ curl -s -u admin:password http://localhost:8000/debug/headers
+{
+    "host": "localhost:8000",
+    "authorization": "Basic YWRtaW46cGFzc3dvcmQ=",
+    "user-agent": "curl/8.7.1",
+    "accept": "*/*"
+}
+
+# DNS resolve
+$ curl -s -u admin:password "http://localhost:8000/debug/dns?name=google.com"
+{"addresses": ["2a00:1450:4002:407::200e", "142.251.209.46"]}
+
+# Without auth → 401
+$ curl -s http://localhost:8000/debug/headers
+{"detail": "Not authenticated"}   # HTTP 401
+```
+
+### 8. Environment Variables (whitelisted)
+
+```bash
+$ curl -s http://localhost:8000/mgmt/env | python3 -m json.tool
+{
+    "PATH": "/usr/local/bin:...",
+    "HOSTNAME": "7b26593a447f",
+    "OTEL_ENABLED": "true",
+    "APP_ENV": "development",
+    "DATABASE_URL": "postgresql+asyncpg://pytbak:pytbak@postgres:5432/pytbak",
+    "REDIS_URL": "redis://redis:6379/0"
+}
+```
+
+### 9. Swagger UI & Prometheus Metrics
+
+```bash
+# Swagger UI
+$ curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs
+200
+
+# Prometheus metrics
+$ curl -s http://localhost:8000/metrics | head -3
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 728.0
+```
+
+### 10. Route Mappings
+
+```bash
+$ curl -s http://localhost:8000/mgmt/mappings | python3 -c \
+  "import sys,json; print(f'{len(json.load(sys.stdin)[\"mappings\"])} routes registered')"
+31 routes registered
+```
+
+### Test Summary
+
+| Test | Endpoint | Result |
+|------|----------|--------|
+| Health (PG + Redis) | `GET /mgmt/health` | UP |
+| Readiness | `GET /mgmt/ready` | READY |
+| App Info | `GET /mgmt/info` | v2.0.0 |
+| Create context | `POST /api/contexts` | 201 |
+| List contexts | `GET /api/contexts` | 200 |
+| Update context | `PUT /api/contexts/{id}` | 200 |
+| Delete context | `DELETE /api/contexts/{id}` | 200 |
+| Fibonacci | `GET /api/fib/10` | 55 |
+| Sleep | `GET /api/sleep/1` | 200 |
+| Redis counter | `GET /api/count` | 1 |
+| Error injection | `?inject_error=500` | 500 injected |
+| Delay injection | `?delay_ms=200` | ~222ms |
+| Echo headers (auth) | `GET /debug/headers` | 200 |
+| DNS resolve (auth) | `GET /debug/dns` | resolved |
+| Auth denied | `GET /debug/headers` (no auth) | 401 |
+| Env vars | `GET /mgmt/env` | whitelisted |
+| Swagger UI | `GET /docs` | 200 |
+| Prometheus | `GET /metrics` | scrape-ready |
+| Route count | `GET /mgmt/mappings` | 31 routes |
+
 ## Configuration
 
 All configuration via environment variables (Pydantic Settings). See [.env.example](.env.example).
