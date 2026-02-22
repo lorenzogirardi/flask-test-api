@@ -14,6 +14,11 @@ os.environ["DIAG_PASSWORD"] = "test-password-only"
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+
+@pytest.fixture(params=["asyncio"])
+def anyio_backend(request):
+    return request.param
+
 # Clear cached settings so test env vars take effect
 from app.config.settings import get_settings
 get_settings.cache_clear()
