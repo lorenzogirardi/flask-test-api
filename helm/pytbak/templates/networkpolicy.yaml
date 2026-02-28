@@ -37,6 +37,10 @@ spec:
     - ports:
         - port: 4317
           protocol: TCP
+    # Webdis HTTP
+    - ports:
+        - port: 7379
+          protocol: TCP
     # HTTP/HTTPS (debug endpoints: curl, tcp-check, ping)
     - ports:
         - port: 80
