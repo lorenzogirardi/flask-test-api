@@ -155,7 +155,9 @@ When auto-instrumentation is active, Datadog injects these env vars:
 
 ## 10.6 DatadogAgent CRD Configuration
 
-The cluster-level configuration lives in the `DatadogAgent` CRD (`datadog` namespace):
+The cluster-level configuration lives in the `DatadogAgent` CRD (`datadog` namespace).
+
+### izanami / itachi (microk8s)
 
 ```yaml
 apiVersion: datadoghq.com/v2alpha1
@@ -164,6 +166,14 @@ metadata:
   name: datadog
   namespace: datadog
 spec:
+  global:
+    clusterName: microk8s
+    credentials:
+      apiSecret:
+        keyName: api-key
+        secretName: datadog-secret
+    site: datadoghq.eu
+    tags: ["env:home-local", "proxmox"]
   features:
     apm:
       enabled: true
@@ -176,7 +186,48 @@ spec:
         protocols:
           grpc:
             enabled: true
+    logCollection:
+      containerCollectAll: true
+      enabled: true
 ```
+
+### milano (k3s)
+
+```yaml
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+  namespace: datadog
+spec:
+  global:
+    clusterName: k3s-milano
+    credentials:
+      apiSecret:
+        keyName: api-key
+        secretName: datadog-secret
+    site: datadoghq.eu
+    tags: ["env:home-local", "k3s"]
+  features:
+    apm:
+      enabled: true
+      hostPortConfig:
+        enabled: true
+        hostPort: 8126
+    logCollection:
+      containerCollectAll: true
+      enabled: true
+    dogstatsd:
+      hostPortConfig:
+        enabled: true
+    otlp:
+      receiver:
+        protocols:
+          grpc:
+            enabled: true
+```
+
+> **Note**: On milano, Datadog Operator is installed via Helm (`datadog/datadog-operator`). The APM Admission Controller is not enabled — pytbak uses OTLP export (`OTEL_ENABLED=true`) to send traces directly to the Datadog Agent on port 4317.
 
 Key: `instrumentation.enabled: false` disables global injection. Pods must opt-in via labels.
 
@@ -190,6 +241,7 @@ The Helm chart includes a `NetworkPolicy` that restricts pod traffic:
 | **Egress** | 53 | UDP/TCP | DNS resolution |
 | **Egress** | 5432 | TCP | PostgreSQL |
 | **Egress** | 6379 | TCP | Redis |
+| **Egress** | 7379 | TCP | Webdis HTTP interface |
 | **Egress** | 4317 | TCP | OTLP (Datadog Agent) |
 | **Egress** | 80, 443 | TCP | HTTP/HTTPS (debug endpoints: curl, tcp-check) |
 

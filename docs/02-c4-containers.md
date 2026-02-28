@@ -26,15 +26,18 @@ Priority:  PostgreSQL  →  Redis  →  In-Memory
 
 ## 2.3 Environment Differences
 
-| Aspect | Development | izanami (192.168.1.14) | itachi (prod) |
-|--------|-------------|------------------------|---------------|
-| PostgreSQL | docker-compose container | Helm chart `helm-postgresql` ns `postgresql` | External managed service |
-| Redis | docker-compose container | Helm chart `helm-redis` ns `redis` | External managed service |
-| Webdis | Not used | Deployed (`:7379` HTTP interface) | Not used |
-| Observability | Libraries only | Datadog Agent in cluster | Datadog Agent in cluster |
-| Config | `.env` file | `values-izanami.yaml` + K8s secrets | Helm values + K8s secrets |
-| Scaling | Single instance | 1 replica, no HPA | HPA (2-10 replicas) |
-| Storage | In-memory/local | hostPath PV (Retain) `/mnt/` | Managed storage |
+| Aspect | Development | izanami (192.168.1.14) | itachi (prod) | milano (192.168.100.103) |
+|--------|-------------|------------------------|---------------|--------------------------|
+| PostgreSQL | docker-compose container | Helm chart `helm-postgresql` ns `postgresql` | External managed service | Helm chart `helm-postgresql` ns `postgresql` |
+| Redis | docker-compose container | Helm chart `helm-redis` ns `redis` | External managed service | Helm chart `helm-redis` ns `redis` |
+| Webdis | Not used | Deployed (`:7379` HTTP interface) | Not used | Deployed (`:7379` HTTP interface) |
+| Observability | Libraries only | Datadog Agent in cluster | Datadog Agent in cluster | Datadog Agent (Operator) in cluster |
+| Config | `.env` file | `values-izanami.yaml` + K8s secrets | `values-itachi.yaml` + K8s secrets | `values-milano.yaml` + K8s secrets |
+| Scaling | Single instance | 1 replica, no HPA | HPA (2-10 replicas) | 1 replica, no HPA |
+| Storage | In-memory/local | hostPath PV (Retain) `/mnt/` | Managed storage | local-path PV (k3s default) |
+| Ingress | Not used | nginx (`public`) via apacherr proxy | Kong | Traefik (k3s built-in) |
+| Public URL | localhost:8000 | https://services.k8s.it/api/ | Via Kong gateway | https://milano.k8s.it/ |
+| Access | Local | Direct / Cloudflare tunnel | Direct | SSH tunnel → `milano.freemyip.com:55022` |
 
 ## 2.4 C4 Container Diagram (Level 2)
 

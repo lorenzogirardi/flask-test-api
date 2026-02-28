@@ -21,7 +21,7 @@
 - Observability: libraries in-app (no sidecar containers)
 - Config: `.env` file
 
-### Production (Kubernetes + Helm)
+### Production (Kubernetes + Helm) — itachi
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -48,6 +48,34 @@
     │               │    │  Memorystore)     │
     └───────────────┘    └───────────────────┘
 ```
+
+### Staging / Remote (Kubernetes + Helm) — izanami & milano
+
+```
+┌──────────────────────────────────────────────────────────┐
+│              Kubernetes Cluster (k3s / microk8s)          │
+│                                                          │
+│  ┌─────────────────────────────────┐   ┌──────────────┐  │
+│  │  pytbak Deployment (1 replica) │   │ Datadog Agent │  │
+│  │  ┌────────┐                    │   │  (DaemonSet)  │  │
+│  │  │ Pod 1  │                    │   │               │  │
+│  │  │ :8000  │                    │   │  scrape       │  │
+│  │  └────────┘                    │   │  /metrics     │  │
+│  │       ↕ Service (ClusterIP)    │   │  receive OTLP │  │
+│  └─────────────────────────────────┘   └──────────────┘  │
+│       │                                                   │
+│  ┌────▼────┐  ┌─────────────┐  ┌───────────────────────┐  │
+│  │ Ingress │  │ PostgreSQL  │  │  Redis + Webdis       │  │
+│  │(Traefik │  │ ns:postgresql│  │  ns:redis (:6379/7379)│  │
+│  │ /nginx) │  └─────────────┘  └───────────────────────┘  │
+│  └─────────┘                                              │
+└──────────────────────────────────────────────────────────┘
+```
+
+| Cluster | Ingress | Public URL | Access |
+|---------|---------|-----------|--------|
+| **izanami** (microk8s) | nginx → apacherr proxy | https://services.k8s.it/api/ | Cloudflare tunnel |
+| **milano** (k3s) | Traefik | https://milano.k8s.it/ | SSH tunnel → `milano.freemyip.com:55022` |
 
 ## 5.2 Kubernetes Resources (Helm Chart)
 
