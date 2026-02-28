@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
         title="pytbak API",
         description="Python REST API Test & Debug Application (FastAPI)",
         version=settings.app_version,
+        openapi_url="/api/openapi.json",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         lifespan=lifespan,

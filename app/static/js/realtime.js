@@ -97,7 +97,7 @@
       const methods = (r.methods || []).map(m =>
         '<span class="method-badge ' + m.toLowerCase() + '">' + m + '</span>'
       ).join(' ');
-      const authTag = (r.path.includes('/debug/') || r.path === '/mgmt/threaddump')
+      const authTag = (r.path.includes('/debug/') || r.path === '/api/mgmt/threaddump')
         ? ' <span class="tag-auth">auth</span>' : '';
       return '<tr>' +
         '<td>' + methods + '</td>' +

@@ -48,6 +48,7 @@ APP_ENV=development uvicorn app.main:app --reload --port 8000
 ```
 
 ### Production (Kubernetes + Helm)
+
 ```bash
 helm install pytbak ./helm/pytbak \
   --set postgresql.url="postgresql+asyncpg://user:pass@pg-host:5432/db" \
@@ -55,6 +56,34 @@ helm install pytbak ./helm/pytbak \
   --set auth.username=admin \
   --set auth.password=secure123
 ```
+
+### izanami cluster (192.168.1.14) — Redis + PostgreSQL dedicati
+
+Redis e PostgreSQL sono deployati come chart indipendenti (fuori da questo repo):
+
+```bash
+# 1. Redis + Webdis (~/Storage/home/helm-redis)
+helm upgrade --install redis ~/Storage/home/helm-redis \
+  --kube-context izanami \
+  --set redis.password=<REDIS_PASSWORD>
+
+# 2. PostgreSQL (~/Storage/home/helm-postgresql)
+helm upgrade --install postgresql ~/Storage/home/helm-postgresql \
+  --kube-context izanami \
+  --set postgresql.password=<PG_PASSWORD>
+
+# 3. pytbak con override izanami
+helm upgrade pytbak ./helm/pytbak \
+  -f helm/pytbak/values.yaml \
+  -f helm/pytbak/values-izanami.yaml \
+  --kube-context izanami -n pytbak \
+  --set auth.password=<AUTH_PASSWORD> \
+  --set redis.url="redis://:REDIS_PASSWORD@redis.redis.svc.cluster.local:6379/0" \
+  --set postgresql.url="postgresql+asyncpg://pytbak:PG_PASSWORD@postgresql.postgresql.svc.cluster.local:5432/pytbak"
+```
+
+> **Nota microk8s**: il provisioner hostpath non funziona con K8s 1.20+.
+> Creare i PV manuali prima del deploy — vedere i README dei rispettivi chart.
 
 ## API Endpoints
 
@@ -435,6 +464,8 @@ pytest --cov=app --cov-report=term-missing
 │   ├── test_middleware.py
 │   └── test_storage.py
 ├── helm/pytbak/                 # Helm chart (production K8s)
+│   ├── values.yaml              # Default values
+│   └── values-izanami.yaml      # Override per cluster izanami (1 replica, Redis+PG endpoints)
 ├── otel/                        # Prometheus + OTEL Collector config
 ├── alembic/                     # DB migrations
 ├── docker/                      # Legacy Flask app (preserved)

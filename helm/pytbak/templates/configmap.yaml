@@ -14,6 +14,9 @@ data:
   {{- if .Values.postgresql.url }}
   DATABASE_URL: {{ .Values.postgresql.url | quote }}
   {{- end }}
+  {{- if .Values.webdis.url }}
+  WEBDIS_URL: {{ .Values.webdis.url | quote }}
+  {{- end }}
   {{- if .Values.otel.enabled }}
   OTEL_ENABLED: "true"
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.otel.endpoint | quote }}

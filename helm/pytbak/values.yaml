@@ -41,6 +41,10 @@ postgresql:
   # url: "postgresql+asyncpg://user:pass@your-pg.example.com:5432/pytbak"
   url: ""
 
+webdis:
+  # url: "http://webdis.redis.svc.cluster.local:7379"
+  url: ""
+
 # Observability — both consumed by Datadog Agent in production:
 #   - Traces: OTEL via OTLP -> Datadog Agent (port 4317)
 #   - Metrics: /metrics endpoint -> Datadog Agent (openmetrics check or autodiscovery)

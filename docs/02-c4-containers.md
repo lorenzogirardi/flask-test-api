@@ -26,13 +26,15 @@ Priority:  PostgreSQL  →  Redis  →  In-Memory
 
 ## 2.3 Environment Differences
 
-| Aspect | Development | Production |
-|--------|-------------|------------|
-| PostgreSQL | docker-compose container | External managed service (RDS, Cloud SQL) |
-| Redis | docker-compose container | External managed service (ElastiCache, Memorystore) |
-| Observability | Libraries only (no collectors) | Datadog Agent in cluster |
-| Config | `.env` file | Helm values + K8s secrets |
-| Scaling | Single instance | HPA (2-10 replicas) |
+| Aspect | Development | izanami (192.168.1.14) | itachi (prod) |
+|--------|-------------|------------------------|---------------|
+| PostgreSQL | docker-compose container | Helm chart `helm-postgresql` ns `postgresql` | External managed service |
+| Redis | docker-compose container | Helm chart `helm-redis` ns `redis` | External managed service |
+| Webdis | Not used | Deployed (`:7379` HTTP interface) | Not used |
+| Observability | Libraries only | Datadog Agent in cluster | Datadog Agent in cluster |
+| Config | `.env` file | `values-izanami.yaml` + K8s secrets | Helm values + K8s secrets |
+| Scaling | Single instance | 1 replica, no HPA | HPA (2-10 replicas) |
+| Storage | In-memory/local | hostPath PV (Retain) `/mnt/` | Managed storage |
 
 ## 2.4 C4 Container Diagram (Level 2)
 
@@ -79,6 +81,7 @@ C4Container
 | Port | Service | Protocol | Exposure |
 |------|---------|----------|----------|
 | 8000 | FastAPI (Uvicorn) | HTTP | ClusterIP / Ingress |
-| 5432 | PostgreSQL | TCP | Internal only |
-| 6379 | Redis | TCP | Internal only |
+| 5432 | PostgreSQL | TCP | Internal only (ns: postgresql) |
+| 6379 | Redis | TCP | Internal only (ns: redis) |
+| 7379 | Webdis HTTP | HTTP | Internal only (ns: redis) |
 | 4317 | OTLP gRPC (Datadog) | gRPC | Internal only |

@@ -68,20 +68,20 @@ spec:
                 name: {{ include "pytbak.fullname" . }}-auth
           startupProbe:
             httpGet:
-              path: /mgmt/ready
+              path: /api/mgmt/ready
               port: http
             failureThreshold: 20
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /mgmt/health
+              path: /api/mgmt/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
-              path: /mgmt/ready
+              path: /api/mgmt/ready
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10

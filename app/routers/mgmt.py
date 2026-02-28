@@ -13,7 +13,7 @@ from app.models.database import get_session_factory
 from app.models.schemas import AppInfoResponse, HealthCheck, HealthResponse
 from app.services.redis_client import get_redis, is_redis_available
 
-router = APIRouter(prefix="/mgmt", tags=["Management"])
+router = APIRouter(prefix="/api/mgmt", tags=["Management"])
 
 
 @router.get("/health", response_model=HealthResponse, summary="Health check")
