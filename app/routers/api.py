@@ -79,7 +79,7 @@ async def fibonacci(x: int):
             a, b = b, a + b
         return str(a)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, _compute, x)
     return {"result": result}
 

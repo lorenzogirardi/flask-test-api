@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     webdis_url: str = "http://webdis-svc.webdis:7379"
 
     @property
-    def effective_redis_url(self) -> str | None:
+    def effective_redis_url(self) -> str:
         """Return redis_url if set, otherwise build from host/port/db."""
         if self.redis_url:
             return self.redis_url
@@ -73,10 +73,7 @@ class Settings(BaseSettings):
     @property
     def sanitized_redis_url(self) -> str:
         """Return Redis URL with password masked for logging."""
-        url = self.effective_redis_url
-        if not url:
-            return "not configured"
-        return re.sub(r"://[^@]*@", "://***@", url)
+        return re.sub(r"://[^@]*@", "://***@", self.effective_redis_url)
 
 
 @lru_cache

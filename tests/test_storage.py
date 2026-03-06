@@ -3,21 +3,7 @@
 import pytest
 
 from app.models.schemas import ContextCreate, ContextUpdate
-from app.services.storage import (
-    create_context,
-    delete_context,
-    get_all_contexts,
-    get_context,
-    update_context,
-    _memory_store,
-)
-
-
-@pytest.fixture(autouse=True)
-def clear_memory():
-    _memory_store.clear()
-    yield
-    _memory_store.clear()
+from app.services.storage import create_context, delete_context, get_all_contexts, get_context, update_context
 
 
 @pytest.mark.anyio

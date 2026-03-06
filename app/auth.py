@@ -64,6 +64,11 @@ def _clear_failures(ip: str) -> None:
     _fail_tracker.pop(ip, None)
 
 
+def reset_auth_state() -> None:
+    """Clear all rate-limiting state. For tests only."""
+    _fail_tracker.clear()
+
+
 def verify_credentials(
     request: Request,
     credentials: HTTPBasicCredentials = Depends(security),

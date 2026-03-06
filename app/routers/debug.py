@@ -61,7 +61,7 @@ async def network_scan(target: str = Query(..., description="host:port or hostna
 
     # DNS
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         infos = await loop.run_in_executor(
             None, lambda: socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
         )
@@ -171,7 +171,7 @@ async def ping_host(host: str = Query(...), count: int = Query(default=3, ge=1, 
 async def dns_resolve(name: str = Query(...)):
     _validate_host(name)
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         results = await loop.run_in_executor(
             None, lambda: socket.getaddrinfo(name, None, proto=socket.IPPROTO_TCP)
         )

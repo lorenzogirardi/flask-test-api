@@ -45,3 +45,24 @@ def auth_headers():
     import base64
     creds = base64.b64encode(b"admin:test-password-only").decode()
     return {"Authorization": f"Basic {creds}"}
+
+
+@pytest.fixture(autouse=True)
+def reset_auth():
+    """Wipe auth rate-limit state before/after every test."""
+    from app.auth import reset_auth_state
+    reset_auth_state()
+    yield
+    reset_auth_state()
+
+
+@pytest.fixture(autouse=True)
+def reset_storage():
+    """Wipe in-memory store and local cache before/after every test."""
+    from app.services.cache import get_cache
+    from app.services.storage import reset_memory_store
+    reset_memory_store()
+    get_cache().clear()
+    yield
+    reset_memory_store()
+    get_cache().clear()

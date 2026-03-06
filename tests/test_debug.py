@@ -30,6 +30,14 @@ async def test_dns_invalid(client, auth_headers):
 
 
 @pytest.mark.anyio
+async def test_dns_valid(client, auth_headers):
+    resp = await client.get("/api/debug/dns?name=localhost", headers=auth_headers)
+    assert resp.status_code == 200
+    assert "addresses" in resp.json()
+    assert isinstance(resp.json()["addresses"], list)
+
+
+@pytest.mark.anyio
 async def test_tcp_check_missing(client, auth_headers):
     resp = await client.get("/api/debug/tcp-check?host=localhost&port=1", headers=auth_headers)
     assert resp.status_code == 400  # port 1 should fail
@@ -45,10 +53,6 @@ async def test_debug_requires_auth(client):
 async def test_auth_rate_limit(client):
     """After 3 failed attempts, subsequent requests should be rate limited (429)."""
     import base64
-    from app.auth import _fail_tracker
-
-    # Clear any previous state
-    _fail_tracker.clear()
 
     bad_creds = base64.b64encode(b"admin:wrongpass").decode()
     bad_headers = {"Authorization": f"Basic {bad_creds}"}
@@ -62,9 +66,6 @@ async def test_auth_rate_limit(client):
     resp = await client.get("/api/debug/headers", headers=bad_headers)
     assert resp.status_code == 429
     assert "Retry-After" in resp.headers
-
-    # Clean up
-    _fail_tracker.clear()
 
 
 @pytest.mark.anyio
