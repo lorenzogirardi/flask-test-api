@@ -18,7 +18,7 @@ jobs:
       uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
@@ -47,7 +47,7 @@ jobs:
             egress-policy: audit
 
         - name: Checkout code
-          uses: actions/checkout@v5
+          uses: actions/checkout@v6
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
         # setup Docker buld action
@@ -131,7 +131,7 @@ jobs:
         with:
           egress-policy: audit
       # Checks-out your repository under $GITHUB_WORKSPACE, so follow-up steps can access it
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Python 3.8
         uses: actions/setup-python@v6
         with:
@@ -156,7 +156,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: modify the image
         run: |
@@ -182,7 +182,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Testing on a k8s Kind Cluster
         uses: helm/kind-action@v1.12.0
       - run: |
