@@ -160,6 +160,11 @@ about, not a broken tool call.
 
 ## 11.7 Usage Example
 
+Real example from OpenCode Desktop — natural-language prompt, tool calls resolved
+automatically, no manual tool selection needed:
+
+![pytbak MCP tools called from OpenCode Desktop: create_context, health, and get_context](images/opencode-mcp-example.png)
+
 Any MCP-compatible client works. Using the official Python SDK directly:
 
 ```python
