@@ -6,9 +6,12 @@ tests/conftest.py. Exercises app.mcp.tools functions directly (not the
 streamable-HTTP transport — that's covered by tests/integration/test_mcp.py).
 """
 
+import json
+
 import pytest
 
 from app.mcp import tools as mcp_tools
+from app.middleware.mcp_auth import MCPBasicAuthMiddleware
 
 
 @pytest.mark.anyio
@@ -53,6 +56,39 @@ async def test_sleep_too_long_returns_error_dict():
     result = await mcp_tools.sleep(999)
     assert result["error"] is True
     assert result["status_code"] == 400
+
+
+# Pydantic constraints live on the request models, not the tool signatures, so
+# they only fire at call time — these must surface as results, not raised
+# exceptions, or an LLM passing a bad argument gets a broken tool call.
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"title": ""},               # min_length=1
+        {"title": "x" * 300},        # max_length=255
+    ],
+)
+async def test_create_context_invalid_title_returns_error_dict(kwargs):
+    result = await mcp_tools.create_context(**kwargs)
+    assert result["error"] is True
+    assert result["status_code"] == 422
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("kwargs", [{"duration": 500}, {"cores": 99}, {"duration": 0}])
+async def test_cpu_spike_out_of_range_returns_error_dict(kwargs):
+    result = await mcp_tools.cpu_spike(**kwargs)
+    assert result["error"] is True
+    assert result["status_code"] == 422
+
+
+@pytest.mark.anyio
+async def test_update_context_invalid_title_returns_error_dict():
+    created = await mcp_tools.create_context(title="valid")
+    result = await mcp_tools.update_context(created["id"], title="x" * 300)
+    assert result["error"] is True
+    assert result["status_code"] == 422
 
 
 @pytest.mark.anyio
@@ -106,3 +142,30 @@ async def test_dns_resolve_invalid_host_returns_error_dict():
     result = await mcp_tools.dns_resolve("not a valid host!!")
     assert result["error"] is True
     assert result["status_code"] == 400
+
+
+# --- Auth middleware ---
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "status_code,message,retry_after",
+    [
+        (401, "Invalid credentials", None),
+        (429, "Too many failed attempts. Retry in 8s", "8"),
+        (401, 'message with "quotes" and \\backslash', None),
+    ],
+)
+async def test_deny_response_body_is_valid_json(status_code, message, retry_after):
+    """The mount advertises Content-Type: application/json — the body must actually parse."""
+    sent = []
+
+    async def send(message_dict):
+        sent.append(message_dict)
+
+    await MCPBasicAuthMiddleware._deny(send, status_code, message, retry_after=retry_after)
+
+    start, body = sent
+    assert start["status"] == status_code
+    assert (b"content-type", b"application/json") in start["headers"]
+    assert json.loads(body["body"]) == {"error": message}

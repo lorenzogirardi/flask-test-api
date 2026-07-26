@@ -16,12 +16,13 @@ individual auth requirement.
 from __future__ import annotations
 
 import base64
+import json
 import secrets
 
 from fastapi import HTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.auth import _check_rate_limit, _clear_failures, _record_failure
+from app.auth import check_rate_limit, clear_failures, record_failure
 from app.config import get_settings
 
 
@@ -51,7 +52,7 @@ class MCPBasicAuthMiddleware:
         ip = client[0] if client else "unknown"
 
         try:
-            _check_rate_limit(ip)
+            check_rate_limit(ip)
         except HTTPException as e:
             await self._deny(send, e.status_code, str(e.detail), retry_after=(e.headers or {}).get("Retry-After"))
             return
@@ -68,11 +69,11 @@ class MCPBasicAuthMiddleware:
             and secrets.compare_digest(password, settings.diag_password)
         )
         if not ok:
-            _record_failure(ip)
+            record_failure(ip)
             await self._deny(send, 401, "Invalid credentials")
             return
 
-        _clear_failures(ip)
+        clear_failures(ip)
         await self._app(scope, receive, send)
 
     @staticmethod
@@ -83,6 +84,6 @@ class MCPBasicAuthMiddleware:
         ]
         if retry_after:
             headers.append((b"retry-after", str(retry_after).encode()))
-        body = f'{{"error": {message!r}}}'.encode()
+        body = json.dumps({"error": message}).encode()
         await send({"type": "http.response.start", "status": status_code, "headers": headers})
         await send({"type": "http.response.body", "body": body})

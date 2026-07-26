@@ -10,8 +10,12 @@ introspect from inside an in-process tool) and is intentionally omitted.
 
 from __future__ import annotations
 
+import functools
+from collections.abc import Awaitable, Callable
+
 from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
+from pydantic import ValidationError
 
 from app.models.schemas import ContextCreate, ContextUpdate, CpuSpikeRequest
 from app.routers.api import count as _count_route
@@ -34,20 +38,40 @@ from app.services.health import get_health
 mcp = FastMCP("pytbak", streamable_http_path="/", stateless_http=True)
 
 
-def _http_err(e: HTTPException) -> dict:
-    return {"error": True, "status_code": e.status_code, "detail": e.detail}
+def _structured_errors(fn: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:
+    """Turn expected failures into structured results instead of transport-level errors.
+
+    An LLM that passes a bad argument should get a result it can read and retry
+    from, not a broken tool call. HTTPException covers the routers' own 4xx
+    responses; ValidationError covers arguments that fail the Pydantic request
+    models (title too long, duration out of range, ...) — those constraints live
+    on the models, not on the tool signatures, so they only fire at call time.
+    """
+
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs) -> object:
+        try:
+            return await fn(*args, **kwargs)
+        except HTTPException as e:
+            return {"error": True, "status_code": e.status_code, "detail": e.detail}
+        except ValidationError as e:
+            return {"error": True, "status_code": 422, "detail": e.errors(include_url=False)}
+
+    return wrapper
 
 
 # ---------- Contexts CRUD ----------
 
 
 @mcp.tool()
+@_structured_errors
 async def list_contexts() -> object:
     """List all stored contexts (title/description/done items)."""
     return [c.model_dump(mode="json") for c in await storage.get_all_contexts()]
 
 
 @mcp.tool()
+@_structured_errors
 async def get_context(context_id: str) -> object:
     """Get a single context by ID."""
     ctx = await storage.get_context(context_id)
@@ -57,13 +81,15 @@ async def get_context(context_id: str) -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def create_context(title: str, description: str = "") -> object:
-    """Create a new context."""
+    """Create a new context. Title must be 1-255 characters."""
     ctx = await storage.create_context(ContextCreate(title=title, description=description))
     return ctx.model_dump(mode="json")
 
 
 @mcp.tool()
+@_structured_errors
 async def update_context(
     context_id: str, title: str | None = None, description: str | None = None, done: bool | None = None
 ) -> object:
@@ -76,6 +102,7 @@ async def update_context(
 
 
 @mcp.tool()
+@_structured_errors
 async def delete_context(context_id: str) -> object:
     """Delete a context by ID."""
     deleted = await storage.delete_context(context_id)
@@ -88,30 +115,28 @@ async def delete_context(context_id: str) -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def fibonacci(x: int) -> object:
     """Compute the x-th Fibonacci number (max 20000). Useful for CPU load testing."""
-    try:
-        return await _fibonacci_route(x)
-    except HTTPException as e:
-        return _http_err(e)
+    return await _fibonacci_route(x)
 
 
 @mcp.tool()
+@_structured_errors
 async def sleep(seconds: int) -> object:
     """Sleep for N seconds server-side (max 10). Useful for latency testing."""
-    try:
-        return await _sleep_route(seconds)
-    except HTTPException as e:
-        return _http_err(e)
+    return await _sleep_route(seconds)
 
 
 @mcp.tool()
+@_structured_errors
 async def count() -> object:
     """Increment and return the server's Redis-backed hit counter."""
     return await _count_route()
 
 
 @mcp.tool()
+@_structured_errors
 async def redis_ping() -> object:
     """Ping Redis via the legacy webdis path."""
     return await _redis_ping_route()
@@ -121,16 +146,15 @@ async def redis_ping() -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def network_scan(target: str) -> object:
     """Run ping+dns+tcp+traceroute against target ('host' or 'host:port')."""
-    try:
-        result = await _network_scan_route(target)
-    except HTTPException as e:
-        return _http_err(e)
+    result = await _network_scan_route(target)
     return result.model_dump(mode="json")
 
 
 @mcp.tool()
+@_structured_errors
 async def cpu_spike(duration: int = 10, cores: int = 1) -> object:
     """Burn CPU on the server for `duration` seconds across `cores` cores (max 120s / 16 cores)."""
     result = await _cpu_spike_route(CpuSpikeRequest(duration=duration, cores=cores))
@@ -138,62 +162,54 @@ async def cpu_spike(duration: int = 10, cores: int = 1) -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def ping(host: str, count: int = 3) -> object:
-    """Ping a host from the server."""
-    try:
-        resp = await _ping_route(host, count)
-    except HTTPException as e:
-        return _http_err(e)
+    """Ping a host from the server (count 1-20)."""
+    resp = await _ping_route(host, count)
     return resp.body.decode()
 
 
 @mcp.tool()
+@_structured_errors
 async def dns_resolve(name: str) -> object:
     """Resolve a hostname from the server."""
-    try:
-        return await _dns_resolve_route(name)
-    except HTTPException as e:
-        return _http_err(e)
+    return await _dns_resolve_route(name)
 
 
 @mcp.tool()
+@_structured_errors
 async def curl(url: str) -> object:
     """HTTP GET a URL from the server's network vantage point."""
-    try:
-        resp = await _curl_route(url)
-    except HTTPException as e:
-        return _http_err(e)
+    resp = await _curl_route(url)
     return {"status_code": resp.status_code, "body": resp.body.decode(errors="replace")}
 
 
 @mcp.tool()
+@_structured_errors
 async def tcp_check(host: str, port: int) -> object:
     """Check whether host:port accepts a TCP connection from the server."""
-    try:
-        return await _tcp_check_route(host, port)
-    except HTTPException as e:
-        return _http_err(e)
+    return await _tcp_check_route(host, port)
 
 
 @mcp.tool()
+@_structured_errors
 async def echo_body(body: str) -> object:
     """Echo a string back verbatim. Simple round-trip / connectivity check."""
     return body
 
 
 @mcp.tool()
+@_structured_errors
 async def random_error() -> object:
     """Trigger a randomly chosen HTTP error (always errors by design)."""
-    try:
-        return await _random_error_route()
-    except HTTPException as e:
-        return _http_err(e)
+    return await _random_error_route()
 
 
 # ---------- Mgmt / observability ----------
 
 
 @mcp.tool()
+@_structured_errors
 async def health() -> object:
     """Check pytbak's health (Redis/Postgres backend status)."""
     result = await get_health()
@@ -201,24 +217,28 @@ async def health() -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def ready() -> object:
     """Check pytbak's readiness probe."""
     return {"status": "READY"}
 
 
 @mcp.tool()
+@_structured_errors
 async def app_info() -> object:
     """Get pytbak's app name/version/environment."""
     return await _app_info_route()
 
 
 @mcp.tool()
+@_structured_errors
 async def app_env() -> object:
     """Get pytbak's allowlisted environment variables."""
     return await _app_env_route()
 
 
 @mcp.tool()
+@_structured_errors
 async def app_mappings() -> object:
     """List all registered routes on this pytbak instance."""
     from app.main import app as fastapi_app
@@ -236,6 +256,7 @@ async def app_mappings() -> object:
 
 
 @mcp.tool()
+@_structured_errors
 async def threaddump() -> object:
     """Get a thread dump from the server."""
     resp = await _threaddump_route()

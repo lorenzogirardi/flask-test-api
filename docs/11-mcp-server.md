@@ -148,15 +148,28 @@ perspective):
 | Debug / diagnostics | `network_scan`, `cpu_spike`, `ping`, `dns_resolve`, `curl`, `tcp_check`, `echo_body`, `random_error` |
 | Mgmt / observability | `health`, `ready`, `app_info`, `app_env`, `app_mappings`, `threaddump` |
 
-Tools never raise exceptions back to the MCP transport for expected failure cases (404, 400,
-etc.) — they catch `HTTPException` internally and return a structured error dict instead:
+Tools never raise exceptions back to the MCP transport for expected failure cases. The
+`_structured_errors` decorator in `app/mcp/tools.py` wraps every tool and converts them into
+a result the caller can read:
+
+| Raised inside a tool | Returned to the caller |
+|---|---|
+| `HTTPException` (router 4xx, e.g. bad host, input too large) | `{"error": true, "status_code": <4xx>, "detail": "..."}` |
+| `ValidationError` (argument fails a Pydantic request model) | `{"error": true, "status_code": 422, "detail": [ ...pydantic errors... ]}` |
+| Not-found paths (no exception, checked explicitly) | `{"error": true, "status_code": 404, "detail": "Context not found"}` |
+
+The `ValidationError` case matters because the constraints live on the request models
+(`ContextCreate.title` is 1-255 chars, `CpuSpikeRequest.duration` is 1-120) rather than on
+the tool signatures, so they only fire at call time. Without the decorator, an LLM passing
+`title=""` would get a broken tool call instead of a result explaining what was wrong:
 
 ```json
-{"error": true, "status_code": 404, "detail": "Context not found"}
+{"error": true, "status_code": 422,
+ "detail": [{"type": "string_too_short", "loc": ["title"], "msg": "String should have at least 1 character"}]}
 ```
 
-This means an LLM calling `get_context` with a bad ID gets a normal tool result to reason
-about, not a broken tool call.
+MCP reports these with `isError=false` — they are legitimate results describing a failure,
+not transport faults, which is what lets the model reason about them and retry.
 
 ## 11.7 Usage Example
 

@@ -28,8 +28,12 @@ def _cleanup_old(ip: str) -> None:
         _fail_tracker.pop(ip, None)
 
 
-def _check_rate_limit(ip: str) -> None:
-    """Check if IP is rate limited due to failed attempts."""
+def check_rate_limit(ip: str) -> None:
+    """Check if IP is rate limited due to failed attempts.
+
+    Public: also used by app/middleware/mcp_auth.py so the /api/mcp mount
+    shares one backoff budget with the /api/debug/* endpoints.
+    """
     _cleanup_old(ip)
     failures = _fail_tracker.get(ip, [])
     if len(failures) < _MAX_FAILURES:
@@ -51,16 +55,16 @@ def _check_rate_limit(ip: str) -> None:
         )
 
 
-def _record_failure(ip: str) -> None:
-    """Record a failed auth attempt."""
+def record_failure(ip: str) -> None:
+    """Record a failed auth attempt. Shared with mcp_auth (see check_rate_limit)."""
     _cleanup_old(ip)
     _fail_tracker[ip].append(time.monotonic())
     count = len(_fail_tracker[ip])
     logger.warning("Auth failure from {} — attempt {}/{} before rate limit", ip, count, _MAX_FAILURES)
 
 
-def _clear_failures(ip: str) -> None:
-    """Clear failure history on successful auth."""
+def clear_failures(ip: str) -> None:
+    """Clear failure history on successful auth. Shared with mcp_auth (see check_rate_limit)."""
     _fail_tracker.pop(ip, None)
 
 
@@ -76,18 +80,18 @@ def verify_credentials(
     """Dependency that checks basic auth credentials with incremental rate limiting."""
     ip = request.client.host if request.client else "unknown"
 
-    _check_rate_limit(ip)
+    check_rate_limit(ip)
 
     settings = get_settings()
     correct_user = secrets.compare_digest(credentials.username, settings.diag_username)
     correct_pass = secrets.compare_digest(credentials.password, settings.diag_password)
     if not (correct_user and correct_pass):
-        _record_failure(ip)
+        record_failure(ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
 
-    _clear_failures(ip)
+    clear_failures(ip)
     return credentials.username
