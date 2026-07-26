@@ -4,7 +4,7 @@ import pathlib
 import sys
 import time
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,31 +33,52 @@ def _setup_logging() -> None:
         )
 
 
-# --- Lifespan ---
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    _setup_logging()
-    settings = get_settings()
+def _make_lifespan(mcp_server):
+    """Build the lifespan context manager. mcp_server is None when MCP is disabled.
 
-    # Init backends (graceful: failures are logged, not fatal)
-    db_ok = await init_db()
-    redis_ok = await init_redis()
-    logger.info(
-        "Startup complete | pg={} redis={} env={}",
-        "connected" if db_ok else "fallback",
-        "connected" if redis_ok else "fallback",
-        settings.app_env,
-    )
+    FastAPI's app.mount() does not forward lifespan events to mounted sub-apps,
+    so the MCP session manager (which streamable_http_app() normally starts via
+    its own lifespan) has to be started here explicitly — otherwise requests to
+    /api/mcp hang forever waiting on a session manager that never started.
+    """
 
-    yield
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        _setup_logging()
+        settings = get_settings()
 
-    await close_redis()
-    await close_db()
-    logger.info("Shutdown complete")
+        # Init backends (graceful: failures are logged, not fatal)
+        db_ok = await init_db()
+        redis_ok = await init_redis()
+        logger.info(
+            "Startup complete | pg={} redis={} env={}",
+            "connected" if db_ok else "fallback",
+            "connected" if redis_ok else "fallback",
+            settings.app_env,
+        )
+
+        async with AsyncExitStack() as stack:
+            if mcp_server is not None:
+                await stack.enter_async_context(mcp_server.session_manager.run())
+            yield
+
+        await close_redis()
+        await close_db()
+        logger.info("Shutdown complete")
+
+    return lifespan
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    # Built before FastAPI() so the lifespan closure can start its session manager.
+    mcp_server = None
+    mcp_asgi_app = None
+    if settings.mcp_enabled:
+        from app.mcp.tools import mcp as mcp_server
+
+        mcp_asgi_app = mcp_server.streamable_http_app()  # lazily creates session_manager
 
     app = FastAPI(
         title="pytbak API",
@@ -66,7 +87,7 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
-        lifespan=lifespan,
+        lifespan=_make_lifespan(mcp_server),
     )
 
     # --- Middleware ---
@@ -163,6 +184,15 @@ def create_app() -> FastAPI:
         app.include_router(debug_router)
     else:
         logger.info("Debug endpoints disabled (DEBUG_ENDPOINTS_ENABLED=false)")
+
+    # --- MCP server (in-process, Basic Auth protected) ---
+    if settings.mcp_enabled:
+        from app.middleware.mcp_auth import MCPBasicAuthMiddleware
+
+        app.mount("/api/mcp", MCPBasicAuthMiddleware(mcp_asgi_app))
+        logger.info("MCP server mounted at /api/mcp")
+    else:
+        logger.info("MCP server disabled (MCP_ENABLED=false)")
 
     # --- Error handlers ---
     @app.exception_handler(404)

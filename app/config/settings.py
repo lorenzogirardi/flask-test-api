@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # --- Debug endpoints ---
     debug_endpoints_enabled: bool = Field(default=True, description="Set to false to disable /debug/* in production")
 
+    # --- MCP server ---
+    mcp_enabled: bool = Field(default=True, description="Mount the MCP server at /api/mcp (Basic Auth protected)")
+
     # --- Redis ---
     redis_url: str | None = Field(default=None, description="redis://host:port/db or http(s) endpoint in prod")
     redis_host: str = "localhost"

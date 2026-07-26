@@ -1,0 +1,221 @@
+# 11. MCP Server
+
+## 11.1 What It Is
+
+pytbak mounts an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server at
+`/api/mcp`, exposing its own capabilities — context CRUD, network diagnostics, CPU load
+generation, health checks — as **tools** an LLM can call directly. Built with the official
+[MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)'s `FastMCP` class.
+
+It is **not** a separate service. It runs in the same FastAPI process, same container, same
+pod, same Helm release as the rest of pytbak. Wherever pytbak is deployed — dev, itachi,
+izanami, milano — the MCP endpoint is deployed with it, at no extra infrastructure cost.
+
+## 11.2 Why In-Process, Not a Standalone Client
+
+An earlier design considered a standalone MCP server: a separate process, talking to a
+running pytbak instance over its REST API as an HTTP client. That was rejected in favor of
+mounting the MCP server inside pytbak itself, for one reason: **zero deployment overhead**.
+
+| | Standalone (rejected) | In-process (built) |
+|---|---|---|
+| Extra process to deploy/run | Yes | No |
+| Extra Helm chart / K8s manifests | Yes | No |
+| Network hop per tool call | REST round-trip | Direct function call |
+| Auth | Reuses REST `Depends(verify_credentials)` per-endpoint | Uniform Basic Auth over the whole mount (§11.4) |
+| Ships with `docker compose up` / `helm install pytbak` | No — needs its own lifecycle | Yes — it's already part of `app/` |
+
+Tools call the same service-layer functions the REST routers call
+(`app.services.storage`, `app.routers.debug`, `app.services.health`) directly — no HTTP
+client, no serialization round-trip back into the same process.
+
+## 11.3 Architecture
+
+```mermaid
+graph TB
+    subgraph Client["LLM / MCP Client"]
+        C[Claude, or any MCP-compatible client]
+    end
+
+    subgraph Pod["pytbak Pod (single container)"]
+        subgraph FastAPI["FastAPI app (app/main.py)"]
+            REST["REST routers<br/>/api/*, /api/debug/*, /api/mgmt/*"]
+            AUTH["MCPBasicAuthMiddleware<br/>(app/middleware/mcp_auth.py)"]
+            MCPAPP["MCP streamable-HTTP app<br/>mounted at /api/mcp"]
+            TOOLS["app/mcp/tools.py<br/>24 @mcp.tool() functions"]
+        end
+        SVC["Service layer<br/>storage.py, health.py, debug logic"]
+        PG[(PostgreSQL)]
+        REDIS[(Redis)]
+        MEM[[In-Memory fallback]]
+    end
+
+    C -->|"HTTP POST /api/mcp<br/>(Basic Auth + JSON-RPC)"| AUTH
+    AUTH -->|"authorized"| MCPAPP
+    AUTH -->|"401 / 429"| C
+    MCPAPP --> TOOLS
+    TOOLS -->|"direct function calls,<br/>no HTTP hop"| SVC
+    REST --> SVC
+    SVC --> PG
+    SVC --> REDIS
+    SVC --> MEM
+
+    style AUTH fill:#b91c1c,color:#fff
+    style TOOLS fill:#1d4ed8,color:#fff
+```
+
+Key points:
+
+- **`app/mcp/tools.py`** — the `FastMCP("pytbak")` instance and every `@mcp.tool()` function.
+- **`app/middleware/mcp_auth.py`** — a raw ASGI middleware wrapping the mounted sub-app.
+  `app.mount()` sub-apps don't participate in FastAPI's `Depends()` system, so this is where
+  auth is enforced instead — see §11.4.
+- **`app/services/health.py`** — health-check logic extracted out of `app/routers/mgmt.py`
+  so both the REST `/api/mgmt/health` endpoint and the MCP `health` tool share one
+  implementation instead of two.
+- **Mount wiring in `app/main.py`** — `streamable_http_app()` is built *before* the FastAPI
+  app itself, so its lifespan-managed `session_manager` can be started from pytbak's own
+  `lifespan()` via `AsyncExitStack`. Mounted sub-apps don't get their lifespan events
+  forwarded automatically by Starlette — without this, requests to `/api/mcp` would hang
+  forever waiting on a session manager that never started.
+
+## 11.4 Authentication
+
+The whole `/api/mcp` mount requires HTTP Basic Auth — same `DIAG_USERNAME` /
+`DIAG_PASSWORD` credentials as `/api/debug/*`. `MCPBasicAuthMiddleware` reuses the exact
+same failure-tracking rate limiter as `app/auth.py` (`_check_rate_limit`, `_record_failure`,
+`_clear_failures`), so brute-forcing either surface counts against the same backoff.
+
+This is **stricter than the REST API**, which leaves some endpoints (contexts CRUD,
+`/mgmt/info`) unauthenticated. The MCP mount gates everything uniformly — including tools
+like `list_contexts` and `fibonacci` that have no auth requirement over REST — because MCP
+aggregates many capabilities behind one entry point for an autonomous LLM caller, which
+warrants the stricter boundary rather than mirroring each REST endpoint's individual rule.
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant MW as MCPBasicAuthMiddleware
+    participant RL as app.auth rate limiter
+    participant MCP as MCP streamable-HTTP app
+    participant Tool as app/mcp/tools.py
+    participant Svc as Service layer (storage, health, ...)
+
+    Client->>MW: POST /api/mcp (Authorization: Basic ...)
+    MW->>RL: _check_rate_limit(ip)
+    alt too many recent failures
+        RL-->>MW: HTTPException 429
+        MW-->>Client: 429 Too Many Requests
+    else under threshold
+        MW->>MW: parse + compare credentials (secrets.compare_digest)
+        alt invalid credentials
+            MW->>RL: _record_failure(ip)
+            MW-->>Client: 401 Unauthorized
+        else valid credentials
+            MW->>RL: _clear_failures(ip)
+            MW->>MCP: forward request
+            MCP->>MCP: negotiate session (JSON-RPC over streamable HTTP)
+            MCP->>Tool: dispatch tool call, e.g. create_context(title, description)
+            Tool->>Svc: storage.create_context(ContextCreate(...))
+            Svc-->>Tool: ContextResponse
+            Tool-->>MCP: dict (model_dump)
+            MCP-->>Client: 200 OK + JSON-RPC result
+        end
+    end
+```
+
+## 11.5 Configuration
+
+| Setting | Env var | Default | Purpose |
+|---|---|---|---|
+| `mcp_enabled` | `MCP_ENABLED` | `true` | Mount `/api/mcp` at all |
+| `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `true` | Independent of MCP — gates `/api/debug/*` REST routes only |
+| `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth |
+
+Set `MCP_ENABLED=false` to disable the mount entirely (e.g. a locked-down production
+deployment that only wants the plain REST API).
+
+## 11.6 Available Tools
+
+23 tools, mirroring the REST API's capabilities minus `echo_headers` (no per-call HTTP
+request to introspect when a tool call isn't itself an HTTP request from the caller's
+perspective):
+
+| Category | Tools |
+|---|---|
+| Contexts CRUD | `list_contexts`, `get_context`, `create_context`, `update_context`, `delete_context` |
+| Load / legacy | `fibonacci`, `sleep`, `count`, `redis_ping` |
+| Debug / diagnostics | `network_scan`, `cpu_spike`, `ping`, `dns_resolve`, `curl`, `tcp_check`, `echo_body`, `random_error` |
+| Mgmt / observability | `health`, `ready`, `app_info`, `app_env`, `app_mappings`, `threaddump` |
+
+Tools never raise exceptions back to the MCP transport for expected failure cases (404, 400,
+etc.) — they catch `HTTPException` internally and return a structured error dict instead:
+
+```json
+{"error": true, "status_code": 404, "detail": "Context not found"}
+```
+
+This means an LLM calling `get_context` with a bad ID gets a normal tool result to reason
+about, not a broken tool call.
+
+## 11.7 Usage Example
+
+Any MCP-compatible client works. Using the official Python SDK directly:
+
+```python
+import httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+auth = httpx.BasicAuth("admin", "password")
+
+async with streamablehttp_client("http://localhost:8000/api/mcp", auth=auth) as (read, write, _):
+    async with ClientSession(read, write) as session:
+        await session.initialize()
+
+        tools = await session.list_tools()
+        print([t.name for t in tools.tools])  # 23 tools
+
+        result = await session.call_tool(
+            "create_context", {"title": "from-mcp", "description": "created via MCP"}
+        )
+        print(result.content[0].text)
+
+        health = await session.call_tool("health", {})
+        print(health.content[0].text)
+```
+
+Wiring it into an MCP-aware client config (e.g. Claude Desktop / Claude Code) as a remote
+streamable-HTTP server:
+
+```json
+{
+  "mcpServers": {
+    "pytbak": {
+      "url": "http://localhost:8000/api/mcp",
+      "headers": {
+        "Authorization": "Basic YWRtaW46cGFzc3dvcmQ="
+      }
+    }
+  }
+}
+```
+
+(`YWRtaW46cGFzc3dvcmQ=` is `base64("admin:password")` — the dev default. Use real
+`DIAG_USERNAME`/`DIAG_PASSWORD` for any non-dev deployment.)
+
+## 11.8 Testing
+
+Follows the same test pyramid as the rest of pytbak (see `CLAUDE.md` → Testing Policy):
+
+- **Base** (`tests/test_mcp.py`) — calls `app.mcp.tools` functions directly, in-memory
+  backend, no network. Fast, always runs.
+- **Mid/tip** (`tests/integration/test_mcp.py`) — drives the *real* streamable-HTTP wire
+  protocol against a live `docker compose up -d` stack: session negotiation, JSON-RPC tool
+  calls, and the Basic Auth middleware, including negative tests (missing/wrong
+  credentials rejected). Requires the live stack; self-skips otherwise.
+
+```bash
+pytest tests/test_mcp.py -v                                  # base layer
+docker compose up -d && pytest tests/integration/test_mcp.py -v -m integration
+```

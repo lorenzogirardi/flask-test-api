@@ -9,51 +9,21 @@ from loguru import logger
 
 from app.auth import verify_credentials
 from app.config import get_settings
-from app.models.database import get_session_factory
 from app.models.schemas import AppInfoResponse, HealthCheck, HealthResponse
-from app.services.redis_client import get_redis, is_redis_available
+from app.services.health import get_health
 
 router = APIRouter(prefix="/api/mgmt", tags=["Management"])
 
 
 @router.get("/health", response_model=HealthResponse, summary="Health check")
 async def health_check():
-    checks: list[HealthCheck] = []
-    overall = "UP"
-
-    # Redis check
-    if is_redis_available():
-        r = get_redis()
-        try:
-            await r.ping()
-            checks.append(HealthCheck(name="redis", status="UP"))
-        except Exception as e:
-            checks.append(HealthCheck(name="redis", status="DOWN", error=str(e)))
-            overall = "DEGRADED"
-    else:
-        checks.append(HealthCheck(name="redis", status="NOT_CONFIGURED"))
-
-    # PostgreSQL check
-    sf = get_session_factory()
-    if sf:
-        try:
-            from sqlalchemy import text
-
-            async with sf() as session:
-                await session.execute(text("SELECT 1"))
-            checks.append(HealthCheck(name="postgresql", status="UP"))
-        except Exception as e:
-            checks.append(HealthCheck(name="postgresql", status="DOWN", error=str(e)))
-            overall = "DEGRADED"
-    else:
-        checks.append(HealthCheck(name="postgresql", status="NOT_CONFIGURED"))
-
-    status_code = 200 if overall == "UP" else 503 if all(c.status == "DOWN" for c in checks if c.status != "NOT_CONFIGURED") else 200
+    result = await get_health()
     from fastapi.responses import JSONResponse
 
+    checks = [HealthCheck(**c) for c in result["checks"]]
     return JSONResponse(
-        content=HealthResponse(status=overall, checks=checks).model_dump(),
-        status_code=status_code,
+        content=HealthResponse(status=result["overall"], checks=checks).model_dump(),
+        status_code=result["status_code"],
     )
 
 

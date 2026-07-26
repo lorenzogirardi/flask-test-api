@@ -163,7 +163,7 @@ class RedisBackend:
                     data = await r.get(key)
                     if data:
                         contexts.append(ContextResponse(**json.loads(data)))
-                except (json.JSONDecodeError, Exception) as e:
+                except Exception as e:
                     logger.warning("Skipping corrupt Redis key {}: {}", key, e)
             return contexts
         except Exception as e:
