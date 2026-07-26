@@ -123,6 +123,31 @@ helm upgrade pytbak ./helm/pytbak \
 | GET | `/mgmt/mappings` | Route mappings |
 | GET | `/mgmt/threaddump` | Thread dump |
 
+### MCP Server (`/api/mcp`) — requires Basic Auth
+In-process [MCP](https://modelcontextprotocol.io) server, same container as the rest of
+pytbak. 23 tools mirroring the REST API for LLM clients (Claude, OpenCode, etc.) — see
+[docs/11-mcp-server.md](docs/11-mcp-server.md) for architecture, auth model, and full usage
+examples.
+
+```bash
+# Python SDK example
+python3 -c "
+import asyncio, httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+async def main():
+    auth = httpx.BasicAuth('admin', 'password')
+    async with streamablehttp_client('http://localhost:8000/api/mcp', auth=auth) as (r, w, _):
+        async with ClientSession(r, w) as s:
+            await s.initialize()
+            tools = await s.list_tools()
+            print([t.name for t in tools.tools])
+
+asyncio.run(main())
+"
+```
+
 ### Observability
 | Path | Description |
 |------|-------------|
@@ -418,8 +443,9 @@ All configuration via environment variables (Pydantic Settings). See [.env.examp
 | `APP_ENV` | development | Environment (development/production/test) |
 | `DATABASE_URL` | _(empty)_ | PostgreSQL async connection string |
 | `REDIS_URL` | _(empty)_ | Redis connection string |
-| `DIAG_USERNAME` | admin | Basic auth user for /debug |
-| `DIAG_PASSWORD` | password | Basic auth pass for /debug |
+| `DIAG_USERNAME` | admin | Basic auth user for /debug and /api/mcp |
+| `DIAG_PASSWORD` | password | Basic auth pass for /debug and /api/mcp |
+| `MCP_ENABLED` | true | Mount the MCP server at /api/mcp |
 | `OTEL_ENABLED` | false | Enable OpenTelemetry tracing |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | http://localhost:4317 | OTLP endpoint |
 | `PROMETHEUS_ENABLED` | true | Enable /metrics endpoint |
@@ -443,6 +469,8 @@ pytest --cov=app --cov-report=term-missing
 │   ├── auth.py                  # Basic auth dependency
 │   ├── config/
 │   │   └── settings.py          # Pydantic Settings (env-based)
+│   ├── mcp/
+│   │   └── tools.py             # MCP server (FastMCP), mounted at /api/mcp
 │   ├── models/
 │   │   ├── schemas.py           # Pydantic request/response models
 │   │   └── database.py          # SQLAlchemy async models + engine
@@ -453,16 +481,20 @@ pytest --cov=app --cov-report=term-missing
 │   ├── services/
 │   │   ├── storage.py           # Unified PG→Redis→Memory fallback
 │   │   ├── redis_client.py      # Async Redis with retry
+│   │   ├── health.py            # Shared health-check logic (REST + MCP)
 │   │   └── cache.py             # In-memory TTL cache
 │   └── middleware/
-│       └── error_injection.py   # ?inject_error & ?delay_ms
+│       ├── error_injection.py   # ?inject_error & ?delay_ms
+│       └── mcp_auth.py          # Basic Auth guard for /api/mcp mount
 ├── tests/
 │   ├── conftest.py
 │   ├── test_api.py
 │   ├── test_debug.py
 │   ├── test_mgmt.py
 │   ├── test_middleware.py
-│   └── test_storage.py
+│   ├── test_mcp.py              # MCP tools, direct calls (base layer)
+│   ├── test_storage.py
+│   └── integration/test_mcp.py  # MCP over real streamable-HTTP (mid/tip layer)
 ├── helm/pytbak/                 # Helm chart (production K8s)
 │   ├── values.yaml              # Default values
 │   └── values-izanami.yaml      # Override per cluster izanami (1 replica, Redis+PG endpoints)
