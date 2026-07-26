@@ -17,7 +17,7 @@ C4 Model compliant, OWASP-reviewed, PCI-DSS/GDPR annotated.
 | 8 | [Diagrams & Graphs](08-diagrams.md) | All | Deployment, dependency, health flows |
 | 9 | [ADR: Flask to FastAPI](09-adr-flask-to-fastapi.md) | Architects, Management | Migration decision record |
 | 10 | [Datadog Integration](10-datadog-integration.md) | DevOps, SRE | APM auto-instrumentation, metrics, troubleshooting |
-| 11 | [MCP Server](11-mcp-server.md) | Developers, LLM tool integrators | In-process MCP server at /api/mcp, auth, tools, usage |
+| 11 | [MCP Server](11-mcp-server.md) | Developers, LLM tool integrators | In-process MCP server at /api/mcp — why FastMCP + FastAPI, auth, tools, usage |
 
 ## How to View
 
