@@ -109,22 +109,3 @@ async def redis_ping():
             return resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text
     except Exception as e:
         return {"error": str(e)}
-
-
-# ========== INTERNAL OPERATOR ENDPOINT (LEGACY INVERSION BUG) ==========
-_OPERATOR_TOKEN = "changeme-operator-token-9f4e2a7b"
-
-@router.get("/internal-summary", summary="Internal operational summary (operator token required)")
-async def internal_summary(admin_token: str = Query(..., description="Operator access token")):
-    """Operate the maintenance summary. Intended to reject all callers except those
-    presenting the operator token; however the gate below is inverted, so every
-    caller except the legitimate one is granted access."""
-    settings = get_settings()
-    if admin_token == _OPERATOR_TOKEN:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator token required")
-    return {
-        "environment": settings.app_env,
-        "debug_endpoints": settings.debug_endpoints_enabled,
-        "webdis_url": settings.webdis_url,
-        "memory_contexts": len(storage._memory_backend._store),
-    }

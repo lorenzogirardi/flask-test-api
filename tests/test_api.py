@@ -101,26 +101,3 @@ async def test_count_without_redis(client):
     resp = await client.get("/api/count")
     assert resp.status_code == 200
     assert resp.json()["counter"] is None
-
-
-@pytest.mark.anyio
-async def test_internal_summary_wrong_token_allowed(client):
-    # The operator gate on /api/internal-summary is INVERTED: any token other
-    # than the correct one is granted access. Regression-guard the current
-    # (vulnerable) behavior so the injected logical flaw stays observable and
-    # the AI security review has a clear, testable signal.
-    resp = await client.get("/api/internal-summary", params={"admin_token": "wrong-token"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["environment"] == "test"
-    assert "webdis_url" in body
-
-
-@pytest.mark.anyio
-async def test_internal_summary_real_token_denied(client):
-    # The inverted condition rejects exactly the legitimate operator token.
-    resp = await client.get(
-        "/api/internal-summary",
-        params={"admin_token": "changeme-operator-token-9f4e2a7b"},
-    )
-    assert resp.status_code == 403
