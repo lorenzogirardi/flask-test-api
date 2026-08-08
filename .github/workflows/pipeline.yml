@@ -319,6 +319,12 @@ jobs:
             echo "REDACTED=1" >> "$GITHUB_ENV"
             rm -f .ai/ai-report.md
           fi
+      - name: Show AI analysis in pipeline log
+        if: env.SKIP != 'true' && env.REDACTED != '1' && env.OPENROUTER_API_KEY != ''
+        run: |
+          echo "::group::🤖 AI Analysis Report"
+          cat .ai/ai-report.md
+          echo "::endgroup::"
       - name: Upload AI analysis report
         if: always() && env.SKIP != 'true' && env.REDACTED != '1'
         uses: actions/upload-artifact@v4
