@@ -133,6 +133,17 @@ def test_missing_content_field(mock_server):
     assert "content" in result.stderr
 
 
+def test_blank_content_is_treated_as_failure(mock_server):
+    # Reasoning models can return empty "content" after spending the token
+    # budget on chain-of-thought; blank output must be a hard error, not a
+    # silently empty report.
+    MockHandler.response_body = b'{"choices":[{"message":{"content":"   "}}],"usage":{}}'
+    result = run_script("--endpoint", mock_server, env={"STDIN": "hi"})
+    assert result.returncode == 1
+    assert "empty content" in result.stderr
+    assert result.stdout.strip() == ""
+
+
 def test_openrouter_error_object(mock_server):
     MockHandler.response_body = json.dumps({"error": "rate limited"}).encode()
     result = run_script("--endpoint", mock_server, env={"STDIN": "hi"})

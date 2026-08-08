@@ -205,6 +205,12 @@ def _request(
     if not isinstance(content, str):
         raise OpenRouterError("OpenRouter returned empty response")
 
+    # Some reasoning models (deepseek-v4-*) can spend the whole output budget on
+    # chain-of-thought and return an empty/blank "content". That would silently
+    # produce an empty report, so treat blank output as a failure.
+    if not content.strip():
+        raise OpenRouterError("OpenRouter returned empty content (model reasoning consumed the output budget)")
+
     usage = data.get("usage") or {}
     return content, usage
 
