@@ -45,6 +45,17 @@ DEFAULT_MODEL = "deepseek-v4-flash-free"
 DEFAULT_MAX_CHARS = 120_000
 DEFAULT_TIMEOUT = 120
 
+# Per-1M-token prices (USD) for the models this repo uses. The "Free" tier is charged
+# like its commercial counterpart so every report always shows a real economic value,
+# even when the provider bills $0. Set OPENROUTER_PRICE_INPUT/OUTPUT to override.
+MODEL_PRICES_USD_PER_1M = {
+    "deepseek-v4-flash": (0.14, 0.28),
+    "deepseek-v4-flash-free": (0.14, 0.28),
+    "deepseek-v4-pro": (1.74, 3.48),
+    "claude-sonnet-4.5": (3.00, 15.00),
+    "gpt-4o": (2.50, 10.00),
+}
+
 # Common secret patterns redacted defensively from any output (defense-in-depth).
 _SECRET_RE = [
     re.compile(r"sk-or-v1-[A-Za-z0-9\-_]{10,}"),
@@ -96,6 +107,35 @@ def _http_error_message(exc: urllib.error.HTTPError, api_key: str | None) -> str
     return _redact(msg, api_key)
 
 
+def _model_price(model: str) -> tuple[float, float]:
+    """Input/output price in USD per 1M tokens for the given model."""
+    price_in = _read_env_secret("OPENROUTER_PRICE_INPUT")
+    price_out = _read_env_secret("OPENROUTER_PRICE_OUTPUT")
+    if price_in and price_out:
+        return (float(price_in), float(price_out))
+    return MODEL_PRICES_USD_PER_1M.get(model, (0.0, 0.0))
+
+
+def _estimate_cost(model: str, usage: dict) -> tuple[float, dict]:
+    """Return (cost_usd, detail) for a response 'usage' dict."""
+    prompt_tokens = int(usage.get("prompt_tokens") or 0)
+    completion_tokens = int(usage.get("completion_tokens") or 0)
+    total = prompt_tokens + completion_tokens
+    if total == 0:
+        return 0.0, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    price_in, price_out = _model_price(model)
+    cost = (prompt_tokens / 1_000_000) * price_in + (completion_tokens / 1_000_000) * price_out
+    detail = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total,
+        "price_input_usd_per_1m": price_in,
+        "price_output_usd_per_1m": price_out,
+        "cost_usd": round(cost, 8),
+    }
+    return cost, detail
+
+
 def _request(
     *,
     api_key: str,
@@ -106,7 +146,7 @@ def _request(
     max_tokens: int,
     temperature: float | None,
     timeout: int,
-) -> str:
+) -> tuple[str, dict]:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -165,7 +205,8 @@ def _request(
     if not isinstance(content, str):
         raise OpenRouterError("OpenRouter returned empty response")
 
-    return content
+    usage = data.get("usage") or {}
+    return content, usage
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -181,6 +222,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--max-tokens", type=int, default=4096, help="Max output tokens")
     parser.add_argument("--temperature", type=float, default=None, help="Sampling temperature")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Request timeout (s)")
+    parser.add_argument("--usage-file", help="Write token usage + estimated cost (JSON) to this file")
     return parser.parse_args(argv)
 
 
@@ -218,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     system = _truncate(system, args.max_chars)
 
     try:
-        content = _request(
+        content, usage = _request(
             api_key=api_key,
             model=model,
             endpoint=endpoint,
@@ -231,6 +273,16 @@ def main(argv: list[str] | None = None) -> int:
     except OpenRouterError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+    if args.usage_file:
+        try:
+            _, usage_detail = _estimate_cost(model, usage)
+            usage_detail["model"] = model
+            with open(args.usage_file, "w", encoding="utf-8") as fh:
+                json.dump(usage_detail, fh, indent=2)
+        except OSError as exc:
+            print(f"error: cannot write usage file: {exc}", file=sys.stderr)
+            return 3
 
     print(_redact(content, api_key))
     return 0

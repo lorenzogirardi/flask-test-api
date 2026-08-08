@@ -21,7 +21,7 @@ class MockHandler(BaseHTTPRequestHandler):
     """Minimal OpenAI-compatible chat completions endpoint."""
 
     status = 200
-    response_body = b'{"choices":[{"message":{"content":"mock-reply"}}]}'
+    response_body = b'{"choices":[{"message":{"content":"mock-reply"}}],"usage":{"prompt_tokens":7,"completion_tokens":2,"total_tokens":9}}'
     captured: dict | None = None
 
     def do_POST(self):  # noqa: N802
@@ -48,7 +48,7 @@ def mock_server():
     server = ThreadingHTTPServer(("127.0.0.1", 0), MockHandler)
     MockHandler.requests = []
     MockHandler.status = 200
-    MockHandler.response_body = b'{"choices":[{"message":{"content":"mock-reply"}}]}'
+    MockHandler.response_body = b'{"choices":[{"message":{"content":"mock-reply"}}],"usage":{"prompt_tokens":7,"completion_tokens":2,"total_tokens":9}}'
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
@@ -141,10 +141,61 @@ def test_openrouter_error_object(mock_server):
 
 
 def test_prompt_size_limit(mock_server):
-    MockHandler.response_body = b'{"choices":[{"message":{"content":"ok"}}]}'
+    MockHandler.response_body = b'{"choices":[{"message":{"content":"ok"}}],"usage":{}}'
     big = "x" * 500
     result = run_script("--max-chars", "100", "--endpoint", mock_server, env={"STDIN": big})
     assert result.returncode == 0
     sent = MockHandler.requests[-1]["body"]["messages"][-1]["content"]
     assert len(sent) <= 100 + 500  # truncation marker keeps it bounded
     assert "truncated" in sent
+
+
+def test_usage_file_written(mock_server, tmp_path):
+    usage_file = tmp_path / "usage.json"
+    result = run_script("--endpoint", mock_server, "--usage-file", str(usage_file), env={"STDIN": "hi"})
+    assert result.returncode == 0
+    data = json.loads(usage_file.read_text())
+    assert data["model"] == "deepseek-v4-flash-free"
+    assert data["prompt_tokens"] == 7
+    assert data["completion_tokens"] == 2
+    assert data["total_tokens"] == 9
+    assert data["cost_usd"] > 0
+    assert data["price_input_usd_per_1m"] == 0.14
+
+
+def test_usage_file_free_model_cost(mock_server, tmp_path):
+    usage_file = tmp_path / "usage.json"
+    result = run_script(
+        "--endpoint", mock_server,
+        "--usage-file", str(usage_file),
+        "--model", "deepseek-v4-flash-free",
+        env={"STDIN": "hi"},
+    )
+    assert result.returncode == 0
+    data = json.loads(usage_file.read_text())
+    # free tier billed at the commercial rate, so cost > 0
+    assert data["total_tokens"] == 9
+    assert data["cost_usd"] > 0
+
+
+def test_append_cost_footer(tmp_path):
+    usage = tmp_path / "usage.json"
+    report = tmp_path / "report.md"
+    usage.write_text(
+        json.dumps(
+            {"model": "deepseek-v4-flash-free", "prompt_tokens": 100, "completion_tokens": 50,
+             "total_tokens": 150, "cost_usd": 0.000021, "price_input_usd_per_1m": 0.14,
+             "price_output_usd_per_1m": 0.28}
+        )
+    )
+    report.write_text("body text")
+    proc = subprocess.run(
+        [sys.executable, "scripts/ai_append_cost.py", "--usage-file", str(usage), "--report-file", str(report)],
+        capture_output=True, text=True, cwd=str(SCRIPT.parents[1]),
+    )
+    assert proc.returncode == 0
+    out = report.read_text()
+    assert "AI Usage & Cost" in out
+    assert "154" not in out  # totals are computed
+    assert "150" in out  # token total
+    assert "0.14/0.28" in out

@@ -310,7 +310,14 @@ jobs:
             --prompt-file .ai/analysis-user.txt \
             --max-chars 150000 \
             --timeout 120 \
+            --usage-file .ai/usage.json \
             > .ai/ai-report.md
+      - name: Append token usage & cost to report
+        if: env.SKIP != 'true' && env.OPENROUTER_API_KEY != ''
+        run: |
+          python3 scripts/ai_append_cost.py \
+            --usage-file .ai/usage.json \
+            --report-file .ai/ai-report.md
       - name: Check report for secrets before upload
         if: env.SKIP != 'true' && env.OPENROUTER_API_KEY != ''
         run: |

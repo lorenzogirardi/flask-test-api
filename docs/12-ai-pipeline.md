@@ -27,6 +27,11 @@ GitHub Actions ──► scripts/openrouter_ai.py ──► OpenCode Zen (https:
   accepts a multiline prompt from a file or stdin, validates response JSON, handles HTTP
   errors and timeouts, caps prompt size, and never prints secrets. Sends an explicit
   `User-Agent` (OpenCode Zen rejects Python's default `urllib` User-Agent with HTTP 403).
+  Writes token usage + an estimated USD cost (`--usage-file`) based on the model's per-1M
+  price table (`MODEL_PRICES_USD_PER_1M`), override via `OPENROUTER_PRICE_INPUT` /
+  `OPENROUTER_PRICE_OUTPUT`.
+- `scripts/ai_append_cost.py` — appends a "AI Usage & Cost" Markdown footer (tokens and
+  estimated USD cost) to an AI report file, using a JSON produced by the client above.
 - `scripts/ai_sanitize.py` — redacts secrets and caps size of CI output before it is sent to
   the model (bundle mode) and checks a file for secrets before uploading it as an artifact
   (check mode).
@@ -80,6 +85,11 @@ checkov, k8s-check all unchanged).
 
 The endpoint is configurable via the variable `OPENROUTER_ENDPOINT`
 (default: `https://opencode.ai/zen/v1/chat/completions`).
+
+The report footer includes the token usage and an estimated USD cost computed from the
+model's per-1M prices. The "free" tier is billed at the commercial rate of its model so the
+cost is always a real economic figure (override with `OPENROUTER_PRICE_INPUT` /
+`OPENROUTER_PRICE_OUTPUT`).
 
 ### Example configuration (no real values)
 
