@@ -136,6 +136,53 @@ def _estimate_cost(model: str, usage: dict) -> tuple[float, dict]:
     return cost, detail
 
 
+def _extract_content(message: dict) -> str:
+    """Extract visible text from an OpenAI-compatible message.
+
+    `content` may be a plain string, a list of typed parts, or missing. Returns
+    the concatenated text, or '' when there is nothing to render.
+    """
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for part in content:
+            if isinstance(part, str):
+                parts.append(part)
+            elif isinstance(part, dict):
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
+
+
+def _extract_reasoning(message: dict) -> str:
+    """Extract chain-of-thought from reasoning models, if the provider exposed it.
+
+    DeepSeek-style reasoning models that exhaust the output budget often return an
+    empty `content` while the "thinking" lives in `reasoning_content`. Rendering it
+    guarantees the analysis is never silently empty.
+    """
+    reasoning = message.get("reasoning_content")
+    if reasoning is None:
+        reasoning = message.get("reasoning")
+    if isinstance(reasoning, str):
+        return reasoning
+    if isinstance(reasoning, list):
+        parts: list[str] = []
+        for part in reasoning:
+            if isinstance(part, str):
+                parts.append(part)
+            elif isinstance(part, dict):
+                text = part.get("text") or part.get("content")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
+
+
 def _request(
     *,
     api_key: str,
@@ -202,14 +249,21 @@ def _request(
     except (KeyError, IndexError, TypeError) as exc:
         raise OpenRouterError("OpenRouter response missing choices[0].message.content") from exc
 
-    if not isinstance(content, str):
-        raise OpenRouterError("OpenRouter returned empty response")
+    message = data["choices"][0]["message"]
+    content = _extract_content(message)
 
-    # Some reasoning models (deepseek-v4-*) can spend the whole output budget on
-    # chain-of-thought and return an empty/blank "content". That would silently
-    # produce an empty report, so treat blank output as a failure.
+    # Reasoning models (deepseek-v4-*) can spend the whole output budget on
+    # chain-of-thought and return a blank "content". Fall back to the reasoning
+    # text if it is the only thing the provider returned, so the analysis is
+    # never silently empty.
     if not content.strip():
-        raise OpenRouterError("OpenRouter returned empty content (model reasoning consumed the output budget)")
+        reasoning = _extract_reasoning(message)
+        if reasoning.strip():
+            content = reasoning
+        else:
+            raise OpenRouterError(
+                "OpenRouter returned empty content (model reasoning consumed the output budget)"
+            )
 
     usage = data.get("usage") or {}
     return content, usage
@@ -229,6 +283,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--temperature", type=float, default=None, help="Sampling temperature")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Request timeout (s)")
     parser.add_argument("--usage-file", help="Write token usage + estimated cost (JSON) to this file")
+    parser.add_argument("--retries", type=int, default=3, help="Retry count when the model returns an empty reply")
     return parser.parse_args(argv)
 
 
@@ -265,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     user = _truncate(user, args.max_chars)
     system = _truncate(system, args.max_chars)
 
+    timeout = args.timeout
     try:
         content, usage = _request(
             api_key=api_key,
@@ -274,11 +330,43 @@ def main(argv: list[str] | None = None) -> int:
             user=user,
             max_tokens=args.max_tokens,
             temperature=args.temperature,
-            timeout=args.timeout,
+            timeout=timeout,
         )
     except OpenRouterError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+    # Hard guarantee: if the first attempt came back blank (reasoning models can
+    # blow the whole token budget on chain-of-thought), retry with a larger
+    # budget and an explicit "answer directly" nudge before reporting failure.
+    if not content.strip():
+        for attempt in range(1, args.retries + 1):
+            print(
+                f"warning: empty reply, retrying (attempt {attempt}/{args.retries}) with "
+                f"max_tokens={args.max_tokens * (2 ** attempt)}",
+                file=sys.stderr,
+            )
+            nudge = (
+                system
+                + f"\n\nIMPORTANT: You responded with an empty answer. Reply now with the "
+                f"complete report text directly in `content` — do not spend tokens on reasoning."
+            )
+            try:
+                content, usage = _request(
+                    api_key=api_key,
+                    model=model,
+                    endpoint=endpoint,
+                    system=nudge,
+                    user=user,
+                    max_tokens=args.max_tokens * (2 ** attempt),
+                    temperature=args.temperature,
+                    timeout=timeout,
+                )
+            except OpenRouterError as exc2:
+                print(f"error: {exc2}", file=sys.stderr)
+                return 1
+            if content.strip():
+                break
 
     if args.usage_file:
         try:

@@ -144,6 +144,18 @@ def test_blank_content_is_treated_as_failure(mock_server):
     assert result.stdout.strip() == ""
 
 
+def test_reasoning_content_fallback(mock_server):
+    # When the model returns blank `content` but exposes `reasoning_content`,
+    # the script must surface the reasoning instead of failing or being silent.
+    MockHandler.response_body = (
+        b'{"choices":[{"message":{"content":"","reasoning_content":"deep thinking..."}}],'
+        b'"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}'
+    )
+    result = run_script("--endpoint", mock_server, env={"STDIN": "hi"})
+    assert result.returncode == 0
+    assert "deep thinking..." in result.stdout
+
+
 def test_openrouter_error_object(mock_server):
     MockHandler.response_body = json.dumps({"error": "rate limited"}).encode()
     result = run_script("--endpoint", mock_server, env={"STDIN": "hi"})
