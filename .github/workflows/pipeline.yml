@@ -326,6 +326,21 @@ jobs:
             echo "REDACTED=1" >> "$GITHUB_ENV"
             rm -f .ai/ai-report.md
           fi
+      - name: Show tests results in pipeline summary
+        if: env.SKIP != 'true'
+        run: |
+          {
+            echo "## 🧪 Tests"
+            echo ""
+            echo '```text'
+            # Full pytest summary: keep the trailer (counts, failures, warnings).
+            if [ -s .ai/tests.txt ]; then
+              tail -40 .ai/tests.txt
+            else
+              echo "no test output"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Show AI analysis in pipeline summary
         if: env.SKIP != 'true' && env.REDACTED != '1' && env.OPENROUTER_API_KEY != ''
         run: |
