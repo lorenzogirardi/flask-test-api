@@ -364,7 +364,7 @@ jobs:
             --system-file .ai/analysis-system.txt \
             --prompt-file .ai/analysis-user.txt \
             --max-chars 150000 \
-            --max-tokens 8192 \
+            --max-tokens 32000 \
             --timeout 300 \
             --usage-file .ai/usage.json \
             > .ai/ai-report.md

@@ -44,6 +44,11 @@ DEFAULT_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions"
 DEFAULT_MODEL = "deepseek-v4-flash-free"
 DEFAULT_MAX_CHARS = 120_000
 DEFAULT_TIMEOUT = 120
+DEFAULT_MAX_TOKENS = 8192
+# Output-token ceiling (deepseek-v4-flash-free advertises 128k max output). Retries
+# double the budget but must never exceed the model's real cap, or the provider
+# rejects the request.
+MODEL_MAX_OUTPUT_TOKENS = 128_000
 
 # Per-1M-token prices (USD) for the models this repo uses. The "Free" tier is charged
 # like its commercial counterpart so every report always shows a real economic value,
@@ -193,7 +198,7 @@ def _request(
     max_tokens: int,
     temperature: float | None,
     timeout: int,
-) -> tuple[str, dict]:
+) -> tuple[str, str, dict]:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -251,22 +256,15 @@ def _request(
 
     message = data["choices"][0]["message"]
     content = _extract_content(message)
+    reasoning = _extract_reasoning(message)
 
-    # Reasoning models (deepseek-v4-*) can spend the whole output budget on
-    # chain-of-thought and return a blank "content". Fall back to the reasoning
-    # text if it is the only thing the provider returned, so the analysis is
-    # never silently empty.
-    if not content.strip():
-        reasoning = _extract_reasoning(message)
-        if reasoning.strip():
-            content = reasoning
-        else:
-            raise OpenRouterError(
-                "OpenRouter returned empty content (model reasoning consumed the output budget)"
-            )
+    if not content.strip() and not reasoning.strip():
+        raise OpenRouterError(
+            "OpenRouter returned empty content (model reasoning consumed the output budget)"
+        )
 
     usage = data.get("usage") or {}
-    return content, usage
+    return content, reasoning, usage
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -279,7 +277,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--model", help="Model slug (env OPENROUTER_MODEL overrides)")
     parser.add_argument("--endpoint", help="API endpoint (env OPENROUTER_ENDPOINT overrides)")
     parser.add_argument("--max-chars", type=int, default=DEFAULT_MAX_CHARS, help="Max prompt chars")
-    parser.add_argument("--max-tokens", type=int, default=4096, help="Max output tokens")
+    parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS, help="Max output tokens")
     parser.add_argument("--temperature", type=float, default=None, help="Sampling temperature")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Request timeout (s)")
     parser.add_argument("--usage-file", help="Write token usage + estimated cost (JSON) to this file")
@@ -322,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
 
     timeout = args.timeout
     try:
-        content, usage = _request(
+        content, reasoning, usage = _request(
             api_key=api_key,
             model=model,
             endpoint=endpoint,
@@ -336,14 +334,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    # Hard guarantee: if the first attempt came back blank (reasoning models can
-    # blow the whole token budget on chain-of-thought), retry with a larger
-    # budget and an explicit "answer directly" nudge before reporting failure.
+    # Hard guarantee: if the first attempt came back with a blank `content`
+    # (reasoning models can blow the whole token budget on chain-of-thought),
+    # retry with a larger budget and an explicit "answer directly" nudge before
+    # falling back to the raw reasoning text. Only if BOTH stay empty we fail.
     if not content.strip():
         for attempt in range(1, args.retries + 1):
+            budget = min(args.max_tokens * (2 ** attempt), MODEL_MAX_OUTPUT_TOKENS)
             print(
                 f"warning: empty reply, retrying (attempt {attempt}/{args.retries}) with "
-                f"max_tokens={args.max_tokens * (2 ** attempt)}",
+                f"max_tokens={budget}",
                 file=sys.stderr,
             )
             nudge = (
@@ -352,13 +352,13 @@ def main(argv: list[str] | None = None) -> int:
                 f"complete report text directly in `content` — do not spend tokens on reasoning."
             )
             try:
-                content, usage = _request(
+                content, reasoning, usage = _request(
                     api_key=api_key,
                     model=model,
                     endpoint=endpoint,
                     system=nudge,
                     user=user,
-                    max_tokens=args.max_tokens * (2 ** attempt),
+                    max_tokens=budget,
                     temperature=args.temperature,
                     timeout=timeout,
                 )
@@ -367,6 +367,17 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             if content.strip():
                 break
+
+    if not content.strip() and reasoning.strip():
+        print(
+            "warning: model produced only chain-of-thought, using reasoning as the report",
+            file=sys.stderr,
+        )
+        content = reasoning
+
+    if not content.strip():
+        print("error: OpenRouter returned empty content (model reasoning consumed the output budget)", file=sys.stderr)
+        return 1
 
     if args.usage_file:
         try:
