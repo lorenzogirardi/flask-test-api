@@ -91,6 +91,10 @@ model's per-1M prices. The "free" tier is billed at the commercial rate of its m
 cost is always a real economic figure (override with `OPENROUTER_PRICE_INPUT` /
 `OPENROUTER_PRICE_OUTPUT`).
 
+The AI report is written to the workflow job **summary** (`$GITHUB_STEP_SUMMARY`), so it
+renders directly in the run page instead of only being a downloadable artifact; the same
+file is also uploaded as the `ai-analysis-report` artifact.
+
 ### Example configuration (no real values)
 
 ```bash

@@ -326,12 +326,19 @@ jobs:
             echo "REDACTED=1" >> "$GITHUB_ENV"
             rm -f .ai/ai-report.md
           fi
-      - name: Show AI analysis in pipeline log
+      - name: Show AI analysis in pipeline summary
         if: env.SKIP != 'true' && env.REDACTED != '1' && env.OPENROUTER_API_KEY != ''
         run: |
           echo "::group::🤖 AI Analysis Report"
           cat .ai/ai-report.md
           echo "::endgroup::"
+          # Render the report in the run summary so it is visible in the pipeline UI,
+          # not only as a downloadable artifact.
+          {
+            echo "## 🤖 AI Analysis Report"
+            echo ""
+            cat .ai/ai-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload AI analysis report
         if: always() && env.SKIP != 'true' && env.REDACTED != '1'
         uses: actions/upload-artifact@v4
