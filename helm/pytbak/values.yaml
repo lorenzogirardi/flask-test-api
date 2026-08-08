@@ -30,6 +30,14 @@ env:
   OTEL_ENABLED: "false"
   RATE_LIMIT: "100/minute"
   CACHE_TTL: "300"
+  # Debug/network tools and MCP are opt-in: leave disabled in production unless
+  # this API is intentionally a diagnostics service for the cluster.
+  # DEBUG_ENDPOINTS_ENABLED: "false"
+  # MCP_ENABLED: "false"
+  ERROR_INJECTION_ENABLED: "true"
+  ERROR_INJECTION_MAX_DELAY_MS: "10000"
+  # Block loopback/private/link-local/metadata targets in network debug tools:
+  SSRF_PROTECTION_ENABLED: "true"
 
 # External services (production endpoints)
 # Set to "" to disable and use in-memory fallback

@@ -1,17 +1,20 @@
 """Debug router — network diagnostics, CPU spike, error injection, echo tools."""
 
 import asyncio
+import ipaddress
 import multiprocessing
 import random
 import re
 import socket
 import time
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from loguru import logger
 
 from app.auth import verify_credentials
+from app.config import get_settings
 from app.models.schemas import CpuSpikeRequest, CpuSpikeResponse, NetworkScanResult
 
 router = APIRouter(prefix="/api/debug", tags=["Debug"])
@@ -31,6 +34,47 @@ def _validate_host(host: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid host")
 
 
+def _host_to_ip(host: str, port: int | None = None) -> list[str]:
+    """Resolve a host to its IP address(es)."""
+    try:
+        infos = socket.getaddrinfo(host, port or 80, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, OSError) as e:
+        raise HTTPException(status_code=400, detail=f"Cannot resolve host: {e}")
+    return list({res[4][0] for res in infos})
+
+
+def _is_blocked_ip(ip_str: str) -> bool:
+    """True when an IP is loopback / link-local / private / reserved / multicast.
+
+    Used by the SSRF guard: cloud-metadata (169.254.169.254), container-internal
+    ranges, and localhost must not be reachable from network debug tools in prod.
+    """
+    ip = ipaddress.ip_address(ip_str.split("%")[0])
+    return ip.is_loopback or ip.is_link_local or ip.is_private or ip.is_reserved or ip.is_multicast
+
+
+def _guard_ssrf(host: str, port: int | None = None) -> None:
+    """Reject loopback/private/link-local/metadata targets when protection is enabled."""
+    settings = get_settings()
+    if not settings.ssrf_protection_enabled:
+        return
+    for ip in _host_to_ip(host, port):
+        if _is_blocked_ip(ip):
+            raise HTTPException(status_code=400, detail="Target is a restricted/private address")
+
+
+def _url_host(url: str) -> tuple[str, int | None]:
+    """Extract and validate host + optional port from an http(s) URL."""
+    if not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Only http(s) URLs are supported")
+    parts = urlsplit(url)
+    host = parts.hostname
+    port = parts.port
+    if not host:
+        raise HTTPException(status_code=400, detail="URL must include a host")
+    return host, port
+
+
 # ========== NETWORK SCAN (netshoot-like) ==========
 @router.get(
     "/network/scan",
@@ -41,6 +85,7 @@ def _validate_host(host: str) -> None:
 async def network_scan(target: str = Query(..., description="host:port or hostname")):
     host, port_str = (target.rsplit(":", 1) + [None])[:2]
     _validate_host(host)
+    _guard_ssrf(host, int(port_str) if port_str and port_str.isdigit() else None)
 
     result = NetworkScanResult(target=target)
 
@@ -155,6 +200,7 @@ async def cpu_spike(params: CpuSpikeRequest):
 @router.get("/ping", summary="Ping a host", dependencies=[Depends(verify_credentials)])
 async def ping_host(host: str = Query(...), count: int = Query(default=3, ge=1, le=20)):
     _validate_host(host)
+    _guard_ssrf(host)
     try:
         proc = await asyncio.create_subprocess_exec(
             "ping", "-c", str(count), host,
@@ -170,6 +216,7 @@ async def ping_host(host: str = Query(...), count: int = Query(default=3, ge=1, 
 @router.get("/dns", summary="DNS resolve", dependencies=[Depends(verify_credentials)])
 async def dns_resolve(name: str = Query(...)):
     _validate_host(name)
+    _guard_ssrf(name)
     try:
         loop = asyncio.get_running_loop()
         results = await loop.run_in_executor(
@@ -183,6 +230,7 @@ async def dns_resolve(name: str = Query(...)):
 
 @router.get("/curl", summary="HTTP GET a URL", dependencies=[Depends(verify_credentials)])
 async def curl(url: str = Query(...)):
+    _guard_ssrf(*_url_host(url))
     try:
         async with httpx.AsyncClient(
             timeout=5,
@@ -203,6 +251,7 @@ async def curl(url: str = Query(...)):
 @router.get("/tcp-check", summary="TCP connection check", dependencies=[Depends(verify_credentials)])
 async def tcp_check(host: str = Query(...), port: int = Query(..., ge=1, le=65535)):
     _validate_host(host)
+    _guard_ssrf(host, port)
     sock = None
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

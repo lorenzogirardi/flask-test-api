@@ -1,12 +1,15 @@
 """Middleware for error injection and delay via query params."""
 
 import asyncio
+import math
 import random
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from app.config import get_settings
 
 
 class ErrorInjectionMiddleware(BaseHTTPMiddleware):
@@ -18,22 +21,34 @@ class ErrorInjectionMiddleware(BaseHTTPMiddleware):
     ?inject_error=custom:msg   -> returns HTTP 500 with custom message
     ?delay_ms=5000             -> delay 5 seconds
     ?delay_ms=random           -> delay random 0-5s
+
+    Disable entirely with ERROR_INJECTION_ENABLED=false. delay_ms is capped at
+    ERROR_INJECTION_MAX_DELAY_MS and rejects NaN/inf/negative values so an
+    unauthenticated request cannot hang an event-loop worker indefinitely.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
         try:
+            settings = get_settings()
+            if not settings.error_injection_enabled:
+                return await call_next(request)
+
             params = request.query_params
 
             # --- Delay ---
             delay = params.get("delay_ms")
             if delay:
                 if delay.lower() == "random":
-                    ms = random.uniform(0, 5000)
+                    ms = random.uniform(0, min(5000, settings.error_injection_max_delay_ms))
                 else:
                     try:
                         ms = float(delay)
                     except ValueError:
                         ms = 0
+                    # Reject NaN/inf/negative/zero: only a bounded positive value can delay.
+                    if not math.isfinite(ms) or ms < 0:
+                        ms = 0
+                    ms = min(ms, settings.error_injection_max_delay_ms)
                 if ms > 0:
                     await asyncio.sleep(ms / 1000.0)
 

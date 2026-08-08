@@ -4,7 +4,7 @@ import re
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -27,11 +27,25 @@ class Settings(BaseSettings):
     diag_username: str = "admin"
     diag_password: str = "password"
 
-    # --- Debug endpoints ---
-    debug_endpoints_enabled: bool = Field(default=True, description="Set to false to disable /debug/* in production")
+    # --- Debug endpoints & error injection ---
+    debug_endpoints_enabled: bool = Field(
+        default=False,
+        description="Mount /api/debug/* (opt-in; defaults off so production never exposes network tools)",
+    )
+    error_injection_enabled: bool = Field(default=True, description="Enable ?inject_error=/?delay_ms= middleware")
+    error_injection_max_delay_ms: int = Field(default=10000, description="Cap for ?delay_ms= to stop unbounded sleeps")
 
     # --- MCP server ---
-    mcp_enabled: bool = Field(default=True, description="Mount the MCP server at /api/mcp (Basic Auth protected)")
+    mcp_enabled: bool = Field(
+        default=False,
+        description="Mount the MCP server at /api/mcp (opt-in; defaults off in production)",
+    )
+
+    # --- SSRF guard for /api/debug and MCP network tools ---
+    ssrf_protection_enabled: bool = Field(
+        default=False,
+        description="Block loopback/private/link-local/metadata targets in curl/network_scan/ping/dns/tcp",
+    )
 
     # --- Redis ---
     redis_url: str | None = Field(default=None, description="redis://host:port/db or http(s) endpoint in prod")
@@ -65,6 +79,21 @@ class Settings(BaseSettings):
 
     # --- Webdis (legacy compat) ---
     webdis_url: str = "http://webdis-svc.webdis:7379"
+
+    @model_validator(mode="after")
+    def _reject_production_defaults(self) -> "Settings":
+        """Fail fast in production when the default credentials are still set.
+
+        The report: default `admin` / `password` means an attacker gets full
+        access to network diagnostics, SSRF, CPU-spike tools, and MCP. Refuse
+        to boot in production until real credentials are provided.
+        """
+        if self.app_env == "production" and self.diag_username == "admin" and self.diag_password == "password":
+            raise ValueError(
+                "APP_ENV=production requires real DIAG_USERNAME/DIAG_PASSWORD "
+                "(defaults admin/password are not allowed)"
+            )
+        return self
 
     @property
     def effective_redis_url(self) -> str:

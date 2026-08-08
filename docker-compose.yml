@@ -16,6 +16,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://pytbak:pytbak@postgres:5432/pytbak
       REDIS_URL: redis://redis:6379/0
       PROMETHEUS_ENABLED: "true"
+      DEBUG_ENDPOINTS_ENABLED: "true"
+      MCP_ENABLED: "true"
+      ERROR_INJECTION_ENABLED: "true"
       # OTEL: disabled by default in dev, enable and point to external collector:
       # OTEL_ENABLED: "true"
       # OTEL_EXPORTER_OTLP_ENDPOINT: http://your-collector:4317

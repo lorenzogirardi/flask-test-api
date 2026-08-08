@@ -255,12 +255,21 @@ jobs:
       - name: Probe the deployed app
         run: |
           set +e
-          curl -I http://localhost:8000/api/ > k8s-probe.txt 2>&1
-          code=$?
-          echo "curl exit code: ${code}" >> k8s-probe.txt
+          echo "-- Health probe: GET /api/mgmt/ready (expects HTTP 2xx) --" > k8s-probe.txt
+          code=000
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/mgmt/ready)
+            echo "attempt $i: HTTP ${code}" >> k8s-probe.txt
+            if [[ "$code" =~ ^2 ]]; then break; fi
+            sleep 5
+          done
+          echo "final HTTP code: ${code}" >> k8s-probe.txt
           kubectl get po -o wide >> k8s-probe.txt 2>&1
           kubectl describe po kube-check >> k8s-probe.txt 2>&1
-          exit 0
+          if [[ ! "$code" =~ ^2 ]]; then
+            echo "::error::app did not return 2xx on readiness within retry budget (got ${code})"
+            exit 1
+          fi
       - name: Upload AI context (k8s probe)
         if: always() && vars.AI_ENABLED == 'true'
         uses: actions/upload-artifact@v4

@@ -10,6 +10,9 @@ os.environ["OTEL_ENABLED"] = "false"
 os.environ["PROMETHEUS_ENABLED"] = "false"
 os.environ["DIAG_USERNAME"] = "admin"
 os.environ["DIAG_PASSWORD"] = "test-password-only"
+os.environ["DEBUG_ENDPOINTS_ENABLED"] = "true"
+os.environ["MCP_ENABLED"] = "true"
+os.environ["ERROR_INJECTION_ENABLED"] = "true"
 
 import pytest
 from httpx import ASGITransport, AsyncClient

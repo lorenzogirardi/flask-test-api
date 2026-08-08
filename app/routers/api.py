@@ -70,6 +70,8 @@ async def delete_context(context_id: str):
 # ========== LEGACY ENDPOINTS ==========
 @router.get("/fib/{x}", summary="Calculate Fibonacci number")
 async def fibonacci(x: int):
+    if x < 0:
+        raise HTTPException(status_code=400, detail="Input must be non-negative")
     if x > 20000:
         raise HTTPException(status_code=400, detail="Input too large, max 20000")
 
@@ -86,6 +88,8 @@ async def fibonacci(x: int):
 
 @router.get("/sleep/{seconds}", summary="Sleep for N seconds")
 async def sleep_endpoint(seconds: int):
+    if seconds < 0:
+        raise HTTPException(status_code=400, detail="Sleep time must be non-negative")
     if seconds > 10:
         raise HTTPException(status_code=400, detail="Sleep time too long, max 10 seconds")
     await asyncio.sleep(seconds)

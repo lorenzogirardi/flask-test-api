@@ -213,12 +213,14 @@ sequenceDiagram
 
 | Setting | Env var | Default | Purpose |
 |---|---|---|---|
-| `mcp_enabled` | `MCP_ENABLED` | `true` | Mount `/api/mcp` at all |
-| `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `true` | Independent of MCP — gates `/api/debug/*` REST routes only |
-| `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth |
+| `mcp_enabled` | `MCP_ENABLED` | `false` | Mount `/api/mcp` at all (opt-in) |
+| `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `false` | Independent of MCP — gates `/api/debug/*` REST routes only (opt-in) |
+| `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth. In `APP_ENV=production` the defaults are rejected at startup; real credentials are mandatory |
+| `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`) |
 
-Set `MCP_ENABLED=false` to disable the mount entirely (e.g. a locked-down production
-deployment that only wants the plain REST API).
+Set `MCP_ENABLED=false` (the default) to keep the mount off entirely in a locked-down
+production deployment that only wants the plain REST API. The helm chart ships with both
+flags off; the dev docker-compose and test suite enable them explicitly.
 
 ## 11.7 Available Tools
 
