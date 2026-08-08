@@ -23,11 +23,11 @@ jobs:
       OPENROUTER_APP_NAME: ${{ vars.OPENROUTER_APP_NAME }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v4
 
       - name: Build triage prompt (sanitized)
         id: prompt
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         env:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -76,7 +76,7 @@ jobs:
 
       - name: Validate and apply triage
         if: always()
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         env:
           RAW_FILE: .ai/triage-raw.txt
           AI_FAILED: ${{ steps.ai.outcome }}

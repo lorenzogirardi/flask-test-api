@@ -22,13 +22,13 @@ jobs:
       OPENROUTER_APP_NAME: ${{ vars.OPENROUTER_APP_NAME }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Gather PR metadata
         id: pr
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require("fs");
@@ -108,7 +108,7 @@ jobs:
 
       - name: Upload release-notes artifact
         if: always() && env.OPENROUTER_API_KEY != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: release-notes-PR${{ github.event.pull_request.number }}
           path: .ai/release-notes.md
@@ -117,7 +117,7 @@ jobs:
 
       - name: Post release notes on the merged PR
         if: always()
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require("fs");

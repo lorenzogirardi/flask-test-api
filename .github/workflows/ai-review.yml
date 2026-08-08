@@ -27,7 +27,7 @@ jobs:
       OPENROUTER_APP_NAME: ${{ vars.OPENROUTER_APP_NAME }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -66,7 +66,7 @@ jobs:
           wc -l .ai/diff.txt
 
       - name: Create review prompts (untrusted content goes through files, never inline shell)
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         with:
@@ -124,7 +124,7 @@ jobs:
 
       - name: Post or update AI review comment
         if: always() && vars.AI_ENABLED == 'true'
-        uses: actions/github-script@d746ffe35508b1917358783b47904febd2b8f71 # v9.0.0
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require("fs");

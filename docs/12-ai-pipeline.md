@@ -12,7 +12,7 @@ Four features are wired in:
 | # | Feature | Workflow | Trigger |
 |---|---------|----------|---------|
 | 1 | AI Code Review on Pull Requests | `.github/workflows/ai-review.yml` | `pull_request` (opened/synchronize/reopened) |
-| 2 | AI analysis of test + security results | `.github/workflows/pipeline.yml` → `ai-analysis` job | `push` to `main` (existing pipeline) |
+| 2 | AI analysis of lint and test results (two jobs) | `.github/workflows/pipeline.yml` → `ai-analysis-lint`, `ai-analysis-tests` | `push` to `main` (existing pipeline) |
 | 3 | Automatic issue triage | `.github/workflows/issue-triage.yml` | `issues` (opened), only `bug`-labeled |
 | 4 | Automatic release notes on merge | `.github/workflows/release-notes.yml` | `pull_request` (closed, merged) |
 
@@ -98,7 +98,7 @@ AI_ENABLED=true
 | Workflow | Permissions |
 |----------|-------------|
 | `ai-review.yml` | `contents: read`, `pull-requests: write` (post/update review comment) |
-| `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` (download/upload artifacts) |
+| `pipeline.yml` (`ai-analysis-lint`, `ai-analysis-tests`) | `contents: read`, `actions: read` (download/upload artifacts) |
 | `issue-triage.yml` | `issues: write`, `contents: read` |
 | `release-notes.yml` | `contents: read` (artifact upload) |
 
@@ -127,9 +127,9 @@ untrusted fork code never gets access to the runner's secrets.
 - **Deterministic (blocking, unchanged)**: `build` (flake8 + pytest), `docker`
   (build/push), `security-gate-trivy` (scan, report-only), `quality-gate` (checkov),
   `k8s-check`. Failures still fail the pipeline exactly as before.
-- **AI (informative)**: `ai-analysis` (report artifact only, `continue-on-error: true`),
-  AI code review (comment only), issue triage (labels/comments only), release notes
-  (artifact/comment only). They never turn a red pipeline green and never block.
+- **AI (informative)**: `ai-analysis-lint` (flake8-only report), `ai-analysis-tests`
+  (pytest-only report), AI code review (comment only), issue triage (labels/comments only),
+  release notes (artifact/comment only). They never turn a red pipeline green and never block.
 
 ## Security notes
 
