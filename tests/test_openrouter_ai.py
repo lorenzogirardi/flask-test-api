@@ -87,6 +87,8 @@ def test_success_with_prompt_file(mock_server, tmp_path):
     assert req["body"]["model"] == "deepseek-v4-flash-free"
     assert req["headers"]["Authorization"] == f"Bearer {API_KEY}"
     assert req["headers"]["Content-Type"] == "application/json"
+    assert "Python-urllib" not in req["headers"].get("User-Agent", "")
+    assert req["headers"].get("User-Agent", "").startswith("openrouter-")
 
 
 def test_success_with_stdin_and_system(mock_server, tmp_path):

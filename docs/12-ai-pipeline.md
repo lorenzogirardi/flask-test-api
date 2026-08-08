@@ -12,7 +12,7 @@ Four features are wired in:
 | # | Feature | Workflow | Trigger |
 |---|---------|----------|---------|
 | 1 | AI Code Review on Pull Requests | `.github/workflows/ai-review.yml` | `pull_request` (opened/synchronize/reopened) |
-| 2 | AI analysis of lint and test results (two jobs) | `.github/workflows/pipeline.yml` → `ai-analysis-lint`, `ai-analysis-tests` | `push` to `main` (existing pipeline) |
+| 2 | AI analysis of lint + test results | `.github/workflows/pipeline.yml` → `ai-analysis` job | `push` to `main` (existing pipeline) |
 | 3 | Automatic issue triage | `.github/workflows/issue-triage.yml` | `issues` (opened), only `bug`-labeled |
 | 4 | Automatic release notes on merge | `.github/workflows/release-notes.yml` | `pull_request` (closed, merged) |
 
@@ -25,7 +25,8 @@ GitHub Actions ──► scripts/openrouter_ai.py ──► OpenCode Zen (https:
 
 - `scripts/openrouter_ai.py` — reusable client: reads key/model/endpoint from the environment,
   accepts a multiline prompt from a file or stdin, validates response JSON, handles HTTP
-  errors and timeouts, caps prompt size, and never prints secrets.
+  errors and timeouts, caps prompt size, and never prints secrets. Sends an explicit
+  `User-Agent` (OpenCode Zen rejects Python's default `urllib` User-Agent with HTTP 403).
 - `scripts/ai_sanitize.py` — redacts secrets and caps size of CI output before it is sent to
   the model (bundle mode) and checks a file for secrets before uploading it as an artifact
   (check mode).
@@ -98,7 +99,7 @@ AI_ENABLED=true
 | Workflow | Permissions |
 |----------|-------------|
 | `ai-review.yml` | `contents: read`, `pull-requests: write` (post/update review comment) |
-| `pipeline.yml` (`ai-analysis-lint`, `ai-analysis-tests`) | `contents: read`, `actions: read` (download/upload artifacts) |
+| `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` (download/upload artifacts) |
 | `issue-triage.yml` | `issues: write`, `contents: read` |
 | `release-notes.yml` | `contents: read` (artifact upload) |
 
@@ -127,9 +128,9 @@ untrusted fork code never gets access to the runner's secrets.
 - **Deterministic (blocking, unchanged)**: `build` (flake8 + pytest), `docker`
   (build/push), `security-gate-trivy` (scan, report-only), `quality-gate` (checkov),
   `k8s-check`. Failures still fail the pipeline exactly as before.
-- **AI (informative)**: `ai-analysis-lint` (flake8-only report), `ai-analysis-tests`
-  (pytest-only report), AI code review (comment only), issue triage (labels/comments only),
-  release notes (artifact/comment only). They never turn a red pipeline green and never block.
+- **AI (informative)**: `ai-analysis` (lint+tests report artifact, `continue-on-error: true`),
+  AI code review (comment only), issue triage (labels/comments only), release notes
+  (artifact/comment only). They never turn a red pipeline green and never block.
 
 ## Security notes
 

@@ -111,6 +111,7 @@ def _request(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "User-Agent": "openrouter-ai-script/1.0 (GitHub Actions)",
     }
     site_url = _read_env_secret("OPENROUTER_SITE_URL")
     if site_url:
