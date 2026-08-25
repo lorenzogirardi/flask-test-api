@@ -30,11 +30,10 @@ concurrency:
 jobs:
   review:
     if: vars.AI_ENABLED == 'true' && github.actor == 'renovate[bot]'
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review.yml@v1
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review-and-merge.yml@v1
     with:
       comment_marker: '<!-- ai-dependency-review -->'
       comment_heading: 'AI Dependency Review'
-      auto_merge_if_clean: true
       merge_method: squash
       system_prompt_extra: |
         This PR was opened by Renovate and only touches dependency manifests
