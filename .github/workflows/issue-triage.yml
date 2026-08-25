@@ -23,10 +23,10 @@ jobs:
       OPENROUTER_APP_NAME: ${{ vars.OPENROUTER_APP_NAME }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout shared AI scripts
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: lorenzogirardi/ci-shared
           ref: v1
