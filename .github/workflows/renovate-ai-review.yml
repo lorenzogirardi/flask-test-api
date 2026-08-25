@@ -1,18 +1,22 @@
 name: Renovate AI Review
 
 # This repo's dependency bot is Renovate (renovate.json), not Dependabot.
-# Renovate PRs are same-repo, non-fork, and github.actor == 'renovate[bot]' does
-# NOT get GitHub's Dependabot-specific token/secret restriction — plain
-# pull_request already runs with full secrets here (verified: ai-review.yml
-# posted a real review on PR #73). This workflow exists only to give
-# dependency-bump PRs a focused prompt instead of the generic code-review one;
-# ai-review.yml explicitly skips renovate[bot] so only one comment gets posted.
+# Renovate PRs are same-repo, non-fork - plain pull_request already runs with
+# full secrets and pull-requests:write here (verified: ai-review.yml posted a
+# real review on PR #73). But requesting contents:write (needed to merge) on a
+# plain pull_request trigger for an app/bot-authored PR gets rejected by
+# GitHub with "is only allowed 'contents: read'" - same restriction as
+# Dependabot, apparently not actually Dependabot-specific. pull_request_target
+# always runs with the base repo's full token/secrets. This workflow only
+# ever diffs/merges via the API - never checks out or executes anything from
+# the PR branch beyond reading it - so it doesn't reopen the classic
+# pull_request_target code-execution hole.
 #
 # auto_merge_if_clean: true — a clean review (no [Critical] finding) merges
 # the PR immediately, patch/minor/major treated the same. main has no branch
 # protection on this repo, so there's nothing else gating the merge.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 permissions:
