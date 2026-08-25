@@ -13,7 +13,7 @@ asyncpg==0.30.0
 alembic==1.14.1
 
 # Redis
-redis[hiredis]==5.2.1
+redis[hiredis]==8.1.0
 
 # Auth / Security
 python-multipart==0.0.20
