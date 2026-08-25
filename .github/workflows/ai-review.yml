@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   review:
-    if: vars.AI_ENABLED == 'true'
+    # renovate[bot] gets the dependency-focused prompt from renovate-ai-review.yml instead.
+    if: vars.AI_ENABLED == 'true' && github.actor != 'renovate[bot]'
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review.yml@v1
     with:
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}

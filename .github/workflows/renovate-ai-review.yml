@@ -1,14 +1,14 @@
-name: Dependabot AI Review
+name: Renovate AI Review
 
-# pull_request (used by ai-review.yml) gives Dependabot-authored runs a
-# read-only GITHUB_TOKEN and strips repo secrets, even though these PRs are
-# same-repo, not forks — so that workflow silently no-ops here. pull_request_target
-# always runs with the base repo's token/secrets regardless of actor. This
-# workflow only ever diffs the PR branch (via the reusable workflow's `git diff`),
-# never checks out or executes anything from it, so it doesn't reopen the
-# classic pull_request_target code-execution hole.
+# This repo's dependency bot is Renovate (renovate.json), not Dependabot.
+# Renovate PRs are same-repo, non-fork, and github.actor == 'renovate[bot]' does
+# NOT get GitHub's Dependabot-specific token/secret restriction — plain
+# pull_request already runs with full secrets here (verified: ai-review.yml
+# posted a real review on PR #73). This workflow exists only to give
+# dependency-bump PRs a focused prompt instead of the generic code-review one;
+# ai-review.yml explicitly skips renovate[bot] so only one comment gets posted.
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -16,18 +16,18 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: dependabot-ai-review-${{ github.event.pull_request.number }}
+  group: renovate-ai-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   review:
-    if: vars.AI_ENABLED == 'true' && github.actor == 'dependabot[bot]'
+    if: vars.AI_ENABLED == 'true' && github.actor == 'renovate[bot]'
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review.yml@v1
     with:
-      comment_marker: '<!-- ai-dependabot-review -->'
+      comment_marker: '<!-- ai-dependency-review -->'
       comment_heading: 'AI Dependency Review'
       system_prompt_extra: |
-        This PR was opened by Dependabot and only touches dependency manifests
+        This PR was opened by Renovate and only touches dependency manifests
         or lockfiles (requirements.txt, Dockerfile base image, GitHub Actions
         pins). There is no application code to review here. Focus on:
         - Size of the version jump (patch/minor/major) and whether it's a major bump.
