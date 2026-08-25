@@ -26,6 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout shared AI scripts
+        uses: actions/checkout@v4
+        with:
+          repository: lorenzogirardi/ci-shared
+          ref: v1
+          path: .shared
+
       - name: Gather PR metadata
         id: pr
         uses: actions/github-script@v9
@@ -91,7 +98,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          python3 scripts/openrouter_ai.py \
+          python3 .shared/scripts/openrouter_ai.py \
             --system-file .ai/release-system.txt \
             --prompt-file .ai/release-user.txt \
             --max-chars 60000 \
@@ -101,7 +108,7 @@ jobs:
       - name: Sanitize and upload release notes artifact
         if: always() && env.OPENROUTER_API_KEY != ''
         run: |
-          if [ -s .ai/release-notes.md ] && ! python3 scripts/ai_sanitize.py --check .ai/release-notes.md; then
+          if [ -s .ai/release-notes.md ] && ! python3 .shared/scripts/ai_sanitize.py --check .ai/release-notes.md; then
             echo "::warning::release notes flagged as containing secrets; not uploading"
             rm -f .ai/release-notes.md
           fi

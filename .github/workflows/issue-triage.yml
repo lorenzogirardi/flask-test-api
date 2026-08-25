@@ -25,6 +25,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout shared AI scripts
+        uses: actions/checkout@v4
+        with:
+          repository: lorenzogirardi/ci-shared
+          ref: v1
+          path: .shared
+
       - name: Build triage prompt (sanitized)
         id: prompt
         uses: actions/github-script@v9
@@ -67,7 +74,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          python3 scripts/openrouter_ai.py \
+          python3 .shared/scripts/openrouter_ai.py \
             --system-file .ai/triage-system.txt \
             --prompt-file .ai/triage-user.txt \
             --max-chars 30000 \

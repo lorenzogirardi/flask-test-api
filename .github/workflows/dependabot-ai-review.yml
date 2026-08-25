@@ -1,0 +1,43 @@
+name: Dependabot AI Review
+
+# pull_request (used by ai-review.yml) gives Dependabot-authored runs a
+# read-only GITHUB_TOKEN and strips repo secrets, even though these PRs are
+# same-repo, not forks — so that workflow silently no-ops here. pull_request_target
+# always runs with the base repo's token/secrets regardless of actor. This
+# workflow only ever diffs the PR branch (via the reusable workflow's `git diff`),
+# never checks out or executes anything from it, so it doesn't reopen the
+# classic pull_request_target code-execution hole.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dependabot-ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: vars.AI_ENABLED == 'true' && github.actor == 'dependabot[bot]'
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review.yml@v1
+    with:
+      comment_marker: '<!-- ai-dependabot-review -->'
+      comment_heading: 'AI Dependency Review'
+      system_prompt_extra: |
+        This PR was opened by Dependabot and only touches dependency manifests
+        or lockfiles (requirements.txt, Dockerfile base image, GitHub Actions
+        pins). There is no application code to review here. Focus on:
+        - Size of the version jump (patch/minor/major) and whether it's a major bump.
+        - Whether the bump's title/body references a CVE or security advisory.
+        - Anything in the diff that looks like more than a version bump (e.g. a
+          transitive dependency appearing/disappearing unexpectedly).
+        Do not comment on code style or request tests; there is no code here.
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
