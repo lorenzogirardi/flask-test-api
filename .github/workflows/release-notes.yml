@@ -6,6 +6,9 @@ on:
 
 permissions:
   contents: read
+  # The last step posts the notes as a PR comment; without this the API call
+  # fails with "Resource not accessible by integration".
+  pull-requests: write
 
 # Only run when the PR was actually merged, and AI is enabled.
 jobs:
@@ -39,6 +42,10 @@ jobs:
         with:
           script: |
             const fs = require("fs");
+            // Nothing else creates .ai/ in this workflow (unlike pipeline.yml,
+            // where the lint step does) — without this the very first write
+            // below fails with ENOENT.
+            fs.mkdirSync(".ai", { recursive: true });
             const pr = context.payload.pull_request;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -119,7 +126,10 @@ jobs:
         with:
           name: release-notes-PR${{ github.event.pull_request.number }}
           path: .ai/release-notes.md
-          if-no-files-found: ok
+          # Valid values are warn|error|ignore; "ok" was rejected at runtime.
+          # The notes are legitimately absent when the model call fails, so
+          # ignore rather than warn.
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Post release notes on the merged PR

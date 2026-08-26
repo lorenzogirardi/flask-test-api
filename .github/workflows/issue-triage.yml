@@ -42,6 +42,9 @@ jobs:
         with:
           script: |
             const fs = require("fs");
+            // Nothing else creates .ai/ in this workflow — same latent ENOENT
+            // that release-notes.yml hit the first time it actually ran.
+            fs.mkdirSync(".ai", { recursive: true });
             const title = process.env.ISSUE_TITLE || "";
             const body = process.env.ISSUE_BODY || "";
             const redact = (s) => s

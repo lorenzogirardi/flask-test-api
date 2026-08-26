@@ -57,6 +57,16 @@ jobs:
         transitive dependency change unrelated to the stated bump. A large
         version jump on its own, with no other red flag, is not [Critical].
 
+        One exception, learned from an actual broken build: a change to the
+        *runtime* version (the Python version in a Dockerfile base image or in
+        a workflow's setup-python step) is ALWAYS [Critical]. You only see the
+        diff, so you cannot check whether the pinned dependencies still
+        resolve on the new interpreter — and they may not. Bumping this repo
+        from Python 3.12 to 3.14 broke `pip install` outright, because
+        `mcp==1.28.1` requires `pydantic>=2.12.0` on Python >= 3.14 while
+        requirements.txt pinned `pydantic==2.11.7`. Nothing in that diff hinted
+        at it. Runtime bumps need a human to verify resolution first.
+
         Do not comment on code style or ask for tests; there is no code here.
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}
       openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
