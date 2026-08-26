@@ -1,0 +1,66 @@
+name: AI Review Sweep
+
+# Scheduled review of open Renovate PRs, with auto-merge on a clean verdict.
+#
+# This is the reliable path, and the reason it exists: a `schedule` run has no
+# PR actor and no fork, so it gets the repo's full GITHUB_TOKEN. The
+# event-driven equivalent (renovate-ai-review.yml) has to use
+# pull_request_target purely because GitHub caps GITHUB_TOKEN to read-only on
+# `pull_request` runs authored by a bot, which blocks merging. A sweep also
+# picks up PRs opened before this workflow existed -- an event trigger never
+# fires retroactively for those. Same approach openwrt/openwrt uses for its
+# own LLM review (cron + workflow_dispatch, no PR trigger).
+#
+# Runs twice a day; use "Run workflow" to trigger it on demand.
+
+on:
+  schedule:
+    - cron: '0 4,16 * * *'
+  workflow_dispatch:
+    inputs:
+      max_prs:
+        description: 'Max PRs to review in this run'
+        required: false
+        type: number
+        default: 10
+
+permissions: {}
+
+concurrency:
+  group: ai-review-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    if: vars.AI_ENABLED == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v1
+    with:
+      authors: 'renovate[bot]'
+      auto_merge: true
+      merge_method: squash
+      max_prs: ${{ fromJSON(inputs.max_prs || '10') }}
+      comment_heading: 'AI Dependency Review'
+      system_prompt_extra: |
+        These PRs are opened by Renovate and only touch dependency manifests
+        or lockfiles (requirements.txt, Dockerfile base image, GitHub Actions
+        pins). There is no application code to review. A clean verdict merges
+        the PR automatically — patch, minor, and major bumps are treated
+        identically, so judge each on the evidence in the diff and title, not
+        on version-jump size alone.
+
+        Report [Critical] only when the diff or title gives concrete evidence
+        that a human needs to look first: a version that looks unpublished or
+        typosquatted, a CVE fix whose advisory needs manual verification, or a
+        transitive dependency change unrelated to the stated bump. A large
+        version jump on its own, with no other red flag, is not [Critical].
+
+        Do not comment on code style or ask for tests; there is no code here.
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
