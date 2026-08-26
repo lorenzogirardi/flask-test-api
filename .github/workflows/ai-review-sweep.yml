@@ -41,6 +41,11 @@ jobs:
       authors: 'renovate[bot]'
       auto_merge: true
       merge_method: squash
+      # The job names from pr-checks.yml. Without this the gate only asks that
+      # nothing failed, and a Renovate PR whose sole check is ai-review.yml
+      # reporting "skipped" (it skips bot authors) satisfies that — which is
+      # exactly how PRs #91 and #92 got merged with nothing tested.
+      required_checks: 'checks,workflows'
       # On a red PR, explain the failure instead of reviewing the diff — same
       # one model call, and pr-checks.yml has already proven the failure, so
       # there is nothing left to predict.
