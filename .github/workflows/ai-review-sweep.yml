@@ -63,6 +63,31 @@ jobs:
       # and boots the app — that run, not the model, decides whether the fix
       # lands, and required_checks below is what it must satisfy.
       autofix: true
+      # Must match pr-checks.yml's own python-version — otherwise this proves
+      # nothing about the real gate. See python_version's description.
+      python_version: "3.14"
+      # Mirrors pr-checks.yml's own steps (Resolve dependencies, Install,
+      # Smoke-test) exactly, so a local pass here means the same thing a real
+      # pr-checks pass would. Lint/pytest are left out: they're slower and
+      # this repo's failures so far have all been resolution or boot issues,
+      # never a lint/test regression the autofix caused.
+      verify_command: |
+        set -euo pipefail
+        pip install --dry-run -r requirements.txt
+        pip install -q -r requirements.txt
+        uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        UVICORN_PID=$!
+        # Without this, a second autofix attempt in the same job finds port
+        # 8000 already bound by the first attempt's still-running server.
+        # PID, not %1 - job control (needed for %-refs) is off by default in
+        # a non-interactive `bash -c` shell.
+        trap 'kill $UVICORN_PID 2>/dev/null || true' EXIT
+        for i in $(seq 1 30); do
+          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready && exit 0
+          sleep 1
+        done
+        echo "app never returned 2xx on /api/mgmt/ready" >&2
+        exit 1
       max_prs: ${{ fromJSON(inputs.max_prs || '10') }}
       comment_heading: 'AI Dependency Review'
       system_prompt_extra: |
