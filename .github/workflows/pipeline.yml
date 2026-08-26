@@ -106,6 +106,9 @@ jobs:
             password: ${{ secrets.GIT_TOKEN }}
 
         - name: Build image and push to Docker Hub and GitHub Container Registry
+          # The id is what makes steps.docker_build.outputs.digest resolve in
+          # the next step; without it that echo silently printed nothing.
+          id: docker_build
           uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
           with:
             context: .
@@ -263,9 +266,11 @@ jobs:
             if [[ "$code" =~ ^2 ]]; then break; fi
             sleep 5
           done
-          echo "final HTTP code: ${code}" >> k8s-probe.txt
-          kubectl get po -o wide >> k8s-probe.txt 2>&1
-          kubectl describe po kube-check >> k8s-probe.txt 2>&1
+          {
+            echo "final HTTP code: ${code}"
+            kubectl get po -o wide 2>&1
+            kubectl describe po kube-check 2>&1
+          } >> k8s-probe.txt
           if [[ ! "$code" =~ ^2 ]]; then
             echo "::error::app did not return 2xx on readiness within retry budget (got ${code})"
             exit 1
