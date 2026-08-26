@@ -30,7 +30,7 @@ opentelemetry-exporter-otlp-proto-grpc==1.29.0
 opentelemetry-instrumentation-fastapi==0.50b0
 
 # Rate limiting
-slowapi==0.1.9
+slowapi==0.1.10
 
 # MCP server (mounted at /api/mcp)
 mcp==1.28.1
