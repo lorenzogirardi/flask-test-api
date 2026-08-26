@@ -58,6 +58,11 @@ jobs:
       # one model call, and pr-checks.yml has already proven the failure, so
       # there is nothing left to predict.
       triage_on_failure: true
+      # Go one step further: push the fix rather than describe it. Safe here
+      # only because pr-checks.yml actually installs the deps, runs the tests
+      # and boots the app — that run, not the model, decides whether the fix
+      # lands, and required_checks below is what it must satisfy.
+      autofix: true
       max_prs: ${{ fromJSON(inputs.max_prs || '10') }}
       comment_heading: 'AI Dependency Review'
       system_prompt_extra: |
