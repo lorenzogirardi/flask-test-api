@@ -41,6 +41,10 @@ jobs:
       authors: 'renovate[bot]'
       auto_merge: true
       merge_method: squash
+      # On a red PR, explain the failure instead of reviewing the diff — same
+      # one model call, and pr-checks.yml has already proven the failure, so
+      # there is nothing left to predict.
+      triage_on_failure: true
       max_prs: ${{ fromJSON(inputs.max_prs || '10') }}
       comment_heading: 'AI Dependency Review'
       system_prompt_extra: |
