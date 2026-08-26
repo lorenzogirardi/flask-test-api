@@ -36,7 +36,7 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
-        python-version: "3.13"
+        python-version: "3.14"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -182,7 +182,7 @@ jobs:
       - name: Set up Python 3.8
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: 3.13
+          python-version: 3.14
       - name: Checkov GitHub Action
         uses: bridgecrewio/checkov-action@ec0fde72821aabf10fd9bb57713c5771f9786ab9 # v12.3120.0
         id: checkov
