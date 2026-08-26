@@ -1,0 +1,94 @@
+name: PR Checks
+
+# Deterministic pre-merge gate. This is the check auto-merge should trust —
+# not an LLM reading a diff.
+#
+# Until this existed, pipeline.yml (build/lint/pytest/docker/trivy/k8s-check)
+# only ran `on: push: [main]`, so nothing was ever built or tested on a PR:
+# the first pytest of a change happened AFTER it landed. Two auto-merged
+# dependency bumps broke main that way in one morning, both of them things a
+# command proves in seconds while a diff review can only guess at:
+#
+#   - python 3.12 -> 3.14 made `pip install -r requirements.txt` unsolvable
+#     (mcp needs pydantic>=2.12 on 3.14, requirements.txt pinned 2.11.7).
+#     Caught here by "Resolve dependencies".
+#   - fastapi 0.115 -> 0.141 made every request 500 (instrumentator 7.0.2
+#     can't read the new router objects). Caught here by "Smoke-test".
+#
+# Heavy jobs (multi-arch docker build, trivy, sbom, kind cluster) stay in
+# pipeline.yml on main — too slow to run per PR.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Must match pipeline.yml and the Dockerfile base image: a
+          # dependency set can resolve on one interpreter and not another
+          # (that is exactly how the 3.14 bump broke main).
+          python-version: "3.14"
+
+      - name: Resolve dependencies
+        # Separate from the install so a resolver conflict is reported as its
+        # own failed step rather than buried in install output.
+        run: |
+          python -m pip install --upgrade pip
+          pip install --dry-run --quiet -r requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install flake8 pytest
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Tests
+        run: pytest tests/ -v
+
+      - name: Smoke-test the running app
+        # The suite runs with PROMETHEUS_ENABLED=false (conftest.py), so it
+        # cannot see a middleware that only loads in production. This starts
+        # the app the way the container does and makes a real request.
+        run: |
+          set -euo pipefail
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready; then
+              echo "app is serving"
+              break
+            fi
+            if [ "$i" = "30" ]; then
+              echo "::error::app never returned 2xx on /api/mgmt/ready"
+              exit 1
+            fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/health
+          curl -sf -o /dev/null http://127.0.0.1:8000/metrics
+
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint workflow files
+        # Catches what only surfaced by running the workflow before: an
+        # invalid `if-no-files-found: ok` sat unnoticed in release-notes.yml
+        # because that workflow only fires on a merged PR, and none had ever
+        # been merged.
+        uses: raven-actions/actionlint@v2
