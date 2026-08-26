@@ -82,5 +82,3 @@ C4Context
 | Storage backend status | `/mgmt/health` | Availability |
 | Injected error count | Prometheus `/metrics` | Debug session tracking |
 | CPU spike duration/cores | Application logs | Resource impact |
-
-<!-- pr-checks validation: temporary, removed after the gate is verified -->
