@@ -222,23 +222,40 @@ jobs:
           set -euo pipefail
           git config user.email l@k8s.it
           git config user.name l
-          cd helm/pytbak/
-          cat values.yaml
-          sed -i "s+tag:.*+tag: \"$IMAGE_TAG\"+g" values.yaml
-          cat values.yaml
-          git add .
-          git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
+
           # A plain push loses the race whenever anything else lands on main
-          # while the pipeline runs (twice in one morning here), which then
-          # skips k8s-check downstream. Rebase onto whatever arrived and retry;
-          # this commit only touches the image tag, so a rebase is safe.
+          # while the pipeline runs, and k8s-check (which needs this job) is
+          # then skipped — so the job that verifies the app in a cluster stops
+          # running exactly when main is busiest.
+          #
+          # Retrying with `git pull --rebase` does NOT work: the incoming
+          # commit and this one both rewrite the same `tag:` line, so the
+          # rebase conflicts every time and set -e kills the script. Instead,
+          # re-apply the edit on top of whatever arrived. The change is
+          # idempotent by construction — it sets the tag to this run's tag —
+          # so redoing it from a fresh checkout is always correct.
           for attempt in 1 2 3 4 5; do
+            if [ "$attempt" -gt 1 ]; then
+              echo "push rejected, re-applying on top of origin/main (attempt ${attempt})"
+              git fetch --quiet origin main
+              git reset --quiet --hard origin/main
+            fi
+
+            sed -i "s+tag:.*+tag: \"$IMAGE_TAG\"+g" helm/pytbak/values.yaml
+            grep -n 'tag:' helm/pytbak/values.yaml
+
+            if git diff --quiet -- helm/pytbak/values.yaml; then
+              echo "values.yaml already at ${IMAGE_TAG}, nothing to push"
+              exit 0
+            fi
+
+            git add helm/pytbak/values.yaml
+            git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
+
             if git push origin main; then
               echo "pushed on attempt ${attempt}"
               exit 0
             fi
-            echo "push rejected, rebasing onto origin/main (attempt ${attempt})"
-            git pull --rebase origin main
             sleep $((attempt * 3))
           done
           echo "::error::could not push the image-tag bump after 5 attempts"
