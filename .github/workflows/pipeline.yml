@@ -219,6 +219,7 @@ jobs:
 
       - name: modify the image
         run: |
+          set -euo pipefail
           git config user.email l@k8s.it
           git config user.name l
           cd helm/pytbak/
@@ -227,7 +228,21 @@ jobs:
           cat values.yaml
           git add .
           git commit -m 'Done  by Github Actions   Job changemanifest: ${{ github.run_number }}'
-          git push origin main
+          # A plain push loses the race whenever anything else lands on main
+          # while the pipeline runs (twice in one morning here), which then
+          # skips k8s-check downstream. Rebase onto whatever arrived and retry;
+          # this commit only touches the image tag, so a rebase is safe.
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then
+              echo "pushed on attempt ${attempt}"
+              exit 0
+            fi
+            echo "push rejected, rebasing onto origin/main (attempt ${attempt})"
+            git pull --rebase origin main
+            sleep $((attempt * 3))
+          done
+          echo "::error::could not push the image-tag bump after 5 attempts"
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
