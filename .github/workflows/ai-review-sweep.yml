@@ -23,6 +23,11 @@ on:
         required: false
         type: number
         default: 10
+      authors:
+        description: 'PR authors to sweep (comma-separated). Defaults to renovate[bot]; widen it to review someone else''s PR on demand.'
+        required: false
+        type: string
+        default: 'renovate[bot]'
 
 permissions: {}
 
@@ -38,7 +43,10 @@ jobs:
       pull-requests: write
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v1
     with:
-      authors: 'renovate[bot]'
+      # The `||` fallback matters: on a schedule run inputs.authors is empty,
+      # and an empty author filter means "every open PR" — including human
+      # ones, which must never be auto-merged.
+      authors: ${{ inputs.authors || 'renovate[bot]' }}
       auto_merge: true
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
