@@ -1,0 +1,638 @@
+{
+  "/Users/lgirardi/Storage/home/flask-test-api/.claude/settings.local.json": {
+    "mtime": 1785077295.4318533,
+    "seen": 1787819015.3560011,
+    "ast_hash": "82ac252c54fe67eb7912a8d69ab54a2a",
+    "semantic_hash": "82ac252c54fe67eb7912a8d69ab54a2a"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/alembic/env.py": {
+    "mtime": 1771765945.5214894,
+    "seen": 1787819015.356002,
+    "ast_hash": "5871b7278d0b3f2378d015ea82498966",
+    "semantic_hash": "5871b7278d0b3f2378d015ea82498966"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/__init__.py": {
+    "mtime": 1771765945.5216317,
+    "seen": 1787819015.356003,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/auth.py": {
+    "mtime": 1785061876.8583062,
+    "seen": 1787819015.356003,
+    "ast_hash": "2fbde539631346afd1e102a70e8f3b46",
+    "semantic_hash": "2fbde539631346afd1e102a70e8f3b46"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/config/__init__.py": {
+    "mtime": 1771765945.5223427,
+    "seen": 1787819015.356004,
+    "ast_hash": "d06070ed581232f02719018af352cc38",
+    "semantic_hash": "d06070ed581232f02719018af352cc38"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/config/settings.py": {
+    "mtime": 1786222974.8174653,
+    "seen": 1787819015.356004,
+    "ast_hash": "c17b85ef0567ca693fcd9c1d67482ea9",
+    "semantic_hash": "c17b85ef0567ca693fcd9c1d67482ea9"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/main.py": {
+    "mtime": 1785059048.4579208,
+    "seen": 1787819015.3560052,
+    "ast_hash": "9d50e96664cd5c706e5582ba0f25e20c",
+    "semantic_hash": "9d50e96664cd5c706e5582ba0f25e20c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/mcp/__init__.py": {
+    "mtime": 1785058845.1659813,
+    "seen": 1787819015.356011,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/mcp/tools.py": {
+    "mtime": 1785061939.176901,
+    "seen": 1787819015.356012,
+    "ast_hash": "beddc367b6c791abe0c587efad7581e4",
+    "semantic_hash": "beddc367b6c791abe0c587efad7581e4"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/middleware/__init__.py": {
+    "mtime": 1771765945.5230055,
+    "seen": 1787819015.356012,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/middleware/error_injection.py": {
+    "mtime": 1786222974.817618,
+    "seen": 1787819015.356013,
+    "ast_hash": "39f073e3c2425c078b38929eeb690542",
+    "semantic_hash": "39f073e3c2425c078b38929eeb690542"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/middleware/mcp_auth.py": {
+    "mtime": 1785061841.6149492,
+    "seen": 1787819015.356013,
+    "ast_hash": "283f23218a31dd981af881db4fc30b9f",
+    "semantic_hash": "283f23218a31dd981af881db4fc30b9f"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/models/__init__.py": {
+    "mtime": 1771765945.5238838,
+    "seen": 1787819015.356014,
+    "ast_hash": "271d74d18d63ae586908819063e8722e",
+    "semantic_hash": "271d74d18d63ae586908819063e8722e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/models/database.py": {
+    "mtime": 1771765945.524139,
+    "seen": 1787819015.356014,
+    "ast_hash": "a0b5a329f1f3ec1f49140c7e25533b59",
+    "semantic_hash": "a0b5a329f1f3ec1f49140c7e25533b59"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/models/schemas.py": {
+    "mtime": 1771765945.524504,
+    "seen": 1787819015.356014,
+    "ast_hash": "8ab2a86dfb15c3a9cc1533d71954f19c",
+    "semantic_hash": "8ab2a86dfb15c3a9cc1533d71954f19c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/routers/__init__.py": {
+    "mtime": 1771765945.5245397,
+    "seen": 1787819015.3560152,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/routers/api.py": {
+    "mtime": 1786222974.8177528,
+    "seen": 1787819015.3560152,
+    "ast_hash": "ce2df765e9eace3f9692926217dc18c5",
+    "semantic_hash": "ce2df765e9eace3f9692926217dc18c5"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/routers/debug.py": {
+    "mtime": 1786222974.8179839,
+    "seen": 1787819015.3560162,
+    "ast_hash": "3d0bfe2875f771fb39fb1f2991f61b64",
+    "semantic_hash": "3d0bfe2875f771fb39fb1f2991f61b64"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/routers/home.py": {
+    "mtime": 1771766901.3473606,
+    "seen": 1787819015.3560162,
+    "ast_hash": "480634be7bfef318b80b2fd33230381b",
+    "semantic_hash": "480634be7bfef318b80b2fd33230381b"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/routers/mgmt.py": {
+    "mtime": 1785058930.188916,
+    "seen": 1787819015.3560162,
+    "ast_hash": "4c140df61d2a0debf07ce626f6f167c4",
+    "semantic_hash": "4c140df61d2a0debf07ce626f6f167c4"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/services/__init__.py": {
+    "mtime": 1771765945.525767,
+    "seen": 1787819015.3560169,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/services/cache.py": {
+    "mtime": 1771765945.526055,
+    "seen": 1787819015.3560169,
+    "ast_hash": "64f353a5afc570040b5f712c647e6ecf",
+    "semantic_hash": "64f353a5afc570040b5f712c647e6ecf"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/services/health.py": {
+    "mtime": 1785058906.7385771,
+    "seen": 1787819015.3560178,
+    "ast_hash": "bf0390fa8e67af3b97729bc571cbe41f",
+    "semantic_hash": "bf0390fa8e67af3b97729bc571cbe41f"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/services/redis_client.py": {
+    "mtime": 1771765945.5269866,
+    "seen": 1787819015.3560178,
+    "ast_hash": "53d3018fd4849c1b8fcc95ec3af68c3c",
+    "semantic_hash": "53d3018fd4849c1b8fcc95ec3af68c3c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/services/storage.py": {
+    "mtime": 1785057824.041186,
+    "seen": 1787819015.356019,
+    "ast_hash": "33ffc638c12c6cff30003f9b21e08793",
+    "semantic_hash": "33ffc638c12c6cff30003f9b21e08793"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/static/js/realtime.js": {
+    "mtime": 1772278985.1461782,
+    "seen": 1787819015.356019,
+    "ast_hash": "98532fe5def0159d6ede3ef8e38ea096",
+    "semantic_hash": "98532fe5def0159d6ede3ef8e38ea096"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/auth.py": {
+    "mtime": 1757870726.4146087,
+    "seen": 1787819015.356019,
+    "ast_hash": "8ce679792c2b5fa46e0ba2b5c98971c0",
+    "semantic_hash": "8ce679792c2b5fa46e0ba2b5c98971c0"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/business.py": {
+    "mtime": 1757870726.4147055,
+    "seen": 1787819015.35602,
+    "ast_hash": "8c085c1db564ad0f389b281975c80b0b",
+    "semantic_hash": "8c085c1db564ad0f389b281975c80b0b"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/diag.py": {
+    "mtime": 1757870726.4149663,
+    "seen": 1787819015.35602,
+    "ast_hash": "af4ac77af61f62b9771b651b225beaae",
+    "semantic_hash": "af4ac77af61f62b9771b651b225beaae"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/main.py": {
+    "mtime": 1757870726.4151888,
+    "seen": 1787819015.356021,
+    "ast_hash": "8610cbecd642b1a82b09e1ac1c3176fd",
+    "semantic_hash": "8610cbecd642b1a82b09e1ac1c3176fd"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/mgmt.py": {
+    "mtime": 1757870726.415292,
+    "seen": 1787819015.356021,
+    "ast_hash": "da67c7587516c5d6d5be6bad8726987e",
+    "semantic_hash": "da67c7587516c5d6d5be6bad8726987e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/utils.py": {
+    "mtime": 1757870726.4158878,
+    "seen": 1787819015.356021,
+    "ast_hash": "79e905bbab8c8a1d15627b2c952113b6",
+    "semantic_hash": "79e905bbab8c8a1d15627b2c952113b6"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/dashboards/k3s-node.json": {
+    "mtime": 1772283989.2248995,
+    "seen": 1787819015.3560221,
+    "ast_hash": "32f70b49d844acaea7522422c248fe8c",
+    "semantic_hash": "32f70b49d844acaea7522422c248fe8c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/dashboards/pytbak.json": {
+    "mtime": 1772283989.2250733,
+    "seen": 1787819015.3560221,
+    "ast_hash": "d0c4db37cb71b0b4f7c095270f851637",
+    "semantic_hash": "d0c4db37cb71b0b4f7c095270f851637"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/dashboards/traefik.json": {
+    "mtime": 1772283989.22525,
+    "seen": 1787819015.356023,
+    "ast_hash": "aa040f28acf6b3f564ce79538631d313",
+    "semantic_hash": "aa040f28acf6b3f564ce79538631d313"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/pyproject.toml": {
+    "mtime": 1785059426.994238,
+    "seen": 1787819015.356023,
+    "ast_hash": "69b8ddf5c0308fbdde62a465a22546be",
+    "semantic_hash": "69b8ddf5c0308fbdde62a465a22546be"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/renovate.json": {
+    "mtime": 1757870726.4185483,
+    "seen": 1787819015.356023,
+    "ast_hash": "abdad9b90217646c550d5efbcda2f665",
+    "semantic_hash": "abdad9b90217646c550d5efbcda2f665"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/scripts/test-docker.sh": {
+    "mtime": 1772799398.2478523,
+    "seen": 1787819015.356024,
+    "ast_hash": "ab74ac1fffd1e0bed35a25d8670f7b72",
+    "semantic_hash": "ab74ac1fffd1e0bed35a25d8670f7b72"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/__init__.py": {
+    "mtime": 1771765945.5371125,
+    "seen": 1787819015.356024,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/conftest.py": {
+    "mtime": 1786222974.8191726,
+    "seen": 1787819015.356025,
+    "ast_hash": "9d66944477348354394a4b2f39529393",
+    "semantic_hash": "9d66944477348354394a4b2f39529393"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/__init__.py": {
+    "mtime": 1772799398.248216,
+    "seen": 1787819015.356025,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/conftest.py": {
+    "mtime": 1772799398.2489467,
+    "seen": 1787819015.3560262,
+    "ast_hash": "a3293826168b285348d8f3087493eb41",
+    "semantic_hash": "a3293826168b285348d8f3087493eb41"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_api.py": {
+    "mtime": 1772799398.2491462,
+    "seen": 1787819015.3560262,
+    "ast_hash": "5f032aca96581a1b29d5161326bf0520",
+    "semantic_hash": "5f032aca96581a1b29d5161326bf0520"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_debug.py": {
+    "mtime": 1772799398.249336,
+    "seen": 1787819015.356027,
+    "ast_hash": "888d00129fd0b282cd5f9f88490df8ca",
+    "semantic_hash": "888d00129fd0b282cd5f9f88490df8ca"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_e2e.py": {
+    "mtime": 1772799398.249522,
+    "seen": 1787819015.356027,
+    "ast_hash": "69edaa1d53efeecdf8051b4d6737a853",
+    "semantic_hash": "69edaa1d53efeecdf8051b4d6737a853"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_mcp.py": {
+    "mtime": 1785059712.7579844,
+    "seen": 1787819015.356027,
+    "ast_hash": "2f4e2dc9e6c3015db2cd02291e77ba5e",
+    "semantic_hash": "2f4e2dc9e6c3015db2cd02291e77ba5e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_mgmt.py": {
+    "mtime": 1772799398.2497144,
+    "seen": 1787819015.3560278,
+    "ast_hash": "0cda7a2dd7eebc89d99f7cae75b9e363",
+    "semantic_hash": "0cda7a2dd7eebc89d99f7cae75b9e363"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/integration/test_middleware.py": {
+    "mtime": 1772799398.250442,
+    "seen": 1787819015.3560278,
+    "ast_hash": "d1a7268a02d4a4093691d8e8dacbb7e8",
+    "semantic_hash": "d1a7268a02d4a4093691d8e8dacbb7e8"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_api.py": {
+    "mtime": 1786220091.9367943,
+    "seen": 1787819015.3560278,
+    "ast_hash": "7602d6e63b61363bc4a888e5b7231ee0",
+    "semantic_hash": "7602d6e63b61363bc4a888e5b7231ee0"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_debug.py": {
+    "mtime": 1772799398.250736,
+    "seen": 1787819015.356029,
+    "ast_hash": "1014b609844d729c71d6c233573cc044",
+    "semantic_hash": "1014b609844d729c71d6c233573cc044"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_mcp.py": {
+    "mtime": 1785062012.3522375,
+    "seen": 1787819015.356029,
+    "ast_hash": "99861533a2b26ed58940e85d8006eca0",
+    "semantic_hash": "99861533a2b26ed58940e85d8006eca0"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_mgmt.py": {
+    "mtime": 1772278985.1470308,
+    "seen": 1787819015.35603,
+    "ast_hash": "03938ad3f37141497dc89183fc3dd017",
+    "semantic_hash": "03938ad3f37141497dc89183fc3dd017"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_middleware.py": {
+    "mtime": 1772278985.1471746,
+    "seen": 1787819015.35603,
+    "ast_hash": "6abf53a75136707db915c4b6c476842c",
+    "semantic_hash": "6abf53a75136707db915c4b6c476842c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_prometheus_enabled.py": {
+    "mtime": 1787738397.090331,
+    "seen": 1787819015.35603,
+    "ast_hash": "2afba37b30c8b481db339c28c7249ac7",
+    "semantic_hash": "2afba37b30c8b481db339c28c7249ac7"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/tests/test_storage.py": {
+    "mtime": 1772799398.2514281,
+    "seen": 1787819015.356031,
+    "ast_hash": "b61d44006de26cfe876b73cfb76a7b72",
+    "semantic_hash": "b61d44006de26cfe876b73cfb76a7b72"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.claude/commands/vsdd.md": {
+    "mtime": 1772798144.6789675,
+    "seen": 1787819015.356031,
+    "ast_hash": "5eb5b0c2a3045c0e8d827d7f4316b815",
+    "semantic_hash": "5eb5b0c2a3045c0e8d827d7f4316b815"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/ai-review-sweep.yml": {
+    "mtime": 1787764794.13376,
+    "seen": 1787819015.356031,
+    "ast_hash": "75d21295247299927fc724826830dc33",
+    "semantic_hash": "75d21295247299927fc724826830dc33"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/ai-review.yml": {
+    "mtime": 1787680883.6804452,
+    "seen": 1787819015.356032,
+    "ast_hash": "802a186b038291f9b035b9d0556743de",
+    "semantic_hash": "802a186b038291f9b035b9d0556743de"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/issue-triage.yml": {
+    "mtime": 1787737262.2578888,
+    "seen": 1787819015.356032,
+    "ast_hash": "b13435fc84220b0d4dcff0385790d516",
+    "semantic_hash": "b13435fc84220b0d4dcff0385790d516"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/pipeline.yml": {
+    "mtime": 1787745085.1934676,
+    "seen": 1787819015.356033,
+    "ast_hash": "3b500fe88b89570bbc44d4f38fee0f0f",
+    "semantic_hash": "3b500fe88b89570bbc44d4f38fee0f0f"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/pr-checks.yml": {
+    "mtime": 1787744609.6819634,
+    "seen": 1787819015.356033,
+    "ast_hash": "dcc5764c8faa3af1c3725d1764ea1552",
+    "semantic_hash": "dcc5764c8faa3af1c3725d1764ea1552"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/.github/workflows/release-notes.yml": {
+    "mtime": 1787737249.8505232,
+    "seen": 1787819015.356033,
+    "ast_hash": "70d492200b62af9d00217b618b4b0d29",
+    "semantic_hash": "70d492200b62af9d00217b618b4b0d29"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/CLAUDE.md": {
+    "mtime": 1785059819.6888351,
+    "seen": 1787819015.356034,
+    "ast_hash": "e5a18e57fc8ee6498340320325a35a18",
+    "semantic_hash": "e5a18e57fc8ee6498340320325a35a18"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/README.md": {
+    "mtime": 1785060646.765314,
+    "seen": 1787819015.356034,
+    "ast_hash": "4a5bacd2749be239bd4bc09b6e96b33f",
+    "semantic_hash": "4a5bacd2749be239bd4bc09b6e96b33f"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/STATUS.md": {
+    "mtime": 1771765945.5209668,
+    "seen": 1787819015.356035,
+    "ast_hash": "f5c6b77e741185926a0273799676ba81",
+    "semantic_hash": "f5c6b77e741185926a0273799676ba81"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/app/templates/index.html": {
+    "mtime": 1771765945.528171,
+    "seen": 1787819015.356035,
+    "ast_hash": "60228f0a907c107640ab8f968e10b815",
+    "semantic_hash": "60228f0a907c107640ab8f968e10b815"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker-compose.yml": {
+    "mtime": 1786222974.8182583,
+    "seen": 1787819015.356035,
+    "ast_hash": "f80b16ef7278bc89165541026a99fa3e",
+    "semantic_hash": "f80b16ef7278bc89165541026a99fa3e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/requirements.txt": {
+    "mtime": 1787737182.9358401,
+    "seen": 1787819015.3560362,
+    "ast_hash": "255e41e98f98b52f39fc41961a7d3365",
+    "semantic_hash": "255e41e98f98b52f39fc41961a7d3365"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/templates/index.html": {
+    "mtime": 1757871961.346698,
+    "seen": 1787819015.3560362,
+    "ast_hash": "63c13bc8d873ae3b52c3ea2a216d9fb4",
+    "semantic_hash": "63c13bc8d873ae3b52c3ea2a216d9fb4"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/01-overview-c4-context.md": {
+    "mtime": 1787740097.2609599,
+    "seen": 1787819015.3560362,
+    "ast_hash": "794ca5c4764d28d604ff58d907c33174",
+    "semantic_hash": "794ca5c4764d28d604ff58d907c33174"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/02-c4-containers.md": {
+    "mtime": 1772282686.0042987,
+    "seen": 1787819015.3560371,
+    "ast_hash": "b0243143b9f7cd6be1f1e3c3a7b89434",
+    "semantic_hash": "b0243143b9f7cd6be1f1e3c3a7b89434"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/03-c4-components.md": {
+    "mtime": 1771765945.5301166,
+    "seen": 1787819015.3560371,
+    "ast_hash": "7cbc0cf8806ed5c0f3e1b1c91cda3cff",
+    "semantic_hash": "7cbc0cf8806ed5c0f3e1b1c91cda3cff"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/04-c4-code.md": {
+    "mtime": 1771765945.530301,
+    "seen": 1787819015.3560379,
+    "ast_hash": "ac7205a70f817a9532a6df9502ee2527",
+    "semantic_hash": "ac7205a70f817a9532a6df9502ee2527"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/05-enterprise-architecture.md": {
+    "mtime": 1772282686.0044985,
+    "seen": 1787819015.3560379,
+    "ast_hash": "73a9c9b85a4c8314edbaf007fd8881cd",
+    "semantic_hash": "73a9c9b85a4c8314edbaf007fd8881cd"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/06-security-analysis.md": {
+    "mtime": 1771765945.5309317,
+    "seen": 1787819015.3560379,
+    "ast_hash": "54a537560d8806cfbff9e7f12cf08105",
+    "semantic_hash": "54a537560d8806cfbff9e7f12cf08105"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/07-sequence-diagrams.md": {
+    "mtime": 1771765945.5310872,
+    "seen": 1787819015.3560388,
+    "ast_hash": "e213fa5349ab8c0b8183af2ebd9d2cdf",
+    "semantic_hash": "e213fa5349ab8c0b8183af2ebd9d2cdf"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/08-diagrams.md": {
+    "mtime": 1771765945.5312371,
+    "seen": 1787819015.3560388,
+    "ast_hash": "53c36a4b870e40ee72ecf69b5a61119a",
+    "semantic_hash": "53c36a4b870e40ee72ecf69b5a61119a"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/09-adr-flask-to-fastapi.md": {
+    "mtime": 1771765945.531396,
+    "seen": 1787819015.35604,
+    "ast_hash": "5f5052cc4c850656496de8147a25e1c0",
+    "semantic_hash": "5f5052cc4c850656496de8147a25e1c0"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/10-datadog-integration.md": {
+    "mtime": 1772282686.004706,
+    "seen": 1787819015.35604,
+    "ast_hash": "efc134edbe0339efdd2945b2ced2082c",
+    "semantic_hash": "efc134edbe0339efdd2945b2ced2082c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/11-mcp-server.md": {
+    "mtime": 1786222974.8187242,
+    "seen": 1787819015.35604,
+    "ast_hash": "5cd5479ffe597c614d32cccb491c11bd",
+    "semantic_hash": "5cd5479ffe597c614d32cccb491c11bd"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/12-ai-pipeline.md": {
+    "mtime": 1787818698.4750335,
+    "seen": 1787819015.356041,
+    "ast_hash": "e31fa16d0bcc3a39e38e3f041cebe72f",
+    "semantic_hash": "e31fa16d0bcc3a39e38e3f041cebe72f"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/README.md": {
+    "mtime": 1787818698.475168,
+    "seen": 1787819015.356041,
+    "ast_hash": "710cbf6985fd1c8497194b7dd4ac2ebd",
+    "semantic_hash": "710cbf6985fd1c8497194b7dd4ac2ebd"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/Chart.yaml": {
+    "mtime": 1771765945.5323777,
+    "seen": 1787819015.356042,
+    "ast_hash": "b4b9cca6eafe4295647b92b524d905a1",
+    "semantic_hash": "b4b9cca6eafe4295647b92b524d905a1"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/configmap.yaml": {
+    "mtime": 1772278985.1464803,
+    "seen": 1787819015.356042,
+    "ast_hash": "c2e5b2b9941beae7e37dbf4feaa2c9c7",
+    "semantic_hash": "c2e5b2b9941beae7e37dbf4feaa2c9c7"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/deployment.yaml": {
+    "mtime": 1772278985.1466248,
+    "seen": 1787819015.356042,
+    "ast_hash": "ac63158e0a727233addbab21f6dcaf90",
+    "semantic_hash": "ac63158e0a727233addbab21f6dcaf90"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/hpa.yaml": {
+    "mtime": 1771765945.5341535,
+    "seen": 1787819015.356043,
+    "ast_hash": "4cfafcd8c6de46c6ce56a053eceaea3c",
+    "semantic_hash": "4cfafcd8c6de46c6ce56a053eceaea3c"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/ingress.yaml": {
+    "mtime": 1771765945.534331,
+    "seen": 1787819015.356045,
+    "ast_hash": "0de623b851709f3671d7e86dd78869eb",
+    "semantic_hash": "0de623b851709f3671d7e86dd78869eb"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/networkpolicy.yaml": {
+    "mtime": 1772282258.1036363,
+    "seen": 1787819015.356045,
+    "ast_hash": "d2ab39e19ddc258230d0c28de6440c70",
+    "semantic_hash": "d2ab39e19ddc258230d0c28de6440c70"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/pdb.yaml": {
+    "mtime": 1771765945.5347087,
+    "seen": 1787819015.356046,
+    "ast_hash": "35288d933fe45279d40609b02891fd60",
+    "semantic_hash": "35288d933fe45279d40609b02891fd60"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/service.yaml": {
+    "mtime": 1771765945.5349772,
+    "seen": 1787819015.356046,
+    "ast_hash": "2f3f276dacaa2881ce30d1351f4d8f13",
+    "semantic_hash": "2f3f276dacaa2881ce30d1351f4d8f13"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/templates/servicemonitor.yaml": {
+    "mtime": 1771765945.5351062,
+    "seen": 1787819015.356046,
+    "ast_hash": "349bf3d133dd92cd5b5d2cfdba4f2459",
+    "semantic_hash": "349bf3d133dd92cd5b5d2cfdba4f2459"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/values-itachi.yaml": {
+    "mtime": 1772280261.6858952,
+    "seen": 1787819015.3560472,
+    "ast_hash": "c1d3d5ca37fce7bcb38808fbdee24ad1",
+    "semantic_hash": "c1d3d5ca37fce7bcb38808fbdee24ad1"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/values-izanami.yaml": {
+    "mtime": 1772278985.1467452,
+    "seen": 1787819015.3560472,
+    "ast_hash": "fbf168a126fdac0e6580c6d002d2c9d8",
+    "semantic_hash": "fbf168a126fdac0e6580c6d002d2c9d8"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/values-milano.yaml": {
+    "mtime": 1772282258.1038363,
+    "seen": 1787819015.3560479,
+    "ast_hash": "981a75277f7b44c09a60b87b8a69cf78",
+    "semantic_hash": "981a75277f7b44c09a60b87b8a69cf78"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/helm/pytbak/values.yaml": {
+    "mtime": 1787818698.4562614,
+    "seen": 1787819015.3560479,
+    "ast_hash": "7f563cb86d9fb802c70ae63b60ded366",
+    "semantic_hash": "7f563cb86d9fb802c70ae63b60ded366"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/01-ns-pytbak.yaml": {
+    "mtime": 1757870726.4179313,
+    "seen": 1787819015.3560479,
+    "ast_hash": "182ecaff41fc92d36698d089bdc258b4",
+    "semantic_hash": "182ecaff41fc92d36698d089bdc258b4"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/02-svc-pytbak.yaml": {
+    "mtime": 1757870726.4180465,
+    "seen": 1787819015.3560488,
+    "ast_hash": "f41cc7fdc7e4301f7c41972216ab2c00",
+    "semantic_hash": "f41cc7fdc7e4301f7c41972216ab2c00"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/03-ing-pytbak.yaml": {
+    "mtime": 1757870726.4181552,
+    "seen": 1787819015.3560488,
+    "ast_hash": "54c8fc6f8bc5106e6f0544330e4c69b9",
+    "semantic_hash": "54c8fc6f8bc5106e6f0544330e4c69b9"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/04-dpl-pytbak.yaml": {
+    "mtime": 1771757488.8002565,
+    "seen": 1787819015.35605,
+    "ast_hash": "32f9aecf0ebc097d33a03362495feab8",
+    "semantic_hash": "32f9aecf0ebc097d33a03362495feab8"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/05-hpa-pytbak.yaml": {
+    "mtime": 1757870726.4183621,
+    "seen": 1787819015.35605,
+    "ast_hash": "c80536e3b5d33a0c976b9a9ec12ad295",
+    "semantic_hash": "c80536e3b5d33a0c976b9a9ec12ad295"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/kubernetes/06-istio-pytbak.yaml": {
+    "mtime": 1757870726.4184577,
+    "seen": 1787819015.35605,
+    "ast_hash": "154cd8ffc05268a9e38411bbf1afcb4e",
+    "semantic_hash": "154cd8ffc05268a9e38411bbf1afcb4e"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/otel/otel-collector.yml": {
+    "mtime": 1771765945.535578,
+    "seen": 1787819015.356051,
+    "ast_hash": "f93aa905810da5a7b99649ac2cd9c3c7",
+    "semantic_hash": "f93aa905810da5a7b99649ac2cd9c3c7"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/otel/prometheus.yml": {
+    "mtime": 1771765945.5361807,
+    "seen": 1787819015.356051,
+    "ast_hash": "7ea7e0a05aa0ac0c9d6041e19899cd85",
+    "semantic_hash": "7ea7e0a05aa0ac0c9d6041e19899cd85"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/requirements.txt": {
+    "mtime": 1787818697.610938,
+    "seen": 1787819015.356052,
+    "ast_hash": "7926fa1162ec1d93c6781bc9aaa535a5",
+    "semantic_hash": "7926fa1162ec1d93c6781bc9aaa535a5"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docker/src/app/static/favicon.png": {
+    "mtime": 1757870726.4156218,
+    "seen": 1787819015.356052,
+    "ast_hash": "d68b74794f8a8317845ff91b103c4b0b",
+    "semantic_hash": "d68b74794f8a8317845ff91b103c4b0b"
+  },
+  "/Users/lgirardi/Storage/home/flask-test-api/docs/images/opencode-mcp-example.png": {
+    "mtime": 1785060569.084114,
+    "seen": 1787819015.356052,
+    "ast_hash": "f2b5e325770bd79506cac8e40b54edb4",
+    "semantic_hash": "f2b5e325770bd79506cac8e40b54edb4"
+  }
+}
