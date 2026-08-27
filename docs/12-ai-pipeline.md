@@ -1,161 +1,239 @@
 # AI Pipeline (GitHub Actions + OpenCode Zen)
 
-This repository integrates AI features into its existing GitHub Actions pipeline,
-driven by two stdlib-only Python helpers:
+This repository's AI features are split across two repos:
 
-- `scripts/openrouter_ai.py` — reusable LLM client (OpenCode Zen, OpenAI-compatible)
-- `scripts/ai_sanitize.py` — secret redaction + context bundling
-- `tests/test_openrouter_ai.py` — local mock-based tests
+- **[lorenzogirardi/ci-shared](https://github.com/lorenzogirardi/ci-shared)** (tag `@v1`) — the reusable
+  workflows and Python scripts. Also used by other repos (e.g. `cloudflare-free-exporter`), so a fix
+  here benefits every consumer.
+- **this repo** — thin wrapper workflows that call `ci-shared@v1` with this project's own config
+  (prompts, gates, secrets), plus two workflows that don't fit the reusable shape and call the
+  shared scripts directly.
 
-Four features are wired in:
+Model calls go through one stdlib-only client, `openrouter_ai.py`, checked out from `ci-shared` at
+run time (never duplicated locally). No Claude API, no Claude Code routines — a plain HTTP call to
+any OpenAI-compatible chat-completions endpoint.
 
-| # | Feature | Workflow | Trigger |
-|---|---------|----------|---------|
-| 1 | AI Code Review on Pull Requests | `.github/workflows/ai-review.yml` | `pull_request` (opened/synchronize/reopened) |
-| 2 | AI analysis of lint + test results | `.github/workflows/pipeline.yml` → `ai-analysis` job | `push` to `main` (existing pipeline) |
-| 3 | Automatic issue triage | `.github/workflows/issue-triage.yml` | `issues` (opened), only `bug`-labeled |
-| 4 | Automatic release notes on merge | `.github/workflows/release-notes.yml` | `pull_request` (closed, merged) |
+## Six features, six workflows
+
+| # | Feature | Workflow | Trigger | Merges/blocks anything? |
+|---|---------|----------|---------|--------------------------|
+| 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
+| 2 | AI code review (human PRs) | `ai-review.yml` | `pull_request`, skips `renovate[bot]` | No — comment only |
+| 3 | Renovate review, auto-merge, self-repair | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes** — see below |
+| 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
+| 5 | Automatic issue triage | `issue-triage.yml` | `issues` (opened), `bug`-labeled | No — labels/comment only |
+| 6 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
+
+Features 2 and 3 are split by actor because they need different privileges (see "Why two review
+workflows" below) — never both on the same PR.
+
+## Why `pr-checks.yml` exists, and why it's required
+
+Until this existed, `pipeline.yml` only ran `on: push: [main]`: nothing was ever built or tested on
+a PR, so the first `pytest` of a change happened *after* it had already landed. Two auto-merged
+dependency bumps broke `main` in one session because of exactly that gap — both failures a command
+proves in seconds, neither something a diff review can predict:
+
+- Python 3.12 → 3.14 made `pip install -r requirements.txt` unsolvable (`mcp` needs
+  `pydantic>=2.12` on 3.14; `requirements.txt` pinned `2.11.7`) — a `pip install --dry-run` would
+  have caught it immediately.
+- `fastapi` 0.115 → 0.141 made every request 500 (`prometheus-fastapi-instrumentator` 7.0.2 can't
+  read the new router objects) — booting the app and hitting `/api/mgmt/ready` once would have
+  caught it immediately.
+
+`pr-checks.yml` runs on every PR: dependency resolution (its own step, so a resolver conflict is
+legible — and *without* `--quiet`, since that flag hides pip's "The conflict is caused by:" block,
+the only part naming the actual incompatible pins), lint, `pytest`, and a smoke test that boots
+`uvicorn` and requests `/api/mgmt/ready` / `/api/mgmt/health` / `/metrics` — the path the test
+suite itself can't cover, since `tests/conftest.py` sets `PROMETHEUS_ENABLED=false` for the whole
+suite. Also runs `actionlint` on every workflow file (job name: `workflows`), which caught a real
+latent bug on its first run: a `docker/build-push-action` step with no `id`, silently making
+`steps.docker_build.outputs.digest` resolve to nothing.
+
+Heavy jobs (multi-arch docker build, trivy, sbom, kind cluster) stay in `pipeline.yml` on `main` —
+too slow to run per PR.
+
+## Why two review workflows, gated by actor
+
+This repo's dependency bot is **Renovate** (`renovate.json`), not Dependabot — confirmed the hard
+way: enabling native Dependabot alongside it produced 12 duplicate PRs for updates Renovate already
+tracked. Cleaned up; `.github/dependabot.yml` was removed.
+
+`ai-review.yml` (`pull_request`, `contents: read`) handles everything **except** `renovate[bot]`.
+`ai-review-sweep.yml` (`schedule` + `workflow_dispatch`, `contents: write`) handles only
+`renovate[bot]`, with a dependency-bump-focused prompt and the merge/autofix capability described
+below.
+
+### Why the Renovate path is a *sweep*, not another `pull_request` trigger
+
+The event-driven approach was tried first and works, but needed a real fight to get there:
+`pull_request` gives a read-only `GITHUB_TOKEN` and no secrets to runs authored by a bot (this
+turned out **not** to be Dependabot-specific — `renovate[bot]` hit the identical restriction),
+`pull_request_target` (the usual escape hatch) defaults to checking out the *base* branch instead
+of the PR, and a workflow added today can never retroactively fire for PRs opened yesterday.
+
+A `schedule` run has none of that: no PR actor, no fork, full `GITHUB_TOKEN` by construction. It
+also mirrors how [`openwrt/openwrt`](https://github.com/openwrt/openwrt) actually drives its own
+LLM review (`cron '0 3,15 * * *'` + `workflow_dispatch`, no `pull_request` trigger at all — verified
+by reading its real workflow file, not assumed).
+
+### The merge gate: CI, not the AI verdict
+
+Auto-merge requires `required_checks: 'checks,workflows'` (the `pr-checks.yml` job names) to have
+**actually succeeded** — not merely "nothing failed". An earlier version accepted that weaker
+condition and merged two PRs whose only check was `ai-review.yml` reporting `skipped` (it skips bot
+authors): "nothing objected" is not "something verified". The AI review's `VERDICT: CLEAN` /
+`VERDICT: NEEDS_REVIEW` line (exact-match on the literal last line, not a substring search — a
+model writing "no `[Critical]` issues found" to mean *clean* must not read as dirty) only decides
+whether a human needs to look; it has never been the thing that decides whether code merges.
+
+### Self-repair: agentic autofix on a failing PR
+
+When Renovate's own PR fails `pr-checks.yml`, the sweep doesn't just explain the failure — it can
+repair it, `autofix: true`:
+
+1. Read the failing job's logs (de-ANSI'd; `gh api` silently refuses colored output without
+   `--allow-escape-sequences`) and the PR diff.
+2. Ask the model for a patch: strict JSON, `{"file", "find", "replace"}` pairs. Every edit is
+   validated in code, not trusted from the prompt — `find` must appear **exactly once** in that
+   file, the file must be a dependency manifest (`requirements.txt`, `Dockerfile`,
+   `pyproject.toml`, ... — never `app/`, `tests/`, or `.github/`), at most 5 edits, no path
+   traversal, never on a fork.
+3. Apply the edit, then run `verify_command` **in this job**, before pushing anything — this is
+   what makes it agentic rather than one-shot: the model finds out whether its own fix works
+   locally, the same way fixing this class of bug interactively does (propose → check the real
+   output → adjust), instead of only discovering it a full CI round trip later.
+   `verify_command` here re-runs `pr-checks.yml`'s own steps verbatim (resolve → install → boot →
+   curl) on `python_version: "3.14"` — matching the real gate's interpreter is not optional: a
+   dependency set can resolve on one Python version and not another, which is literally how the
+   incident above happened.
+4. A pass commits (with an explicit git identity — a runner checkout has none) and pushes
+   immediately, with a commit message and PR comment stating plainly that a machine wrote it,
+   unreviewed, and that the required checks (the real ones, on the pushed commit) decide whether it
+   merges. A failure reverts the edit, feeds the real verification output back into the next
+   attempt ("tried X, still failed with Y"), and retries — up to `max_autofix_attempts` (default 3)
+   — before giving up and leaving the PR for a human.
+
+Verified end to end on a deliberately broken PR: one attempt, verified locally, pushed, and the
+real `pr-checks.yml` run on that commit came back green — confirming the local verifier and the
+actual gate agree.
+
+**Where the LLM is used, and where it deliberately isn't**: if a command can prove something, ask
+the command, not the model — a diff review calling a resolvable-on-py3.12-but-not-py3.14 dependency
+bump "clean" is exactly the failure mode this whole design routes around. The model's job is
+triage/explanation (something already proven wrong, in one attempt) and generating a candidate fix
+whose correctness is then decided the same way any other commit's is: by CI.
 
 ## Architecture
 
 ```
-GitHub Actions ──► scripts/openrouter_ai.py ──► OpenCode Zen (https://opencode.ai/zen/v1)
-                        (stdlib only)                model: deepseek-v4-flash-free
+GitHub Actions ──► ci-shared/scripts/openrouter_ai.py ──► OpenCode Zen (opencode.ai/zen/v1)
+   (checked out          (stdlib only)                        model: hy3-free
+    at run time,                                          (deepseek-v4-flash-free went
+    ref: v1)                                                unavailable; verified via
+                                                             direct curl before switching)
 ```
 
-- `scripts/openrouter_ai.py` — reusable client: reads key/model/endpoint from the environment,
-  accepts a multiline prompt from a file or stdin, validates response JSON, handles HTTP
-  errors and timeouts, caps prompt size, and never prints secrets. Sends an explicit
-  `User-Agent` (OpenCode Zen rejects Python's default `urllib` User-Agent with HTTP 403).
-  Writes token usage + an estimated USD cost (`--usage-file`) based on the model's per-1M
-  price table (`MODEL_PRICES_USD_PER_1M`), override via `OPENROUTER_PRICE_INPUT` /
-  `OPENROUTER_PRICE_OUTPUT`.
-- `scripts/ai_append_cost.py` — appends a "AI Usage & Cost" Markdown footer (tokens and
-  estimated USD cost) to an AI report file, using a JSON produced by the client above.
-- `scripts/ai_sanitize.py` — redacts secrets and caps size of CI output before it is sent to
-  the model (bundle mode) and checks a file for secrets before uploading it as an artifact
-  (check mode).
-- `tests/test_openrouter_ai.py` — local tests that hit a mock OpenAI-compatible HTTP server;
-  no real network calls, no API key needed.
+- `openrouter_ai.py` — reusable client: reads key/model/endpoint from the environment, accepts a
+  multiline prompt from a file, validates response JSON, retries on an empty reply (reasoning
+  models can burn the whole output budget on chain-of-thought), caps prompt size, never prints
+  secrets. Writes token usage + an estimated USD cost.
+- `ai_sanitize.py` — redacts secrets and caps size of CI output before it reaches the model; masks
+  secret-like patterns in a finished report before upload (never drops the whole report just
+  because it quotes a `password = "..."` line while explaining a vulnerability).
+- `ai_append_cost.py` — appends a token/cost footer to a report.
+- `pr_review_sweep.py` — the sweep's own logic: `checks_state()` (the merge gate), `triage_one()`,
+  `autofix_one()` (the agentic loop above), verdict parsing. 63 tests in `ci-shared`, no network.
+
+Full design rationale, Mermaid diagrams, and the file-by-file breakdown live in
+[`ci-shared/docs/architecture.md`](https://github.com/lorenzogirardi/ci-shared/blob/main/docs/architecture.md).
 
 ## GitHub Configuration
 
 ### 1. API key (secret)
 
-Create an OpenCode Zen key at https://opencode.ai/auth, then store it as a **repository secret**:
-
 ```bash
 gh secret set OPENROUTER_API_KEY --repo lorenzogirardi/flask-test-api --body 'sk-or-...'
 ```
 
-or via the UI: **Settings → Secrets and variables → Actions → New repository secret**.
+The key is only ever used in the `Authorization: Bearer` header — never logged, never in a prompt,
+never uploaded as an artifact.
 
-> The key is only ever used in the `Authorization: Bearer` header. It is never logged,
-> never included in a prompt, and never uploaded as an artifact.
+### 2. Model (variable)
 
-### 2. Model (variable, optional)
-
-Default is already **`deepseek-v4-flash-free`**. To override, set a repository variable:
+Current: **`hy3-free`** (the previous default, `deepseek-v4-flash-free`, started returning
+`Model is unavailable` from the provider — verified with a direct `curl` against the endpoint
+before switching, not assumed).
 
 ```bash
-gh variable set OPENROUTER_MODEL --repo lorenzogirardi/flask-test-api --body 'deepseek-v4-flash-free'
+gh variable set OPENROUTER_MODEL --repo lorenzogirardi/flask-test-api --body 'hy3-free'
 ```
 
 ### 3. Referrer / App name (variables, optional)
-
-These are sent as `HTTP-Referer` and `X-Title` headers (ranking credit for the provider):
 
 ```bash
 gh variable set OPENROUTER_SITE_URL --repo lorenzogirardi/flask-test-api --body 'https://github.com/lorenzogirardi/flask-test-api'
 gh variable set OPENROUTER_APP_NAME --repo lorenzogirardi/flask-test-api --body 'GitHub Actions AI'
 ```
 
-### 4. Enable / disable the AI features
-
-All AI jobs are gated by the repository variable `AI_ENABLED`:
+### 4. Enable / disable
 
 ```bash
 gh variable set AI_ENABLED --repo lorenzogirardi/flask-test-api --body 'true'   # enable
 gh variable set AI_ENABLED --repo lorenzogirardi/flask-test-api --body 'false'  # disable
 ```
 
-When `AI_ENABLED != 'true'`, every job that talks to the model is skipped and the
-pipeline keeps its previous deterministic behavior (build, tests, lint, docker, trivy,
-checkov, k8s-check all unchanged).
-
-The endpoint is configurable via the variable `OPENROUTER_ENDPOINT`
-(default: `https://opencode.ai/zen/v1/chat/completions`).
-
-The report footer includes the token usage and an estimated USD cost computed from the
-model's per-1M prices. The "free" tier is billed at the commercial rate of its model so the
-cost is always a real economic figure (override with `OPENROUTER_PRICE_INPUT` /
-`OPENROUTER_PRICE_OUTPUT`).
-
-The AI report is written to the workflow job **summary** (`$GITHUB_STEP_SUMMARY`), so it
-renders directly in the run page instead of only being a downloadable artifact; the same
-file is also uploaded as the `ai-analysis-report` artifact.
-
-### Example configuration (no real values)
-
-```bash
-# Secret
-OPENROUTER_API_KEY=<GitHub Actions secret>
-# Variables
-OPENROUTER_MODEL=deepseek-v4-flash-free            # DeepSeek V4 Flash Free on OpenCode Zen
-OPENROUTER_ENDPOINT=https://opencode.ai/zen/v1/chat/completions
-OPENROUTER_SITE_URL=https://github.com/<owner>/<repo>
-OPENROUTER_APP_NAME=GitHub Actions AI
-AI_ENABLED=true
-```
+When `AI_ENABLED != 'true'`, every AI job is skipped; `pr-checks.yml` (deterministic, no model
+call) is **not** gated by this variable and always runs.
 
 ### 5. Required GitHub permissions
 
-| Workflow | Permissions |
-|----------|-------------|
-| `ai-review.yml` | `contents: read`, `pull-requests: write` (post/update review comment) |
-| `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` (download/upload artifacts) |
-| `issue-triage.yml` | `issues: write`, `contents: read` |
-| `release-notes.yml` | `contents: read` (artifact upload) |
+| Workflow | Permissions | Why |
+|----------|-------------|-----|
+| `pr-checks.yml` | `contents: read` | no model call, no comment |
+| `ai-review.yml` | `contents: read`, `pull-requests: write` | post/update review comment |
+| `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
+| `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
+| `issue-triage.yml` | `issues: write`, `contents: read` | labels + comment |
+| `release-notes.yml` | `contents: read`, `pull-requests: write` | post comment |
 
-No workflow requests `write-all` or the `write-all` permission set.
+No workflow requests `write-all`.
 
-### 6. Local validation of the OpenRouter script
+### 6. Branch protection
+
+**Deliberately not enabled** on `main`. Reasons: `pipeline.yml`'s `modifygit` job pushes directly
+to `main` (the image-tag bump after each build) and would break under "require PR before merging";
+the merge gate that matters (`required_checks`) already lives in the sweep, not in GitHub's branch
+protection; and the owner pushes to `main` directly as a matter of workflow. If this changes, the
+sweep's `required_checks` list is what a branch protection rule should mirror.
+
+### 7. Local validation
 
 ```bash
-# Without any real call (mock server) — uses tests only, no network:
-pytest tests/test_openrouter_ai.py -v
-
-# Interactive smoke test with a real key (not required for CI):
-echo 'Say hi' | OPENROUTER_API_KEY='sk-or...' python3 scripts/openrouter_ai.py
+pytest tests/ -v                                          # this repo's own suite
+pytest ../ci-shared/tests/ -v                              # or wherever ci-shared is checked out
+echo 'Say hi' | OPENROUTER_API_KEY='sk-or...' python3 -c "..."  # smoke test, not required for CI
 ```
 
-### 7. Fork pull requests
+### 8. Fork pull requests
 
-Workflows triggered by `pull_request` from forks run with a read-only `GITHUB_TOKEN` and do
-not receive repository secrets. On fork PRs the `ai-review.yml` job clears the API key up
-front, so the model is not called with repository secrets; the review comment then reports
-that AI review did not run. We deliberately do **not** use `pull_request_target`, so
-untrusted fork code never gets access to the runner's secrets.
-
-### 8. Informative vs blocking features
-
-- **Deterministic (blocking, unchanged)**: `build` (flake8 + pytest), `docker`
-  (build/push), `security-gate-trivy` (scan, report-only), `quality-gate` (checkov),
-  `k8s-check`. Failures still fail the pipeline exactly as before.
-- **AI (informative)**: `ai-analysis` (lint+tests report artifact, `continue-on-error: true`),
-  AI code review (comment only), issue triage (labels/comments only), release notes
-  (artifact/comment only). They never turn a red pipeline green and never block.
+`ai-review.yml` (plain `pull_request`) blanks the API key on a fork PR before ever calling the
+model — untrusted fork code never gets a real key, and the review comment reports that AI review
+did not run. `ai-review-sweep.yml` never runs against a fork at all: it only processes PRs whose
+`head.repo.full_name` equals this repo, checked before any git operation.
 
 ## Security notes
 
-- AI review prompts exclude `.env`, keys/certificates, `.git`, `node_modules`, `vendor`,
-  `dist`, `build`, minified maps, and binary assets (see per-path excludes in
-  `ai-review.yml`).
-- Generated AI reports are scanned for secret patterns by `ai_sanitize.py --check` before
-  being uploaded as artifacts.
-- Prompt content (issue bodies, PR titles/bodies, diffs) is treated as untrusted data and
-  the system prompts instruct the model to ignore embedded instructions. Malicious
-  model output is never executed as commands.
-- The `.ai/` working directory used by the jobs is gitignored and never committed.
-- the code only reads diffs/tests to the model. no GitHub token or repository secret goes
-  into a prompt.
+- Prompts exclude `.env`, keys/certificates, `.git`, `node_modules`, `vendor`, `dist`, `build`,
+  minified maps, and binary assets.
+- All prompt content (diffs, issue bodies, PR titles, CI logs) is treated as untrusted data; system
+  prompts instruct the model to ignore embedded instructions. Model output is never executed as
+  shell commands directly from the prompt — the autofix path parses it into a strict schema first
+  (see "Self-repair" above) and validates every field before it touches a file.
+- Generated reports are scanned for secret patterns before upload; matches are masked, not silently
+  dropped.
+- The autofix's `pull_request_target`-adjacent risk (arbitrary code execution from a PR branch with
+  an elevated token) does not apply here: the sweep only ever reads PR content (diff, logs) and
+  writes to an allowlisted set of manifest files — it never checks out and executes anything from
+  the PR branch with elevated privilege.
+- `.ai/` (the jobs' working directory) is gitignored and never committed.
