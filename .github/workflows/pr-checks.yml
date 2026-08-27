@@ -33,7 +33,7 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -89,7 +89,7 @@ jobs:
   workflows:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Lint workflow files
         # Catches what only surfaced by running the workflow before: an
         # invalid `if-no-files-found: ok` sat unnoticed in release-notes.yml
