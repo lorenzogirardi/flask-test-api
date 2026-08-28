@@ -143,10 +143,12 @@ repair it, `autofix: true`:
    reopens the identical bump every time a prior attempt reverts it — it has no memory of a
    rejected bump) kept exposing the next gap: `read` alone still needs an exact path, which the
    model guessed wrong (a plausible but non-matching toolcache path); dotted-module resolution and
-   `find`/`grep`/`list` close that. Then a real run with all four available spent all 5 rounds on
-   distinct, useful exploration (tools.py → the renamed class → its own submodule → the call site →
-   grepping for the old kwarg) and had zero rounds left to actually propose a fix — each of these
-   costs a round like a proposed edit does, so `max_autofix_attempts: 8` here, not the default 3.
+   `find`/`grep`/`list` close that. A run with all four available at 8 rounds got real,
+   self-correcting progress — explored the renamed class, proposed a plausible constructor fix,
+   learned from its own failed verification, refined it, kept exploring (the last grep, 27 hits on
+   `streamable_http_app`, points at `app/main.py`'s ASGI mount needing an edit too) — but exhausted
+   before landing a passing fix, a multi-file migration needing more rounds than that. Each
+   exploration step costs a round like a proposed edit does, so `max_autofix_attempts: 20` here.
 4. A pass commits (with an explicit git identity — a runner checkout has none) and pushes
    immediately, with a commit message and PR comment stating plainly that a machine wrote it,
    unreviewed, and that the required checks (the real ones, on the pushed commit) decide whether it
