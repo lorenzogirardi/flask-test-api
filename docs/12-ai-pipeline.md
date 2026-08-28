@@ -111,17 +111,26 @@ repair it, `autofix: true`:
    `--allow-escape-sequences`) and the PR diff.
 2. Ask the model for a patch: strict JSON, `{"file", "find", "replace"}` pairs. Every edit is
    validated in code, not trusted from the prompt — `find` must appear **exactly once** in that
-   file, the file must be a dependency manifest (`requirements.txt`, `Dockerfile`,
-   `pyproject.toml`, ... — never `app/`, `tests/`, or `.github/`), at most 5 edits, no path
-   traversal, never on a fork.
+   file, at most 5 edits, no path traversal, never on a fork. No file-type restriction beyond
+   that: a major bump can break at the API level, not just at install time (real incident below),
+   and a pin revert can't fix that — only a code change can. The one hard exclusion is
+   `.github/workflows/**`, which no credential here can push regardless (needs the separate
+   `workflow` scope), so an edit there would just burn the attempt.
 3. Apply the edit, then run `verify_command` **in this job**, before pushing anything — this is
    what makes it agentic rather than one-shot: the model finds out whether its own fix works
    locally, the same way fixing this class of bug interactively does (propose → check the real
    output → adjust), instead of only discovering it a full CI round trip later.
-   `verify_command` here re-runs `pr-checks.yml`'s own steps verbatim (resolve → install → boot →
-   curl) on `python_version: "3.14"` — matching the real gate's interpreter is not optional: a
-   dependency set can resolve on one Python version and not another, which is literally how the
-   incident above happened.
+   `verify_command` here re-runs `pr-checks.yml`'s own steps verbatim (resolve → install → lint →
+   **pytest** → boot → curl) on `python_version: "3.14"` — lint and the real test suite are in it,
+   not just install/boot, because a code-level fix needs the real test suite to mean anything;
+   matching the real gate's interpreter is not optional either — a dependency set can resolve on
+   one Python version and not another, which is literally how the incident above happened.
+
+   **Real incident, code-level**: Renovate's `mcp` v1→v2 bump broke `app/mcp/tools.py` at import
+   time (`ModuleNotFoundError: No module named 'mcp.server.fastmcp'` — v2 renamed `FastMCP` to
+   `MCPServer`). Autofix is deliberately allowed to fix the call site itself here, not just revert
+   the pin — reverting would only make Renovate re-propose the identical bump forever, since it has
+   no way to know the bump was tried and rejected.
 4. A pass commits (with an explicit git identity — a runner checkout has none) and pushes
    immediately, with a commit message and PR comment stating plainly that a machine wrote it,
    unreviewed, and that the required checks (the real ones, on the pushed commit) decide whether it

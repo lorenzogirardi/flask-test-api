@@ -66,15 +66,20 @@ jobs:
       # Must match pr-checks.yml's own python-version — otherwise this proves
       # nothing about the real gate. See python_version's description.
       python_version: "3.14"
-      # Mirrors pr-checks.yml's own steps (Resolve dependencies, Install,
-      # Smoke-test) exactly, so a local pass here means the same thing a real
-      # pr-checks pass would. Lint/pytest are left out: they're slower and
-      # this repo's failures so far have all been resolution or boot issues,
-      # never a lint/test regression the autofix caused.
+      # Mirrors pr-checks.yml's own steps exactly (Resolve dependencies,
+      # Install, Lint, Tests, Smoke-test), so a local pass here means the
+      # same thing a real pr-checks pass would. Lint/pytest are included
+      # because autofix can now edit application code, not just manifests
+      # (e.g. migrating app/mcp/tools.py off a renamed upstream API) --
+      # a pin revert alone can't fix that, and a code change needs the real
+      # test suite to mean anything.
       verify_command: |
         set -euo pipefail
         pip install --dry-run -r requirements.txt
         pip install -q -r requirements.txt
+        pip install -q flake8 pytest
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        pytest tests/ -v
         uvicorn app.main:app --host 127.0.0.1 --port 8000 &
         UVICORN_PID=$!
         # Without this, a second autofix attempt in the same job finds port
@@ -91,12 +96,16 @@ jobs:
       max_prs: ${{ fromJSON(inputs.max_prs || '10') }}
       comment_heading: 'AI Dependency Review'
       system_prompt_extra: |
-        These PRs are opened by Renovate and only touch dependency manifests
-        or lockfiles (requirements.txt, Dockerfile base image, GitHub Actions
-        pins). There is no application code to review. A clean verdict merges
-        the PR automatically — patch, minor, and major bumps are treated
-        identically, so judge each on the evidence in the diff and title, not
-        on version-jump size alone.
+        These PRs are opened by Renovate and originally only touch dependency
+        manifests or lockfiles (requirements.txt, Dockerfile base image,
+        GitHub Actions pins). The diff you're given may also include a second
+        commit: an automated fix pushed after CI first failed on the bump,
+        which can include application code (e.g. migrating a call site off a
+        renamed API in the new major version) — that commit is machine-authored
+        and unreviewed, verified only by the real test suite passing, not by a
+        human. A clean verdict merges the PR automatically — patch, minor, and
+        major bumps are treated identically, so judge each on the evidence in
+        the diff and title, not on version-jump size alone.
 
         Report [Critical] only when the diff or title gives concrete evidence
         that a human needs to look first: a version that looks unpublished or
