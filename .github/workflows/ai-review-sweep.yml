@@ -121,3 +121,12 @@ jobs:
       openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
     secrets:
       openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+      # Optional. Without it, autofix's git push authenticates as
+      # GITHUB_TOKEN and GitHub silently suppresses the CI run that push
+      # would trigger (its own recursive-workflow guard) -- confirmed on
+      # PRs #104 and #110, both stuck forever with 0 job runs. A
+      # fine-grained PAT (Contents: Read and write, this repo only --
+      # never `workflow` scope) sidesteps that. If AUTOFIX_PUSH_TOKEN
+      # isn't set, this evaluates to empty and ci-shared falls back to
+      # GITHUB_TOKEN, same as before.
+      autofix_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}

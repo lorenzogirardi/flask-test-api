@@ -159,6 +159,25 @@ gh secret set OPENROUTER_API_KEY --repo lorenzogirardi/flask-test-api --body 'sk
 The key is only ever used in the `Authorization: Bearer` header — never logged, never in a prompt,
 never uploaded as an artifact.
 
+### 1b. Autofix push token (secret, optional)
+
+Without this, autofix's `git push` authenticates as `GITHUB_TOKEN`, and GitHub's own
+recursive-workflow guard silently suppresses the `pr-checks.yml` run that push would otherwise
+trigger — confirmed live on PRs #104 and #110, both stuck forever with a `action_required`,
+zero-job run on the pushed commit. Required checks can then never go green, so the PR can never
+merge, regardless of how good the fix was.
+
+Create a **fine-grained PAT**, repository access limited to `flask-test-api` only, permission
+**Contents: Read and write** and nothing else (never `workflow` scope — this token must not be
+able to touch `.github/workflows/**`, which stays a human-merge-only path on purpose):
+
+```bash
+gh secret set AUTOFIX_PUSH_TOKEN --repo lorenzogirardi/flask-test-api --body 'github_pat_...'
+```
+
+Unset, `ai-review-sweep.yml` falls back to `GITHUB_TOKEN` exactly as before — autofix still
+proposes and verifies fixes locally, it just can't get real CI to confirm them.
+
 ### 2. Model (variable)
 
 Current: **`hy3-free`** (the previous default, `deepseek-v4-flash-free`, started returning
