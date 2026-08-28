@@ -136,12 +136,17 @@ repair it, `autofix: true`:
    to a revert, which is what actually merged on PR #117 — see the
    [full case study](case-study-mcp-v2-autofix.html) for every prompt and log involved.
 
-   **`{"read": "path"}`**: a reply can ask to see one real file — this repo's checkout, or the
-   interpreter's own installed packages — before proposing an edit, instead of guessing an API from
-   an error message alone. Added after the incident above for exactly that gap: the real
-   `MCPServer.__init__` signature was sitting on disk the whole time. A read costs one round of
-   `max_autofix_attempts` like a proposed edit does, so a migration needs to be given enough rounds
-   to read *and* propose — `max_autofix_attempts: 5` here, not the default 3.
+   **`list` / `find` / `grep` / `read`**: a reply can explore before proposing an edit — list a
+   directory, find a file by name, grep file contents, or read one real file (this repo, an
+   installed package, or the standard library) — instead of guessing an API or a runner-specific
+   absolute path from an error message alone. Added incrementally as the same PR (#118, Renovate
+   reopens the identical bump every time a prior attempt reverts it — it has no memory of a
+   rejected bump) kept exposing the next gap: `read` alone still needs an exact path, which the
+   model guessed wrong (a plausible but non-matching toolcache path); dotted-module resolution and
+   `find`/`grep`/`list` close that. Then a real run with all four available spent all 5 rounds on
+   distinct, useful exploration (tools.py → the renamed class → its own submodule → the call site →
+   grepping for the old kwarg) and had zero rounds left to actually propose a fix — each of these
+   costs a round like a proposed edit does, so `max_autofix_attempts: 8` here, not the default 3.
 4. A pass commits (with an explicit git identity — a runner checkout has none) and pushes
    immediately, with a commit message and PR comment stating plainly that a machine wrote it,
    unreviewed, and that the required checks (the real ones, on the pushed commit) decide whether it
