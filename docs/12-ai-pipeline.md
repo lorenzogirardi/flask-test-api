@@ -130,7 +130,18 @@ repair it, `autofix: true`:
    time (`ModuleNotFoundError: No module named 'mcp.server.fastmcp'` — v2 renamed `FastMCP` to
    `MCPServer`). Autofix is deliberately allowed to fix the call site itself here, not just revert
    the pin — reverting would only make Renovate re-propose the identical bump forever, since it has
-   no way to know the bump was tried and rejected.
+   no way to know the bump was tried and rejected. First attempt renamed the import correctly (the
+   error message named the new class) but guessed the constructor's new keyword argument wrong —
+   nothing in the error mentioned it, and the model had no way to check. Second attempt fell back
+   to a revert, which is what actually merged on PR #117 — see the
+   [full case study](case-study-mcp-v2-autofix.html) for every prompt and log involved.
+
+   **`{"read": "path"}`**: a reply can ask to see one real file — this repo's checkout, or the
+   interpreter's own installed packages — before proposing an edit, instead of guessing an API from
+   an error message alone. Added after the incident above for exactly that gap: the real
+   `MCPServer.__init__` signature was sitting on disk the whole time. A read costs one round of
+   `max_autofix_attempts` like a proposed edit does, so a migration needs to be given enough rounds
+   to read *and* propose — `max_autofix_attempts: 5` here, not the default 3.
 4. A pass commits (with an explicit git identity — a runner checkout has none) and pushes
    immediately, with a commit message and PR comment stating plainly that a machine wrote it,
    unreviewed, and that the required checks (the real ones, on the pushed commit) decide whether it

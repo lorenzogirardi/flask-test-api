@@ -63,6 +63,12 @@ jobs:
       # and boots the app — that run, not the model, decides whether the fix
       # lands, and required_checks below is what it must satisfy.
       autofix: true
+      # Default (3) assumed every round proposes an edit. A round can now
+      # also be "read this file" (ci-shared's {"read": ...} reply) to see a
+      # real API instead of guessing it from an error message — that costs
+      # a round without proposing anything, so a real migration needs at
+      # least one read + one edit, sometimes more.
+      max_autofix_attempts: 5
       # Must match pr-checks.yml's own python-version — otherwise this proves
       # nothing about the real gate. See python_version's description.
       python_version: "3.14"
