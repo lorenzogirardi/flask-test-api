@@ -87,6 +87,21 @@ authors): "nothing objected" is not "something verified". The AI review's `VERDI
 model writing "no `[Critical]` issues found" to mean *clean* must not read as dirty) only decides
 whether a human needs to look; it has never been the thing that decides whether code merges.
 
+### Why GitHub Actions version bumps don't merge through the sweep at all
+
+A PR that bumps a pin inside `.github/workflows/*.yml` (e.g. `docker/setup-buildx-action@v4.2.0` →
+`@v4.3.0`) produces a merge commit that changes the content of a workflow file — and GitHub gates
+*that*, specifically, behind the `workflow` OAuth scope, regardless of any `permissions:` a job
+declares. `GITHUB_TOKEN` never has it, so the sweep's `touches_workflow_files()` refuses the merge
+outright rather than let GitHub reject it with a confusing API error after a clean review and green
+CI (which is exactly what happened on PRs #103/#105/#107/#114 before that check existed).
+
+These PRs auto-merge through **Renovate's own automerge** instead (`renovate.json`,
+`packageRules` → `matchManagers: ["github-actions"]`), which uses Renovate's own GitHub App
+credentials — already granted `workflow`-equivalent permission at install time — and still waits
+for `checks`/`workflows` from `pr-checks.yml` to pass first. The AI sweep bot gains no extra scope;
+it still only ever pushes/merges within `Contents: Read and write` on this one repo.
+
 ### Self-repair: agentic autofix on a failing PR
 
 When Renovate's own PR fails `pr-checks.yml`, the sweep doesn't just explain the failure — it can
