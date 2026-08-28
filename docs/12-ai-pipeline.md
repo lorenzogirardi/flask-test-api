@@ -287,7 +287,11 @@ did not run. `ai-review-sweep.yml` never runs against a fork at all: it only pro
 - Generated reports are scanned for secret patterns before upload; matches are masked, not silently
   dropped.
 - The autofix's `pull_request_target`-adjacent risk (arbitrary code execution from a PR branch with
-  an elevated token) does not apply here: the sweep only ever reads PR content (diff, logs) and
-  writes to an allowlisted set of manifest files — it never checks out and executes anything from
-  the PR branch with elevated privilege.
+  an elevated token) does not apply here: the sweep only ever reads PR content (diff, logs) to build
+  a prompt, and writes are validated in code (`parse_fix`/`apply_fix`) before anything reaches disk
+  — unique-anchor edits, all-or-nothing, never to `.github/workflows/**` (the one hard exclusion; see
+  `case-study-mcp-v2-autofix.html` and `ci-shared/docs/architecture.md` for why edits are no longer
+  restricted to dependency manifests beyond that). `verify_command` does run the PR branch's own code
+  for real (pytest, boot) — that's the point, a real test suite is what gates a wrong fix — but it
+  runs with the same token scope regardless of what file was touched, never an elevated one.
 - `.ai/` (the jobs' working directory) is gitignored and never committed.
