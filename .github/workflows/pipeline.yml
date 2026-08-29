@@ -58,7 +58,7 @@ jobs:
         pytest tests/ -v 2>&1 | tee .ai/tests.txt
     - name: Upload AI context (lint results)
       if: always() && vars.AI_ENABLED == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ai-context-lint
         path: .ai/lint-errors.txt
@@ -67,7 +67,7 @@ jobs:
         retention-days: 1
     - name: Upload AI context (tests results)
       if: always() && vars.AI_ENABLED == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ai-context-tests
         path: .ai/tests.txt
@@ -142,7 +142,7 @@ jobs:
           output: trivy-results.txt
       - name: Upload AI context (trivy scan)
         if: always() && vars.AI_ENABLED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ai-context-trivy
           path: trivy-results.txt
@@ -198,7 +198,7 @@ jobs:
           quiet: true
       - name: Upload AI context (checkov results)
         if: always() && vars.AI_ENABLED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ai-context-checkov
           path: results.sarif
@@ -309,7 +309,7 @@ jobs:
           fi
       - name: Upload AI context (k8s probe)
         if: always() && vars.AI_ENABLED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ai-context-k8s
           path: k8s-probe.txt
