@@ -9,7 +9,7 @@ Basic Auth ASGI middleware guarding the /api/mcp mount.
 import httpx
 import pytest
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client as streamablehttp_client
 
 pytestmark = pytest.mark.integration
 

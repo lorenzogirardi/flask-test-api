@@ -14,7 +14,7 @@ import functools
 from collections.abc import Awaitable, Callable
 
 from fastapi import HTTPException
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from app.models.schemas import ContextCreate, ContextUpdate, CpuSpikeRequest
@@ -35,7 +35,7 @@ from app.routers.mgmt import app_threaddump as _threaddump_route
 from app.services import storage
 from app.services.health import get_health
 
-mcp = FastMCP("pytbak", streamable_http_path="/", stateless_http=True)
+mcp = MCPServer("pytbak")
 
 
 def _structured_errors(fn: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:

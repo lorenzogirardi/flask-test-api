@@ -78,7 +78,7 @@ def create_app() -> FastAPI:
     if settings.mcp_enabled:
         from app.mcp.tools import mcp as mcp_server
 
-        mcp_asgi_app = mcp_server.streamable_http_app()  # lazily creates session_manager
+        mcp_asgi_app = mcp_server.streamable_http_app(streamable_http_path="/", stateless_http=True)  # lazily creates session_manager
 
     app = FastAPI(
         title="pytbak API",
