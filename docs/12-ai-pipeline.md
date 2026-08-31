@@ -1,4 +1,4 @@
-# AI Pipeline (GitHub Actions + OpenCode Zen)
+# AI Pipeline (GitHub Actions + OpenRouter)
 
 This repository's AI features are split across two repos:
 
@@ -169,11 +169,10 @@ whose correctness is then decided the same way any other commit's is: by CI.
 ## Architecture
 
 ```
-GitHub Actions ──► ci-shared/scripts/openrouter_ai.py ──► OpenCode Zen (opencode.ai/zen/v1)
-   (checked out          (stdlib only)                        model: hy3-free
-    at run time,                                          (deepseek-v4-flash-free went
-    ref: v1)                                                unavailable; verified via
-                                                             direct curl before switching)
+GitHub Actions ──► ci-shared/scripts/openrouter_ai.py ──► OpenRouter (openrouter.ai/api/v1)
+   (checked out          (stdlib only)                        model: ~deepseek/deepseek-v4-flash-latest
+    at run time,                                          (router alias — resolves to the current
+    ref: v1)                                                DeepSeek V4 Flash; not a free tier)
 ```
 
 - `openrouter_ai.py` — reusable client: reads key/model/endpoint from the environment, accepts a
@@ -195,8 +194,10 @@ Full design rationale, Mermaid diagrams, and the file-by-file breakdown live in
 ### 1. API key (secret)
 
 ```bash
-gh secret set OPENROUTER_API_KEY --repo lorenzogirardi/flask-test-api --body 'sk-or-...'
+gh secret set OPENROUTER_API_KEY --repo lorenzogirardi/flask-test-api --body 'sk-or-v1-...'
 ```
+
+Get the key from <https://openrouter.ai/keys>.
 
 The key is only ever used in the `Authorization: Bearer` header — never logged, never in a prompt,
 never uploaded as an artifact.
@@ -220,15 +221,23 @@ gh secret set AUTOFIX_PUSH_TOKEN --repo lorenzogirardi/flask-test-api --body 'gi
 Unset, `ai-review-sweep.yml` falls back to `GITHUB_TOKEN` exactly as before — autofix still
 proposes and verifies fixes locally, it just can't get real CI to confirm them.
 
-### 2. Model (variable)
+### 2. Model + endpoint (variables)
 
-Current: **`hy3-free`** (the previous default, `deepseek-v4-flash-free`, started returning
-`Model is unavailable` from the provider — verified with a direct `curl` against the endpoint
-before switching, not assumed).
+Current: **`~deepseek/deepseek-v4-flash-latest`** on **OpenRouter** (`https://openrouter.ai/api/v1`).
+The `~` prefix marks an OpenRouter router alias — it resolves to the current DeepSeek V4 Flash
+snapshot, so the pin doesn't go stale when a dated snapshot is retired (the recurring failure mode
+on the old OpenCode Zen free models: `hy3-free` / `deepseek-v4-flash-free` each went
+`Model is unavailable` without notice). This model is **not** a free tier — calls cost tokens;
+`openrouter_ai.py` writes the per-run USD estimate to the job summary.
 
 ```bash
-gh variable set OPENROUTER_MODEL --repo lorenzogirardi/flask-test-api --body 'hy3-free'
+gh variable set OPENROUTER_ENDPOINT --repo lorenzogirardi/flask-test-api --body 'https://openrouter.ai/api/v1/chat/completions'
+gh variable set OPENROUTER_MODEL --repo lorenzogirardi/flask-test-api --body '~deepseek/deepseek-v4-flash-latest'
 ```
+
+To browse alternatives: `GET https://openrouter.ai/api/v1/models` (add `?supported_parameters=...`
+to filter). Any OpenAI-compatible chat-completions endpoint works here — only these two variables
+and the API key change.
 
 ### 3. Referrer / App name (variables, optional)
 

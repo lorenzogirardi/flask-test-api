@@ -130,7 +130,7 @@ jobs:
               return;
             }
             // Only add labels that already exist in the repo; never create new ones.
-            const { data: repoLabels } = await github.rest.repos.listLabelsForRepo({ owner, repo });
+            const { data: repoLabels } = await github.rest.issues.listLabelsForRepo({ owner, repo });
             const existingSet = new Set(repoLabels.map(l => l.name));
             const { data: issueLabels } = await github.rest.issues.listLabelsOnIssue({ owner, repo, issue_number: num });
             const onIssue = new Set(issueLabels.map(l => l.name));
