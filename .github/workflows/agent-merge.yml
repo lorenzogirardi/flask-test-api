@@ -1,6 +1,9 @@
 name: Agent Merge
 
-# Merge authority. When PR Checks succeeds on a pull request, merge it if its
+# Merge authority, with no way to miss it: it runs when a PR's CI succeeds, when main moves,
+# and every 30 minutes, and each run judges EVERY open pull request (Renovate's belong to the
+# sweep). Whichever finishes first, certification or CI, and whatever event is lost, the next
+# pass merges it. When PR Checks succeeds on a pull request, merge it if its
 # current head commit is certified by the agent pipeline (a comment by the
 # repository owner's agent account carrying the head sha), all required checks
 # succeeded on that commit, and the circuit breaker is closed. The same gate also
@@ -12,6 +15,10 @@ on:
   workflow_run:
     workflows: ["PR Checks"]
     types: [completed]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17,47 * * * *'
 
 permissions: {}
 
@@ -19,19 +26,19 @@ jobs:
   merge:
     if: >-
       vars.AI_ENABLED == 'true' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.pull_requests[0] != null &&
-      !startsWith(github.event.workflow_run.head_branch, 'renovate/')
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     concurrency:
-      group: agent-merge-${{ github.event.workflow_run.pull_requests[0].number }}
+      group: agent-merge
       cancel-in-progress: false
     permissions:
       contents: read
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-merge.yml@v2
     with:
-      pr_number: ${{ github.event.workflow_run.pull_requests[0].number }}
+      # 0 = every open pull request: one pass judges them all, so no event can be missed.
+      pr_number: 0
       base_branch: main
       required_checks: 'checks,integration,image,workflows'
       max_reverts: 3
