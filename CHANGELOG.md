@@ -38,6 +38,7 @@ Entries are added automatically on every merge to the default branch.
 - What to expect on your own pull request ([#167](https://github.com/lorenzogirardi/flask-test-api/pull/167))
 - The sweep's repair of a red Renovate PR now runs on the same engine as every other change (writer, secret-free checks, failure adjudication, two reviewers) instead of a separate loop; the push token is hidden from `.git/config` while the PR's code runs.
 - Simplify the fibonacci loop ([#168](https://github.com/lorenzogirardi/flask-test-api/pull/168))
+- Update actions/setup-python action to v7 ([#164](https://github.com/lorenzogirardi/flask-test-api/pull/164))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
