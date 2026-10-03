@@ -19,6 +19,7 @@ permissions: {}
 jobs:
   architect:
     if: vars.AI_ENABLED == 'true'
+    retries: 3
     permissions:
       contents: read
       issues: write
