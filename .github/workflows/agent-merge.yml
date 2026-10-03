@@ -1,0 +1,39 @@
+name: Agent Merge
+
+# Merge authority. When PR Checks succeeds on a pull request, merge it if its
+# current head commit is certified by the agent pipeline (a comment by the
+# repository owner's agent account carrying the head sha), all required checks
+# succeeded on that commit, and the circuit breaker is closed. The same gate also
+# runs at the end of agent-change.yml / agent-ci-failure.yml, so it does not
+# matter whether certification or CI finishes first. Renovate's PRs are merged by
+# the sweep, which has its own gate. Design: docs/13-agent-pipeline.md.
+
+on:
+  workflow_run:
+    workflows: ["PR Checks"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  merge:
+    if: >-
+      vars.AI_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.pull_requests[0] != null &&
+      !startsWith(github.event.workflow_run.head_branch, 'renovate/')
+    concurrency:
+      group: agent-merge-${{ github.event.workflow_run.pull_requests[0].number }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-merge.yml@v2
+    with:
+      pr_number: ${{ github.event.workflow_run.pull_requests[0].number }}
+      base_branch: main
+      required_checks: 'checks,integration,workflows'
+      max_reverts: 3
+    secrets:
+      agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}

@@ -24,6 +24,33 @@ A change the agent did not alter is certified by the first review alone, with
 no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
 PR checks re-run on them.
 
+## How a change ends
+
+Every change ends in one of three ways, and none waits for a person:
+
+| End | When | What the system does |
+|---|---|---|
+| **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
+| **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. An issue gets a comment with the reason. The base branch is untouched |
+| **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` reverts it and opens an issue labelled `agent`, so the pipeline redoes it knowing why it broke |
+
+**Certification** is a comment by the agent account carrying
+`<!-- agent-certified: <sha> -->` for exactly the head commit. A new push changes
+the sha, so an old certification never applies to new code; a comment from anyone
+else is ignored. It is issued only when the checks and every review passed.
+
+**The revert is conservative.** It happens only if a failed job is one a code
+change causes (`build`, `quality-gate`, `k8s-check`, `docker`); not for scanners
+or SBOM. Not if `main` was already red before the commit, not for a commit that
+is itself an automatic revert, and not once **3 automatic reverts landed in 24
+hours**: that circuit breaker also stops automatic merging until they age out.
+
+**Limits that no code removes.** Changes to `.github/workflows/` are outside the
+agent's scope (its token has no `workflow` scope, and GitHub rejects the push), so
+a person who edits CI merges their own change. And the guarantee is only as strong
+as the checks: a defect none of them sees will merge, and the revert is what limits
+the damage. A spending cap belongs on the OpenRouter key itself.
+
 ## When a test fails: is the code wrong or the test?
 
 No person is asked. Deterministic evidence comes first: each failing test is
@@ -62,8 +89,10 @@ writer without a verdict.
 3. Follow the run in Actions. The result is a comment on the issue and a pull
    request from the branch `agent/issue-<n>-<run>`.
 
-Nothing is merged automatically. If the loop did not converge, the PR is a
-**draft** titled `[needs human]` and lists the findings still open.
+Nothing waits for a person. The PR is certified at its head commit and merged by
+the merge gate once its CI is green (see "How a change ends" below). If the loop
+does not converge it is retried once with twice the budget, then abandoned: the
+issue gets a comment with the reason and nothing is pushed.
 
 Required: variable `AI_ENABLED=true`, variable `OPENROUTER_MODEL`
 (`deepseek/deepseek-v4.1-flash`), secret `OPENROUTER_API_KEY`, and secret
@@ -121,7 +150,7 @@ changelog is out of its scope.
 
 - The loop is bounded: `max_iterations` review rounds, `max_verify_retries`
   failed-check retries, `writer_rounds` turns per attempt.
-- A reviewer that returns no usable reply stops the run and escalates; nothing
+- A reviewer that returns no usable reply ends the attempt as not converged; nothing
   is certified by default.
 - Cost per role is recorded in the run artifact (`agent-run-<issue>`) and shown
   in the PR.

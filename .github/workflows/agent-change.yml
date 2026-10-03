@@ -6,7 +6,8 @@ name: Agent Change
 #     review, docs review. One comment on the PR.
 #   - each push straight to main with no PR: same review; if something blocks it
 #     opens a fix PR (never pushes to main), otherwise leaves a commit comment.
-# It never merges, and it ignores its own commits (author "ci-shared agents"),
+# A certified PR whose CI is green is merged by agent-merge.yml (also at the end of this
+# run). It ignores its own commits (author "ci-shared agents"),
 # so it cannot loop. Design: docs/13-agent-pipeline.md.
 
 on:
@@ -34,6 +35,7 @@ jobs:
     with:
       mode: pr
       base_branch: main
+      required_checks: 'checks,integration,workflows'
       python_version: "3.14"
       verify_command: |
         set -euo pipefail

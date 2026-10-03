@@ -6,8 +6,10 @@ name: Agent Pipeline
 # docs/13-agent-pipeline.md for the design.
 #
 # Start it by giving an issue the `agent` label, or run it by hand with the
-# issue number. It never merges: a run that converges opens a PR, one that
-# does not opens a DRAFT titled "[needs human]".
+# issue number. A run that converges opens a PR certified at its head commit,
+# merged by agent-merge.yml once its CI is green. One that does not converge is
+# retried once with twice the budget, then abandoned: the issue gets a comment
+# saying why and nothing is pushed.
 
 on:
   issues:

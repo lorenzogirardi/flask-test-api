@@ -16,6 +16,8 @@ Entries are added automatically on every merge to the default branch.
 - `tests/k8s/stack.yaml`: the throwaway app + PostgreSQL + Redis stack used by `k8s-check`.
 - `agent-ci-failure.yml`: when `PR Checks` fails on a pull request, the agent reads the failing checks' logs, decides for each failing test whether the code or the test is wrong (tests are the specification; a test changes only if the PR's stated intent explicitly redefines it), and pushes the fix to the PR branch, up to 3 consecutive attempts.
 - A test steward role that adds tests for changed application code and updates tests the adjudicator found wrong; it cannot delete tests, reduce assertions or add skip/xfail.
+- Merge authority: `agent-merge.yml` merges a pull request whose head commit is certified by the agent pipeline and whose required checks (`checks`, `integration`, `workflows`) succeeded on that commit. Certification is bound to the commit sha and trusted only from the agent account.
+- `agent-main-guard.yml`: when the pipeline on `main` fails after a merge, the culprit is reverted automatically and an issue labelled `agent` is opened so the change is redone. A circuit breaker (3 automatic reverts in 24h) also stops automatic merging.
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
@@ -23,6 +25,7 @@ Entries are added automatically on every merge to the default branch.
 - Removed `ai-review.yml`: its single-reviewer comment is replaced by the two independent reviewers of `agent-change.yml`.
 - `modifygit` no longer sets a `GITHUB_TOKEN` env that had no effect on its push.
 - The integration suite (`tests/integration`) now runs in `PR Checks` (job `integration`, PostgreSQL and Redis as services) and in `k8s-check` against the deployed image in kind with real PostgreSQL and Redis. It was skipped on every CI run and had rotted (14 failures, 18 errors); its HTTP tests are now synchronous.
+- A change that does not converge is retried once with twice the budget and then abandoned (labelled, commented, the agent's own PR closed); no outcome waits for a person.
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
