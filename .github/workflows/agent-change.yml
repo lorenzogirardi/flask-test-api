@@ -31,7 +31,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      actions: read      # the reusable workflow reads failed checks' logs (mode ci)
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@v2
     with:
       mode: pr
@@ -70,7 +69,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      actions: read      # the reusable workflow reads failed checks' logs (mode ci)
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@v2
     with:
       mode: push
