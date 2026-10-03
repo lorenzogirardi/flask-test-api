@@ -14,6 +14,8 @@ Entries are added automatically on every merge to the default branch.
 - Documentation architect (`docs-architect.yml`): a plan-only Diataxis proposal for the documentation; it changes no document.
 - `ai-autofix-main`: when `build` or `quality-gate` fails on a push to `main`, an automated fix is proposed as a pull request.
 - `tests/k8s/stack.yaml`: the throwaway app + PostgreSQL + Redis stack used by `k8s-check`.
+- `agent-ci-failure.yml`: when `PR Checks` fails on a pull request, the agent reads the failing checks' logs, decides for each failing test whether the code or the test is wrong (tests are the specification; a test changes only if the PR's stated intent explicitly redefines it), and pushes the fix to the PR branch, up to 3 consecutive attempts.
+- A test steward role that adds tests for changed application code and updates tests the adjudicator found wrong; it cannot delete tests, reduce assertions or add skip/xfail.
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).

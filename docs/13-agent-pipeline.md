@@ -12,6 +12,7 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 |---|---|---|
 | Issue labelled `agent` (or run by hand) | `agent-pipeline.yml` | Full pipeline from the request: planner, writer, checks, reviewers, fix loop, final review, docs, changelog, PR. |
 | Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
+| `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
 | Renovate PRs | `ai-review-sweep.yml` | Unchanged: its own review, autofix and auto-merge. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
@@ -22,6 +23,36 @@ push whose commit belongs to a PR is skipped, because the PR was reviewed.
 A change the agent did not alter is certified by the first review alone, with
 no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
 PR checks re-run on them.
+
+## When a test fails: is the code wrong or the test?
+
+No person is asked. Deterministic evidence comes first: each failing test is
+re-run on the current tree (passes on re-run: flaky) and on the base commit
+(fails there too: preexisting; absent there: added by this change; passes there:
+a regression). Then a **failure adjudicator** classifies each one:
+
+| Verdict | Meaning | What happens |
+|---|---|---|
+| `code_defect` | The test expresses intended behaviour and the code violates it. The default when unsure | The writer fixes the code; the test is not touched |
+| `test_defect` | The test asserts behaviour the change **intentionally** redefines | The test steward updates the test, the code stays |
+| `environment` | Flaky, network, ordering | Re-run; nobody is blamed |
+| `preexisting` | Already failing on the base commit | The writer fixes it as part of the change, so the checks go green |
+
+**Tests are the specification.** The code is fixed unless the change's own stated
+intent (title, description, plan) explicitly redefines what the test checks. A
+`test_defect` verdict stands only if the model quotes that intent verbatim, and
+the quote is checked in code; without a valid quote the verdict becomes
+`code_defect`. Deterministic evidence overrides the model.
+
+The **test steward** may change only test files, and the code refuses any change
+that deletes a test file, reduces the number of tests or assertions in a file, or
+adds `skip`/`xfail`. It also runs proactively when a change touches application
+code: it adds tests for what changed, and new tests are checked against the base
+source (a test that passes without the change is reported, because it probably
+does not test it).
+
+Failures that are not test failures (lint, collection errors) go straight to the
+writer without a verdict.
 
 ## How to run the issue pipeline
 
@@ -94,6 +125,12 @@ changelog is out of its scope.
   is certified by default.
 - Cost per role is recorded in the run artifact (`agent-run-<issue>`) and shown
   in the PR.
+- If the stated intent is vague and the test is ambiguous, the model picks a
+  side; the "tests win" rule makes that predictable, but it will sometimes fix
+  code that was right.
+- Evidence by re-running a test only works for tests that can run in the agent's
+  job. CI-only tests (the integration suite needs PostgreSQL and Redis) come back
+  "unreproducible" and are judged on their log and the stated intent.
 - The direct-push mode can only react after the push; it cannot stop it.
   Checks that fail on `main` itself are handled by `ai-autofix-main`.
 - `reusable_agent-review.yml` (reviewers only, no fixes) exists in `ci-shared`
