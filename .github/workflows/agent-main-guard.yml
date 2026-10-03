@@ -6,7 +6,8 @@ name: Agent Main Guard
 # broke. No revert when the failed jobs are not ones a code change causes
 # (scanners, SBOM), when main was already red before, when the commit is itself
 # a revert, or when the circuit breaker is open (3 automatic reverts in 24h also
-# stops automatic merging). Design: docs/13-agent-pipeline.md.
+# stops automatic merging). A failure is first re-run once (failed jobs only), so a
+# flaky job never causes a revert. Design: docs/13-agent-pipeline.md.
 
 on:
   workflow_run:
@@ -27,6 +28,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+      actions: write     # re-run the failed jobs once before reverting anything
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-main-guard.yml@v2
     with:
       run_id: ${{ github.event.workflow_run.id }}
