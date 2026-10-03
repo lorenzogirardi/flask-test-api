@@ -13,7 +13,9 @@ name: Agent Pipeline
 
 on:
   issues:
-    types: [labeled]
+    # `labeled` when the label is added to an existing issue; `opened` when an issue is created
+    # already carrying it (as the main guard's "redo" issues are, which would otherwise never run).
+    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -31,7 +33,9 @@ jobs:
   agent:
     if: >-
       vars.AI_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent')
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.action == 'labeled' && github.event.label.name == 'agent') ||
+       (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'agent')))
     permissions:
       contents: read
       issues: write
