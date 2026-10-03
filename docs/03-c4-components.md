@@ -74,7 +74,7 @@ C4Component
 | `/api/contexts/{id}` | DELETE | `delete_context()` | `storage.delete_context()` |
 | `/api/fib/{x}` | GET | `fibonacci()` | None (compute only) |
 | `/api/sleep/{seconds}` | GET | `sleep_endpoint()` | None (asyncio.sleep) |
-| `/api/count` | GET | `count()` | `storage.redis_incr()` |
+| `/api/count` | GET | `count()` | `storage.redis_get()` + `storage.redis_incr()` |
 | `/api/redisping` | GET | `redis_ping()` | httpx → webdis |
 
 ### Debug Router (`/debug`) — All require Basic Auth
