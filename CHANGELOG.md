@@ -42,3 +42,4 @@ Entries are added automatically on every merge to the default branch.
 - The main guard re-runs the failed jobs once before reverting anything, after a flaky `k8s-check` made it revert a harmless fix on the first push. Issues created already labelled `agent` (the guard's redo issues) now start the agent pipeline.
 - Unused loop variable in the integration job failed the actionlint check ([`614a223`](https://github.com/lorenzogirardi/flask-test-api/commit/614a223))
 - `k8s-check` waited for the OLD app pod (`wait --for=condition=available` is already true for it) and could run the tests against an app that had started before PostgreSQL; it now waits for the new pod with `rollout status`.
+- A PR that fell behind `main` was never detected (GitHub only reports "behind" with branch protection), so it kept check results from before the base moved and lacked newer checks such as `image`. Staleness is now counted from the commits; Renovate is asked to rebase its own PRs.
