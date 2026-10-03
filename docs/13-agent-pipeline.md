@@ -32,7 +32,7 @@ Every change ends in one of three ways, and none waits for a person:
 |---|---|---|
 | **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
 | **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. An issue gets a comment with the reason. The base branch is untouched |
-| **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` reverts it and opens an issue labelled `agent`, so the pipeline redoes it knowing why it broke |
+| **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` takes `main` back to the last green state (every change since the last green run, in one commit; the pipeline's bookkeeping commits are left alone) and opens an issue labelled `agent`, so the pipeline redoes it knowing why it broke |
 
 **Certification** is a comment by the agent account carrying
 `<!-- agent-certified: <sha> -->` for exactly the head commit. A new push changes
