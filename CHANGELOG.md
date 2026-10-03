@@ -34,6 +34,7 @@ Entries are added automatically on every merge to the default branch.
 - The Renovate sweep starts by itself when a PR's CI ends and when `main` moves, brings PRs that fell behind up to date, and abandons a PR after 3 automatic fixes in a row that still leave CI red; the twice-daily cron remains as a safety net.
 - Renovate review: the reviewers receive the deterministic check results of the exact commit, the sweep waits for required checks instead of judging early, and a blocking finding is fixed by the writer loop or the PR is abandoned (never left waiting). A runtime (Python) bump is judged by the image check, not rejected on principle.
 - Update helm/kind-action action to v1.15.0 ([#166](https://github.com/lorenzogirardi/flask-test-api/pull/166))
+- What to expect on your own pull request ([#167](https://github.com/lorenzogirardi/flask-test-api/pull/167))
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
