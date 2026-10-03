@@ -41,7 +41,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v1
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v2
     with:
       # The `||` fallback matters: on a schedule run inputs.authors is empty,
       # and an empty author filter means "every open PR" — including human
