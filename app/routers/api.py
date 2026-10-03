@@ -98,6 +98,9 @@ async def sleep_endpoint(seconds: int):
 
 @router.get("/count", summary="Increment Redis counter")
 async def count():
+    # Warm the connection by touching the counter key first. The touch is a read,
+    # so the returned counter still advances by exactly one per request.
+    await storage.redis_get("hits")
     value = await storage.redis_incr("hits")
     if value is None:
         return {"error": "Redis unavailable", "counter": None}

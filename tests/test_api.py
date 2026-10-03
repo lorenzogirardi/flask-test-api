@@ -2,6 +2,8 @@
 
 import pytest
 
+from app.services import storage
+
 
 @pytest.mark.anyio
 async def test_list_contexts_empty(client):
@@ -112,3 +114,48 @@ async def test_count_without_redis(client):
     resp = await client.get("/api/count")
     assert resp.status_code == 200
     assert resp.json()["counter"] is None
+
+
+@pytest.mark.anyio
+async def test_count_increments_by_one_per_request(client, monkeypatch):
+    """Warming the key must not advance the counter: each request adds exactly one."""
+    state = {"value": 0}
+
+    async def fake_get(_key):
+        return str(state["value"])
+
+    async def fake_incr(_key):
+        state["value"] += 1
+        return state["value"]
+
+    monkeypatch.setattr(storage, "redis_get", fake_get)
+    monkeypatch.setattr(storage, "redis_incr", fake_incr)
+
+    r1 = await client.get("/api/count")
+    r2 = await client.get("/api/count")
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert r1.json()["counter"] is not None
+    assert r2.json()["counter"] == r1.json()["counter"] + 1
+
+
+@pytest.mark.anyio
+async def test_count_warms_connection_before_incrementing(client, monkeypatch):
+    """The counter key is read once before the increment that produces the result."""
+    calls = []
+
+    async def fake_get(key):
+        calls.append(("get", key))
+        return None
+
+    async def fake_incr(key):
+        calls.append(("incr", key))
+        return 1
+
+    monkeypatch.setattr(storage, "redis_get", fake_get)
+    monkeypatch.setattr(storage, "redis_incr", fake_incr)
+
+    resp = await client.get("/api/count")
+    assert resp.status_code == 200
+    assert resp.json()["counter"] == 1
+    assert calls == [("get", "hits"), ("incr", "hits")]
