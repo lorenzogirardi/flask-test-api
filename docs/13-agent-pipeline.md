@@ -24,6 +24,24 @@ A change the agent did not alter is certified by the first review alone, with
 no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
 PR checks re-run on them.
 
+## What to expect on your own pull request
+
+Open a pull request from a branch as usual, with a title that says what it does (the title and description are
+the agent's only statement of intent, and the changelog entry is made from the title). Nothing else is needed.
+
+1. `PR Checks` runs the lint and unit tests, the integration suite against real PostgreSQL and Redis, the
+   image built from your branch, and the workflow lint.
+2. `agent-change.yml` reviews the diff with two independent reviewers. If it changes application code, the
+   test steward looks at the tests. If a check fails, `agent-ci-failure.yml` reads the failing logs and decides
+   whether the code or the test is wrong, then pushes a fix to your branch (at most 3 automatic commits in a row).
+3. When the checks and every review pass, the agent comments `Certified at <sha>` on the pull request.
+4. `agent-merge.yml` squash-merges it once the required checks have succeeded on that same commit. A new push
+   from you invalidates the certification, and the cycle runs again on the new commit.
+5. `changelog.yml` adds the entry to `CHANGELOG.md` after the merge, unless your change already edited it.
+
+If it cannot be made to pass, the pull request gets the label `agent-abandoned` and a comment with the reason;
+your branch is left as it is.
+
 ## How a change ends
 
 Every change ends in one of three ways, and none waits for a person:
