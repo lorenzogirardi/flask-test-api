@@ -18,6 +18,7 @@ Entries are added automatically on every merge to the default branch.
 - A test steward role that adds tests for changed application code and updates tests the adjudicator found wrong; it cannot delete tests, reduce assertions or add skip/xfail.
 - Merge authority: `agent-merge.yml` merges a pull request whose head commit is certified by the agent pipeline and whose required checks (`checks`, `integration`, `workflows`) succeeded on that commit. Certification is bound to the commit sha and trusted only from the agent account.
 - `agent-main-guard.yml`: when the pipeline on `main` fails after a merge, the culprit is reverted automatically and an issue labelled `agent` is opened so the change is redone. A circuit breaker (3 automatic reverts in 24h) also stops automatic merging.
+- Ai-autofix-main on main failures, limited to code-level gates ([`69a5677`](https://github.com/lorenzogirardi/flask-test-api/commit/69a5677))
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
