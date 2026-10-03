@@ -31,3 +31,4 @@ Entries are added automatically on every merge to the default branch.
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
 - MCP integration tests broke with `mcp` 2.3.0 (it dropped the `auth=` keyword of the streamable-HTTP client, now yields two streams instead of three, and renamed `isError` to `is_error`); the two "is rejected" tests had been passing for the wrong reason (any exception) and now assert a real 401. Found by running the integration suite, which CI had been skipping.
+- Grant actions: read to agent-change.yml ([`8560638`](https://github.com/lorenzogirardi/flask-test-api/commit/8560638))
