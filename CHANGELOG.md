@@ -30,6 +30,7 @@ Entries are added automatically on every merge to the default branch.
 - A change that does not converge is retried once with twice the budget and then abandoned (labelled, commented, the agent's own PR closed); no outcome waits for a person.
 - Fix(ci): grant actions: read to agent-change.yml (pipeline red) ([`ecbedbd`](https://github.com/lorenzogirardi/flask-test-api/commit/ecbedbd))
 - Revert "revert(agent): fix(ci): grant actions: read to agent-change.yml (pipeline red)" ([`8185500`](https://github.com/lorenzogirardi/flask-test-api/commit/8185500))
+- The Renovate sweep starts by itself when a PR's CI ends and when `main` moves, brings PRs that fell behind up to date, and abandons a PR after 3 automatic fixes in a row that still leave CI red; the twice-daily cron remains as a safety net.
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.

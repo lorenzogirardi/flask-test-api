@@ -14,7 +14,7 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 | Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
 | `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
-| Renovate PRs | `ai-review-sweep.yml` | Unchanged: its own review, autofix and auto-merge. |
+| Renovate PRs | `ai-review-sweep.yml` | Review by the two independent reviewers, autofix, auto-merge. It starts by itself when a PR's CI ends and when `main` moves (PRs that fell behind are updated), with the cron as a safety net. After 3 automatic fixes in a row that still leave CI red, the PR is labelled `agent-abandoned` and closed. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
 
 Two guards stop loops and noise: every commit the pipeline makes has the author

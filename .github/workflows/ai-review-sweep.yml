@@ -11,11 +11,18 @@ name: AI Review Sweep
 # fires retroactively for those. Same approach openwrt/openwrt uses for its
 # own LLM review (cron + workflow_dispatch, no PR trigger).
 #
-# Runs twice a day; use "Run workflow" to trigger it on demand.
+# Nobody needs to run it: it starts by itself when a PR's CI ends (to judge and merge it
+# at once), when main moves (to bring PRs that fell behind up to date), and twice a day as
+# a safety net. "Run workflow" is still there but never required.
 
 on:
   schedule:
     - cron: '0 4,16 * * *'
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["PR Checks"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       max_prs:
@@ -37,7 +44,9 @@ concurrency:
 
 jobs:
   sweep:
-    if: vars.AI_ENABLED == 'true'
+    if: >-
+      vars.AI_ENABLED == 'true' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request')
     permissions:
       contents: write
       pull-requests: write
@@ -56,6 +65,11 @@ jobs:
       # Review with the two independent reviewers (structured findings validated against the
       # diff) instead of one, and review a machine-written autofix commit before it can merge.
       structured_review: true
+      # A PR that fell behind main is updated (with the push token) so its CI describes current
+      # code; being triggered on every CI end must not mean unbounded repair, so after 3
+      # automatic fixes in a row that still leave CI red the PR is abandoned and closed.
+      update_behind: true
+      max_autofix_commits: 3
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
       # nothing failed, and a Renovate PR whose sole check is ai-review.yml
