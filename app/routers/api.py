@@ -77,7 +77,7 @@ async def fibonacci(x: int):
 
     def _compute(n: int) -> str:
         a, b = 0, 1
-        for _ in range(n):
+        for _ in range(1, n):
             a, b = b, a + b
         return str(a)
 
