@@ -21,6 +21,7 @@ Entries are added automatically on every merge to the default branch.
 - Ai-autofix-main on main failures, limited to code-level gates ([`69a5677`](https://github.com/lorenzogirardi/flask-test-api/commit/69a5677))
 - Renovate PRs reviewed by the two independent reviewers ([`6f9670e`](https://github.com/lorenzogirardi/flask-test-api/commit/6f9670e))
 - `image` check in PR Checks: the image is built from the pull request, deployed in kind with real PostgreSQL and Redis, and the integration suite runs against it. A Dockerfile or dependency change is now proven before the merge. `image` is required for every merge.
+- Allow sleeping up to 30 seconds ([#169](https://github.com/lorenzogirardi/flask-test-api/pull/169))
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
