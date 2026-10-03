@@ -53,6 +53,9 @@ jobs:
       # agent/* PRs are certified inside agent-pipeline.yml; the sweep must not
       # review, autofix or merge them on top of that.
       skip_head_prefixes: 'agent/'
+      # Review with the two independent reviewers (structured findings validated against the
+      # diff) instead of one, and review a machine-written autofix commit before it can merge.
+      structured_review: true
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
       # nothing failed, and a Renovate PR whose sole check is ai-review.yml
