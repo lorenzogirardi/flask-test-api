@@ -13,19 +13,22 @@ Model calls go through one stdlib-only client, `openrouter_ai.py`, checked out f
 run time (never duplicated locally). No Claude API, no Claude Code routines — a plain HTTP call to
 any OpenAI-compatible chat-completions endpoint.
 
-## Six features, six workflows
+## Seven features, seven workflows
 
 | # | Feature | Workflow | Trigger | Merges/blocks anything? |
 |---|---------|----------|---------|--------------------------|
 | 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
 | 2 | AI code review (human PRs) | `ai-review.yml` | `pull_request`, skips `renovate[bot]` | No — comment only |
-| 3 | Renovate review, auto-merge, self-repair | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes** — see below |
+| 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
-| 5 | Automatic issue triage | `issue-triage.yml` | `issues` (opened), `bug`-labeled | No — labels/comment only |
-| 6 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
+| 5 | Self-repair on a direct push to `main` | `pipeline.yml` → `ai-autofix-main` job | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
+| 6 | Automatic issue triage | `issue-triage.yml` | `issues` (opened), `bug`-labeled | No — labels/comment only |
+| 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
 
-Features 2 and 3 are split by actor because they need different privileges (see "Why two review
-workflows" below) — never both on the same PR.
+Features 2 and 3 are split by actor for the *review* prompt (dependency-bump-focused vs.
+general-purpose) because they need different privileges to run at all (see "Why two review
+workflows" below) — but feature 3's self-repair, specifically, no longer implies feature 3's
+auto-merge: see "Autofix now covers the owner's own PRs too" below.
 
 ## Why `pr-checks.yml` exists, and why it's required
 
@@ -59,10 +62,13 @@ This repo's dependency bot is **Renovate** (`renovate.json`), not Dependabot —
 way: enabling native Dependabot alongside it produced 12 duplicate PRs for updates Renovate already
 tracked. Cleaned up; `.github/dependabot.yml` was removed.
 
-`ai-review.yml` (`pull_request`, `contents: read`) handles everything **except** `renovate[bot]`.
-`ai-review-sweep.yml` (`schedule` + `workflow_dispatch`, `contents: write`) handles only
-`renovate[bot]`, with a dependency-bump-focused prompt and the merge/autofix capability described
-below.
+`ai-review.yml` (`pull_request`, `contents: read`) handles everything **except** `renovate[bot]`,
+review only, no autofix. `ai-review-sweep.yml` (`schedule` + `workflow_dispatch`,
+`contents: write`) reviews and repairs `renovate[bot]` **and** the repo owner's own PRs
+(`authors: 'renovate[bot],lorenzogirardi'`), with a dependency-bump-focused prompt — but
+`auto_merge_authors: 'renovate[bot]'` means only Renovate's PRs are ever merged unattended; the
+owner's get a verified fix pushed to the same PR, same as Renovate's, and then wait for the owner
+to merge. See "Autofix now covers the owner's own PRs too" below.
 
 ### Why the Renovate path is a *sweep*, not another `pull_request` trigger
 
@@ -166,6 +172,43 @@ bump "clean" is exactly the failure mode this whole design routes around. The mo
 triage/explanation (something already proven wrong, in one attempt) and generating a candidate fix
 whose correctness is then decided the same way any other commit's is: by CI.
 
+### Autofix now covers the owner's own PRs too
+
+The gap this closes: a PR opened by the repo owner (not Renovate) got `ai-review.yml`'s diff
+comment and `pr-checks.yml`'s pass/fail, but nothing ever repaired a red run on it — the sweep's
+`authors` filter excluded anyone but `renovate[bot]`. `ai-review-sweep.yml` now sweeps
+`renovate[bot],lorenzogirardi`, so the exact same propose→verify→push loop described above also
+runs on the owner's red PRs.
+
+What's deliberately unchanged is *who gets merged unattended*: `auto_merge_authors: 'renovate[bot]'`
+means `try_merge()` is never called for anything the owner opened, clean review or not, fixed or
+not — the fix lands on the PR branch the same way Renovate's does, but a human merges it. This is
+`ci-shared`'s `auto_merge_authors` input (see its `docs/architecture.md`), not a
+`flask-test-api`-specific gate: `authors` (who gets reviewed/autofixed) and `auto_merge_authors`
+(who gets merged) are now two separate knobs, where they used to be the same one.
+
+### Self-repair on a direct push to `main`
+
+The other gap: a push straight to `main` (not through a PR at all) that breaks `build` or
+`k8s-check` got **zero** repair attempt — `ai-analysis` (feature 4) only reports, and the sweep
+(feature 3) only ever looks at open PRs, which a direct push to `main` doesn't create. `pipeline.yml`'s
+new `ai-autofix-main` job, `needs` the same job list `ai-analysis` does but runs only when `build` or `quality-gate` failed (the gates `verify_command` can reproduce) instead
+of `if: always()`, closes it — using `ci-shared`'s `reusable_main-autofix.yml` (see its
+`docs/architecture.md` for the full design).
+
+It deliberately does **not** push a fix to `main` directly, even though `modifygit` already does
+exactly that for the image-tag bump (see "Branch protection" below) — a verified-fix commit and a
+mechanical, idempotent tag bump are not the same risk. Instead it checks out a new branch from the
+broken commit, runs the same autofix loop, and on a verified fix opens a **new PR** with it — which
+then goes through `pr-checks.yml` like any other PR, and can be picked up by the next sweep run.
+Nothing here merges anything; a broken `main` build gets, at best, a candidate fix waiting for a
+human (or the sweep) to land it, never an unattended change to `main` itself.
+
+This is also the one place `AUTOFIX_PUSH_TOKEN` (see "1b" above) is closer to required than
+optional: `gh pr create` under `GITHUB_TOKEN` still opens the PR, but GitHub's recursive-workflow
+guard suppresses the `pull_request: opened` event for it, so `pr-checks.yml` never runs — the PR
+sits there looking like any other idle PR, with no signal that its checks never fired at all.
+
 ## Architecture
 
 ```
@@ -184,7 +227,12 @@ GitHub Actions ──► ci-shared/scripts/openrouter_ai.py ──► OpenRouter
   because it quotes a `password = "..."` line while explaining a vulnerability).
 - `ai_append_cost.py` — appends a token/cost footer to a report.
 - `pr_review_sweep.py` — the sweep's own logic: `checks_state()` (the merge gate), `triage_one()`,
-  `autofix_one()` (the agentic loop above), verdict parsing. 63 tests in `ci-shared`, no network.
+  `autofix_one()`, `may_auto_merge()` (the `auto_merge_authors` gate), verdict parsing.
+- `autofix_core.py` — the propose/explore/verify/retry loop itself, a small langgraph graph shared
+  by `autofix_one()` and `main_autofix.py` (see below); everything else in `ci-shared` stays
+  stdlib-only.
+- `main_autofix.py` — the direct-push-to-`main` path: no PR to look failures up through or push a
+  fix to, so it opens a new one instead. 118 tests total in `ci-shared`, no network.
 
 Full design rationale, Mermaid diagrams, and the file-by-file breakdown live in
 [`ci-shared/docs/architecture.md`](https://github.com/lorenzogirardi/ci-shared/blob/main/docs/architecture.md).
@@ -220,6 +268,13 @@ gh secret set AUTOFIX_PUSH_TOKEN --repo lorenzogirardi/flask-test-api --body 'gi
 
 Unset, `ai-review-sweep.yml` falls back to `GITHUB_TOKEN` exactly as before — autofix still
 proposes and verifies fixes locally, it just can't get real CI to confirm them.
+
+The same secret is wired into `pipeline.yml`'s `ai-autofix-main` job too, where it is closer to
+load-bearing than optional: that job opens a brand-new PR via `gh pr create`, and under plain
+`GITHUB_TOKEN` the `pull_request: opened` event for that PR is suppressed the same way a
+`synchronize` push is — the PR appears, `pr-checks.yml` never runs on it, and nothing surfaces
+that silently. Unset, the PR still opens, but treat it as needing a manual `pr-checks.yml` trigger
+before trusting it.
 
 ### 2. Model + endpoint (variables)
 
@@ -264,6 +319,7 @@ call) is **not** gated by this variable and always runs.
 | `ai-review.yml` | `contents: read`, `pull-requests: write` | post/update review comment |
 | `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
 | `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
+| `pipeline.yml` (`ai-autofix-main`) | `contents: write`, `pull-requests: write` | push a new branch + open a PR |
 | `issue-triage.yml` | `issues: write`, `contents: read` | labels + comment |
 | `release-notes.yml` | `contents: read`, `pull-requests: write` | post comment |
 

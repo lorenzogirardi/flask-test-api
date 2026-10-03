@@ -24,10 +24,10 @@ on:
         type: number
         default: 10
       authors:
-        description: 'PR authors to sweep (comma-separated). Defaults to renovate[bot]; widen it to review someone else''s PR on demand.'
+        description: 'PR authors to sweep (comma-separated). Defaults to renovate[bot] plus the repo owner, so autofix also repairs red CI on the owner''s own PRs -- see auto_merge_authors below for why that is still never auto-merged.'
         required: false
         type: string
-        default: 'renovate[bot]'
+        default: 'renovate[bot],lorenzogirardi'
 
 permissions: {}
 
@@ -43,11 +43,13 @@ jobs:
       pull-requests: write
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v2
     with:
-      # The `||` fallback matters: on a schedule run inputs.authors is empty,
-      # and an empty author filter means "every open PR" — including human
-      # ones, which must never be auto-merged.
-      authors: ${{ inputs.authors || 'renovate[bot]' }}
+      # The `||` fallback matters: on a schedule run inputs.authors is empty.
+      authors: ${{ inputs.authors || 'renovate[bot],lorenzogirardi' }}
       auto_merge: true
+      # Reviewing/autofixing a human's PR is safe and useful; merging it
+      # unattended is not (that's what a human review is for). This is the
+      # actual safety boundary now -- `authors` above may be wider than this.
+      auto_merge_authors: 'renovate[bot]'
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
       # nothing failed, and a Renovate PR whose sole check is ai-review.yml
