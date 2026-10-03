@@ -317,7 +317,7 @@ jobs:
             echo "::error::app did not return 2xx on readiness within retry budget (got ${code})"
             exit 1
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
       - name: Integration tests against the deployed stack
