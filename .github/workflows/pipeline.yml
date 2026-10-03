@@ -291,7 +291,8 @@ jobs:
           # description and logs, rather than by a bare timeout here.
           kubectl wait --for=condition=available deployment/postgres deployment/redis --timeout=240s || true
           kubectl rollout restart deployment/pytbak
-          kubectl wait --for=condition=available deployment/pytbak --timeout=240s || true
+          # `rollout status` waits for the NEW pod; `wait --for=condition=available` is already true for the old one.
+          kubectl rollout status deployment/pytbak --timeout=240s || true
           kubectl get po -o wide
           kubectl port-forward deploy/pytbak 8000:8000 &>/dev/null &
           sleep 3

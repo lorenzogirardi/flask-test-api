@@ -153,6 +153,53 @@ jobs:
         if: failure()
         run: cat app.log
 
+  image:
+    # The artifact that ships, built from THIS pull request and run against real PostgreSQL
+    # and Redis in a kind cluster, with the integration suite. A change to the Dockerfile
+    # (the Python base image) or to the dependencies is proven here, before the merge,
+    # instead of being discovered on main and reverted. Reviewers cannot verify that from a
+    # diff, so this check is what answers "do the dependencies still work on the new image?".
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the image from this pull request
+        run: docker build -t pytbak:pr .
+
+      - name: Create a kind cluster
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          cluster_name: pytbak-pr
+
+      - name: Deploy the stack with the image (app + PostgreSQL + Redis)
+        run: |
+          set -euo pipefail
+          kind load docker-image pytbak:pr --name pytbak-pr
+          sed "s#IMAGE_PLACEHOLDER#pytbak:pr#" tests/k8s/stack.yaml | kubectl apply -f -
+          kubectl wait --for=condition=available deployment/postgres deployment/redis --timeout=240s
+          # The app picks its backends once, at startup: restart it now that they are ready, and
+          # wait for the NEW pod (`wait --for=condition=available` is already true for the old one).
+          kubectl rollout restart deployment/pytbak
+          kubectl rollout status deployment/pytbak --timeout=240s
+          kubectl port-forward deploy/pytbak 8000:8000 &>/dev/null &
+          sleep 3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Integration tests against the image
+        run: |
+          pip install -r requirements.txt pytest
+          pytest tests/integration -v
+
+      - name: Pod state and logs on failure
+        if: failure()
+        run: |
+          kubectl get po -o wide || true
+          kubectl logs deploy/pytbak --tail=100 || true
+
   workflows:
     runs-on: ubuntu-latest
     steps:

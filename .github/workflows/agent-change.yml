@@ -36,7 +36,7 @@ jobs:
     with:
       mode: pr
       base_branch: main
-      required_checks: 'checks,integration,workflows'
+      required_checks: 'checks,integration,image,workflows'
       python_version: "3.14"
       verify_command: |
         set -euo pipefail

@@ -20,6 +20,7 @@ Entries are added automatically on every merge to the default branch.
 - `agent-main-guard.yml`: when the pipeline on `main` fails after a merge, the culprit is reverted automatically and an issue labelled `agent` is opened so the change is redone. A circuit breaker (3 automatic reverts in 24h) also stops automatic merging.
 - Ai-autofix-main on main failures, limited to code-level gates ([`69a5677`](https://github.com/lorenzogirardi/flask-test-api/commit/69a5677))
 - Renovate PRs reviewed by the two independent reviewers ([`6f9670e`](https://github.com/lorenzogirardi/flask-test-api/commit/6f9670e))
+- `image` check in PR Checks: the image is built from the pull request, deployed in kind with real PostgreSQL and Redis, and the integration suite runs against it. A Dockerfile or dependency change is now proven before the merge. `image` is required for every merge.
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
@@ -31,6 +32,7 @@ Entries are added automatically on every merge to the default branch.
 - Fix(ci): grant actions: read to agent-change.yml (pipeline red) ([`ecbedbd`](https://github.com/lorenzogirardi/flask-test-api/commit/ecbedbd))
 - Revert "revert(agent): fix(ci): grant actions: read to agent-change.yml (pipeline red)" ([`8185500`](https://github.com/lorenzogirardi/flask-test-api/commit/8185500))
 - The Renovate sweep starts by itself when a PR's CI ends and when `main` moves, brings PRs that fell behind up to date, and abandons a PR after 3 automatic fixes in a row that still leave CI red; the twice-daily cron remains as a safety net.
+- Renovate review: the reviewers receive the deterministic check results of the exact commit, the sweep waits for required checks instead of judging early, and a blocking finding is fixed by the writer loop or the PR is abandoned (never left waiting). A runtime (Python) bump is judged by the image check, not rejected on principle.
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
@@ -39,3 +41,4 @@ Entries are added automatically on every merge to the default branch.
 - Start the app only after PostgreSQL and Redis are ready; run the agent on issues opened with the label ([`1dfd80f`](https://github.com/lorenzogirardi/flask-test-api/commit/1dfd80f))
 - The main guard re-runs the failed jobs once before reverting anything, after a flaky `k8s-check` made it revert a harmless fix on the first push. Issues created already labelled `agent` (the guard's redo issues) now start the agent pipeline.
 - Unused loop variable in the integration job failed the actionlint check ([`614a223`](https://github.com/lorenzogirardi/flask-test-api/commit/614a223))
+- `k8s-check` waited for the OLD app pod (`wait --for=condition=available` is already true for it) and could run the tests against an app that had started before PostgreSQL; it now waits for the new pod with `rollout status`.

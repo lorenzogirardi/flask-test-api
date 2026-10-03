@@ -33,7 +33,7 @@ jobs:
     with:
       pr_number: ${{ github.event.workflow_run.pull_requests[0].number }}
       base_branch: main
-      required_checks: 'checks,integration,workflows'
+      required_checks: 'checks,integration,image,workflows'
       max_reverts: 3
     secrets:
       agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}

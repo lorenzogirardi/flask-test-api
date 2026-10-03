@@ -35,7 +35,7 @@ jobs:
     with:
       mode: ci
       base_branch: main
-      required_checks: 'checks,integration,workflows'
+      required_checks: 'checks,integration,image,workflows'
       max_ci_attempts: 3
       python_version: "3.14"
       verify_command: |

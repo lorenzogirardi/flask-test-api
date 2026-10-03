@@ -69,13 +69,16 @@ jobs:
       # code; being triggered on every CI end must not mean unbounded repair, so after 3
       # automatic fixes in a row that still leave CI red the PR is abandoned and closed.
       update_behind: true
+      # A blocking finding is not a stop sign: it goes to the writer loop and is pushed if it
+      # converges; what cannot be fixed is abandoned (labelled, commented, closed).
+      fix_findings: true
       max_autofix_commits: 3
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
       # nothing failed, and a Renovate PR whose sole check is ai-review.yml
       # reporting "skipped" (it skips bot authors) satisfies that — which is
       # exactly how PRs #91 and #92 got merged with nothing tested.
-      required_checks: 'checks,integration,workflows'
+      required_checks: 'checks,integration,image,workflows'
       # On a red PR, explain the failure instead of reviewing the diff — same
       # one model call, and pr-checks.yml has already proven the failure, so
       # there is nothing left to predict.
@@ -146,15 +149,18 @@ jobs:
         transitive dependency change unrelated to the stated bump. A large
         version jump on its own, with no other red flag, is not [Critical].
 
-        One exception, learned from an actual broken build: a change to the
-        *runtime* version (the Python version in a Dockerfile base image or in
-        a workflow's setup-python step) is ALWAYS [Critical]. You only see the
-        diff, so you cannot check whether the pinned dependencies still
-        resolve on the new interpreter — and they may not. Bumping this repo
-        from Python 3.12 to 3.14 broke `pip install` outright, because
-        `mcp==1.28.1` requires `pydantic>=2.12.0` on Python >= 3.14 while
-        requirements.txt pinned `pydantic==2.11.7`. Nothing in that diff hinted
-        at it. Runtime bumps need a human to verify resolution first.
+        A change to the *runtime* (the Python version in a Dockerfile base image or in a
+        workflow's setup-python step) is risky for one reason you cannot see in a diff: the
+        pinned dependencies may not resolve or work on the new interpreter. That happened
+        once (3.12 to 3.14 broke `pip install`, because `mcp` needed a newer `pydantic`
+        than requirements.txt pinned). It is no longer something to guess: the pull
+        request is built into an image, deployed with real PostgreSQL and Redis and
+        tested, and those results are given to you under "Deterministic check results".
+        Judge a runtime change by that evidence. If `checks`, `integration` and `image`
+        all succeeded on this commit, the new runtime is verified: do not report the
+        runtime change. Report it as [Critical] only if one of those checks failed, or
+        did not run, or the diff changes the Python MINOR version (for example 3.14 to
+        3.15) and the evidence does not clearly cover that version.
 
         Do not comment on code style or ask for tests; there is no code here.
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}
