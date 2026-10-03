@@ -36,3 +36,4 @@ Entries are added automatically on every merge to the default branch.
 - Grant actions: read to agent-change.yml ([`8560638`](https://github.com/lorenzogirardi/flask-test-api/commit/8560638))
 - Start the app only after PostgreSQL and Redis are ready; run the agent on issues opened with the label ([`1dfd80f`](https://github.com/lorenzogirardi/flask-test-api/commit/1dfd80f))
 - The main guard re-runs the failed jobs once before reverting anything, after a flaky `k8s-check` made it revert a harmless fix on the first push. Issues created already labelled `agent` (the guard's redo issues) now start the agent pipeline.
+- Unused loop variable in the integration job failed the actionlint check ([`614a223`](https://github.com/lorenzogirardi/flask-test-api/commit/614a223))
