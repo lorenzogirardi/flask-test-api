@@ -15,8 +15,12 @@ concurrency:
 
 jobs:
   review:
-    # renovate[bot] gets the dependency-focused prompt from renovate-ai-review.yml instead.
-    if: vars.AI_ENABLED == 'true' && github.actor != 'renovate[bot]'
+    # renovate[bot] PRs are reviewed by the scheduled sweep (ai-review-sweep.yml);
+    # agent/* PRs are reviewed, fixed and certified inside the agent pipeline
+    # (agent-pipeline.yml), so a second reviewer here would only conflict.
+    if: >-
+      vars.AI_ENABLED == 'true' && github.actor != 'renovate[bot]' &&
+      !startsWith(github.head_ref, 'agent/')
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-diff-review.yml@v2
     with:
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}

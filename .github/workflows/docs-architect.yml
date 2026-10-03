@@ -1,0 +1,33 @@
+name: Docs Architect
+
+# Plan only: classifies the documentation (Diataxis), finds gaps from the code
+# and proposes a structure. It creates, moves and rewrites nothing; the run
+# fails if the working tree changes. Run it by hand; with `post_issue` it also
+# opens/updates the issue "Documentation architecture proposal".
+
+on:
+  workflow_dispatch:
+    inputs:
+      post_issue:
+        description: 'Also create/update the proposal issue'
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  architect:
+    if: vars.AI_ENABLED == 'true'
+    permissions:
+      contents: read
+      issues: write
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_docs-architect.yml@v2
+    with:
+      post_issue: ${{ inputs.post_issue }}
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}

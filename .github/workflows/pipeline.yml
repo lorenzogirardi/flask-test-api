@@ -355,7 +355,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_main-autofix.yml@v1
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_main-autofix.yml@v2
     with:
       base_branch: main
       python_version: "3.14"

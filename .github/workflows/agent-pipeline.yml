@@ -1,0 +1,75 @@
+name: Agent Pipeline
+
+# Issue -> planner -> writer -> deterministic checks -> two independent
+# reviewers -> bounded fix loop -> final reviewer -> docs reviewer -> changelog
+# -> pull request. The agents live in ci-shared (v2); see
+# docs/13-agent-pipeline.md for the design.
+#
+# Start it by giving an issue the `agent` label, or run it by hand with the
+# issue number. It never merges: a run that converges opens a PR, one that
+# does not opens a DRAFT titled "[needs human]".
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue to implement'
+        required: true
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: agent-issue-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    if: >-
+      vars.AI_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent')
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-pipeline.yml@v2
+    with:
+      issue_number: ${{ github.event.issue.number || inputs.issue_number }}
+      base_branch: main
+      # Must match pr-checks.yml, pipeline.yml and the Dockerfile base image.
+      python_version: "3.14"
+      context_files: 'CLAUDE.md,README.md'
+      changelog_path: CHANGELOG.md
+      max_iterations: 3
+      # Mirrors pr-checks.yml (Resolve dependencies, Install, Lint, Tests,
+      # Smoke-test). It runs after every change the writer makes, in an
+      # environment with no secrets, so a local pass means what a real PR
+      # Checks pass means.
+      verify_command: |
+        set -euo pipefail
+        pip install --dry-run -r requirements.txt
+        pip install -q -r requirements.txt
+        pip install -q flake8 pytest
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        pytest tests/ -v
+        uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        UVICORN_PID=$!
+        trap 'kill $UVICORN_PID 2>/dev/null || true' EXIT
+        for i in $(seq 1 30); do
+          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready && exit 0
+          sleep 1
+        done
+        echo "app never returned 2xx on /api/mgmt/ready" >&2
+        exit 1
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+      # Needs Contents AND Pull requests: read/write (this repo only, never
+      # `workflow` scope): it pushes the agent/* branch and opens the PR. A PR
+      # opened as GITHUB_TOKEN would not trigger PR Checks.
+      agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}

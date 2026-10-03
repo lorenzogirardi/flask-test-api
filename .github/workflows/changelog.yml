@@ -1,0 +1,25 @@
+name: Changelog
+
+# CHANGELOG.md is updated on every push to main (a squash merge is one push).
+# Deterministic, no model. Skips commits that already touched the changelog
+# (agent PRs do) and the pipeline's own bookkeeping commits. The push uses
+# GITHUB_TOKEN, so it does not trigger other workflows.
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: changelog
+  cancel-in-progress: false
+
+jobs:
+  changelog:
+    permissions:
+      contents: write
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_changelog.yml@v2
+    with:
+      changelog_path: CHANGELOG.md
+      branch: main

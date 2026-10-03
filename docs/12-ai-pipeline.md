@@ -1,5 +1,7 @@
 # AI Pipeline (GitHub Actions + OpenRouter)
 
+> The role-based agent pipeline (planner, writer, reviewers, changelog, docs architect) and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md).
+
 This repository's AI features are split across two repos:
 
 - **[lorenzogirardi/ci-shared](https://github.com/lorenzogirardi/ci-shared)** (tag `@v1`) — the reusable
