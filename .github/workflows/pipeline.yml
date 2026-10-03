@@ -328,7 +328,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_ci-analysis.yml@v1
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_ci-analysis.yml@v2
     with:
       source_glob: app
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}
