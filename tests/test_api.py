@@ -92,7 +92,7 @@ async def test_sleep_endpoint(client):
 
 @pytest.mark.anyio
 async def test_sleep_too_long(client):
-    resp = await client.get("/api/sleep/11")
+    resp = await client.get("/api/sleep/31")
     assert resp.status_code == 400
 
 
