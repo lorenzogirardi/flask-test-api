@@ -24,10 +24,10 @@ on:
         type: number
         default: 10
       authors:
-        description: 'PR authors to sweep (comma-separated). Defaults to renovate[bot] plus the repo owner, so autofix also repairs red CI on the owner''s own PRs -- see auto_merge_authors below for why that is still never auto-merged.'
+        description: 'PR authors to sweep (comma-separated). Defaults to renovate[bot]; every other PR is handled by agent-change.yml (fixes pushed to its branch by the agent).'
         required: false
         type: string
-        default: 'renovate[bot],lorenzogirardi'
+        default: 'renovate[bot]'
 
 permissions: {}
 
@@ -44,7 +44,7 @@ jobs:
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v2
     with:
       # The `||` fallback matters: on a schedule run inputs.authors is empty.
-      authors: ${{ inputs.authors || 'renovate[bot],lorenzogirardi' }}
+      authors: ${{ inputs.authors || 'renovate[bot]' }}
       auto_merge: true
       # Reviewing/autofixing a human's PR is safe and useful; merging it
       # unattended is not (that's what a human review is for). This is the

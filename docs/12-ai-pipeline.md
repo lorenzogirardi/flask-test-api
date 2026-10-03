@@ -1,5 +1,7 @@
 # AI Pipeline (GitHub Actions + OpenRouter)
 
+> **Superseded in part.** `ai-review.yml` was removed: every non-Renovate PR, and every direct push to `main`, now goes through `agent-change.yml`. The sweep is back to Renovate PRs only. The sections below that describe `ai-review.yml` or "Autofix now covers the owner's own PRs too" describe the previous setup.
+>
 > The role-based agent pipeline (planner, writer, reviewers, changelog, docs architect) and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md).
 
 This repository's AI features are split across two repos:
@@ -20,7 +22,7 @@ any OpenAI-compatible chat-completions endpoint.
 | # | Feature | Workflow | Trigger | Merges/blocks anything? |
 |---|---------|----------|---------|--------------------------|
 | 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
-| 2 | AI code review (human PRs) | `ai-review.yml` | `pull_request`, skips `renovate[bot]` | No — comment only |
+| 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews and pushes fixes to the PR branch; never merges (see [13](13-agent-pipeline.md)) |
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
 | 5 | Self-repair on a direct push to `main` | `pipeline.yml` → `ai-autofix-main` job | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
@@ -318,7 +320,7 @@ call) is **not** gated by this variable and always runs.
 | Workflow | Permissions | Why |
 |----------|-------------|-----|
 | `pr-checks.yml` | `contents: read` | no model call, no comment |
-| `ai-review.yml` | `contents: read`, `pull-requests: write` | post/update review comment |
+| `agent-change.yml` | `contents: read`, `pull-requests: write` (+ `AUTOFIX_PUSH_TOKEN` in the publish step only) | review comment, fix commits on the PR branch |
 | `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
 | `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
 | `pipeline.yml` (`ai-autofix-main`) | `contents: write`, `pull-requests: write` | push a new branch + open a PR |

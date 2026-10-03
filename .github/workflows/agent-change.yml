@@ -1,0 +1,97 @@
+name: Agent Change
+
+# The agent pipeline on EVERY code change that already exists:
+#   - each pull request (except Renovate's, which the sweep owns): checks, two
+#     independent reviewers, fixes pushed to the PR branch by the agent, final
+#     review, docs review. One comment on the PR.
+#   - each push straight to main with no PR: same review; if something blocks it
+#     opens a fix PR (never pushes to main), otherwise leaves a commit comment.
+# It never merges, and it ignores its own commits (author "ci-shared agents"),
+# so it cannot loop. Design: docs/13-agent-pipeline.md.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  pull-request:
+    if: >-
+      github.event_name == 'pull_request' && vars.AI_ENABLED == 'true' &&
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'renovate[bot]'
+    concurrency:
+      group: agent-change-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@v2
+    with:
+      mode: pr
+      base_branch: main
+      python_version: "3.14"
+      verify_command: |
+        set -euo pipefail
+        pip install --dry-run -r requirements.txt
+        pip install -q -r requirements.txt
+        pip install -q flake8 pytest
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        pytest tests/ -v
+        uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        UVICORN_PID=$!
+        trap 'kill $UVICORN_PID 2>/dev/null || true' EXIT
+        for i in $(seq 1 30); do
+          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready && exit 0
+          sleep 1
+        done
+        echo "app never returned 2xx on /api/mgmt/ready" >&2
+        exit 1
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+      agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}
+
+  direct-push:
+    if: github.event_name == 'push' && vars.AI_ENABLED == 'true'
+    concurrency:
+      group: agent-change-push
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@v2
+    with:
+      mode: push
+      base_branch: main
+      python_version: "3.14"
+      verify_command: |
+        set -euo pipefail
+        pip install --dry-run -r requirements.txt
+        pip install -q -r requirements.txt
+        pip install -q flake8 pytest
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        pytest tests/ -v
+        uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        UVICORN_PID=$!
+        trap 'kill $UVICORN_PID 2>/dev/null || true' EXIT
+        for i in $(seq 1 30); do
+          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready && exit 0
+          sleep 1
+        done
+        echo "app never returned 2xx on /api/mgmt/ready" >&2
+        exit 1
+      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
+      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
+      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
+      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
+    secrets:
+      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+      agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}

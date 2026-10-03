@@ -6,7 +6,24 @@ on their output live in `ci-shared` (tag `v2`), so other repositories can reuse
 them. This repository only wires them up. For the older single-purpose AI
 workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 
-## How to run it
+## What runs when
+
+| Change | Workflow | What happens |
+|---|---|---|
+| Issue labelled `agent` (or run by hand) | `agent-pipeline.yml` | Full pipeline from the request: planner, writer, checks, reviewers, fix loop, final review, docs, changelog, PR. |
+| Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
+| Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
+| Renovate PRs | `ai-review-sweep.yml` | Unchanged: its own review, autofix and auto-merge. |
+| Every push to `main` | `changelog.yml` | One deterministic entry. |
+
+Two guards stop loops and noise: every commit the pipeline makes has the author
+`ci-shared agents`, and a run whose head commit has that author does nothing; a
+push whose commit belongs to a PR is skipped, because the PR was reviewed.
+A change the agent did not alter is certified by the first review alone, with
+no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
+PR checks re-run on them.
+
+## How to run the issue pipeline
 
 1. Create an issue that describes the change.
 2. Add the label `agent` (or run the workflow **Agent Pipeline** by hand with
@@ -77,5 +94,7 @@ changelog is out of its scope.
   is certified by default.
 - Cost per role is recorded in the run artifact (`agent-run-<issue>`) and shown
   in the PR.
-- `reusable_agent-review.yml` (the two reviewers on any PR) exists in
-  `ci-shared` but is not wired to a trigger here.
+- The direct-push mode can only react after the push; it cannot stop it.
+  Checks that fail on `main` itself are handled by `ai-autofix-main`.
+- `reusable_agent-review.yml` (reviewers only, no fixes) exists in `ci-shared`
+  but is not wired to a trigger here.
