@@ -28,8 +28,10 @@ Entries are added automatically on every merge to the default branch.
 - The integration suite (`tests/integration`) now runs in `PR Checks` (job `integration`, PostgreSQL and Redis as services) and in `k8s-check` against the deployed image in kind with real PostgreSQL and Redis. It was skipped on every CI run and had rotted (14 failures, 18 errors); its HTTP tests are now synchronous.
 - A change that does not converge is retried once with twice the budget and then abandoned (labelled, commented, the agent's own PR closed); no outcome waits for a person.
 - Fix(ci): grant actions: read to agent-change.yml (pipeline red) ([`ecbedbd`](https://github.com/lorenzogirardi/flask-test-api/commit/ecbedbd))
+- Revert "revert(agent): fix(ci): grant actions: read to agent-change.yml (pipeline red)" ([`8185500`](https://github.com/lorenzogirardi/flask-test-api/commit/8185500))
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
 - MCP integration tests broke with `mcp` 2.3.0 (it dropped the `auth=` keyword of the streamable-HTTP client, now yields two streams instead of three, and renamed `isError` to `is_error`); the two "is rejected" tests had been passing for the wrong reason (any exception) and now assert a real 401. Found by running the integration suite, which CI had been skipping.
 - Grant actions: read to agent-change.yml ([`8560638`](https://github.com/lorenzogirardi/flask-test-api/commit/8560638))
+- Start the app only after PostgreSQL and Redis are ready; run the agent on issues opened with the label ([`1dfd80f`](https://github.com/lorenzogirardi/flask-test-api/commit/1dfd80f))
