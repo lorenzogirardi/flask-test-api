@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PR #118 Case Study</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
+
+  :root {
+    --paper: #edf0f3;
+    --paper-raised: #ffffff;
+    --ink: #1b2027;
+    --ink-soft: #4a5361;
+    --line: #cad1da;
+    --accent: #b5680a;
+    --accent-ink: #7a4406;
+    --accent-soft: #f4e3c8;
+    --pass: #2f7a41;
+    --pass-soft: #e2f0e4;
+    --fail: #b23b30;
+    --fail-soft: #f6e2df;
+    --wait: #9a6b0a;
+    --wait-soft: #f6ecd8;
+    --code-bg: #f8f5ee;
+    --code-border: #ded6c2;
+    --shadow: 0 1px 2px rgba(27,32,39,.06), 0 8px 24px rgba(27,32,39,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181d; --paper-raised: #1b2129; --ink: #e7e9ec; --ink-soft: #9aa4b2;
+      --line: #333c47; --accent: #e2a44c; --accent-ink: #f2c98a; --accent-soft: #3a2e18;
+      --pass: #6bbf7e; --pass-soft: #1d2f20; --fail: #e08579; --fail-soft: #34201d;
+      --wait: #e2c04c; --wait-soft: #332b12;
+      --code-bg: #191d16; --code-border: #3a3a2c; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181d; --paper-raised: #1b2129; --ink: #e7e9ec; --ink-soft: #9aa4b2;
+    --line: #333c47; --accent: #e2a44c; --accent-ink: #f2c98a; --accent-soft: #3a2e18;
+    --pass: #6bbf7e; --pass-soft: #1d2f20; --fail: #e08579; --fail-soft: #34201d;
+    --wait: #e2c04c; --wait-soft: #332b12;
+    --code-bg: #191d16; --code-border: #3a3a2c; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+  .page { max-width: 860px; margin: 0 auto; padding: 72px 24px 120px; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+  header.title-block { margin-bottom: 56px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--accent); display: inline-block; }
+  h1 {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: clamp(28px, 4.6vw, 40px);
+    line-height: 1.16; letter-spacing: -0.01em; margin: 0 0 18px; text-wrap: balance;
+  }
+  .dek { font-size: 19px; line-height: 1.55; color: var(--ink-soft); max-width: 68ch; margin: 0; }
+  .meta-row {
+    margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 6px 22px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--ink-soft);
+  }
+  .meta-row b { color: var(--ink); font-weight: 600; }
+  .meta-row a { color: var(--ink-soft); }
+
+  nav.toc {
+    margin: 0 0 56px; padding: 20px 22px; background: var(--paper-raised); border: 1px solid var(--line);
+    border-radius: 6px; box-shadow: var(--shadow);
+  }
+  nav.toc .label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent-ink); margin-bottom: 12px; display: block;
+  }
+  nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
+  nav.toc li { font-size: 14.5px; margin-bottom: 7px; break-inside: avoid; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  @media (max-width: 560px) { nav.toc ol { columns: 1; } }
+
+  section { margin-bottom: 52px; }
+  h2 {
+    font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 15px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 24px;
+  }
+  h3.sub {
+    font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 16px;
+    color: var(--ink); margin: 28px 0 10px;
+  }
+  p { margin: 0 0 16px; max-width: 70ch; }
+  p:last-child { margin-bottom: 0; }
+  code.inline {
+    font-family: 'JetBrains Mono', monospace; font-size: .87em; background: var(--code-bg);
+    border: 1px solid var(--code-border); padding: .05em .35em; border-radius: 3px; color: var(--ink);
+  }
+  a { color: var(--accent-ink); }
+
+  .lede { font-size: 20px; }
+
+  /* timeline */
+  .step { position: relative; padding: 0 0 44px 56px; border-left: 2px solid var(--line); }
+  .step:last-child { border-left: 2px solid transparent; padding-bottom: 0; }
+  .step-marker {
+    position: absolute; left: -19px; top: 0; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--paper-raised); border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; color: var(--ink-soft);
+  }
+  .step-marker.fail { border-color: var(--fail); color: var(--fail); }
+  .step-marker.pass { border-color: var(--pass); color: var(--pass); }
+  .step-marker.wait { border-color: var(--wait); color: var(--wait); }
+  .step-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .step-head h3 {
+    font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 18px; margin: 0; color: var(--ink);
+  }
+  .step-time {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft);
+  }
+  .step-body { padding-top: 10px; }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+    letter-spacing: .04em; padding: 3px 9px; border-radius: 100px; white-space: nowrap;
+    display: inline-block;
+  }
+  .chip.fail { background: var(--fail-soft); color: var(--fail); }
+  .chip.pass { background: var(--pass-soft); color: var(--pass); }
+  .chip.wait { background: var(--wait-soft); color: var(--wait); }
+
+  .panel {
+    margin: 14px 0; border: 1px solid var(--code-border); border-radius: 6px; overflow: hidden;
+    box-shadow: var(--shadow); background: var(--paper-raised);
+  }
+  .panel-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; padding: 9px 14px;
+    background: var(--code-bg); color: var(--ink-soft); border-bottom: 1px solid var(--code-border);
+  }
+  pre.code {
+    margin: 0; padding: 14px; background: var(--code-bg); overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.65; color: var(--ink);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  pre.code.nowrap { white-space: pre; word-break: normal; }
+  .diffline-add { color: var(--pass); }
+  .diffline-del { color: var(--fail); }
+  .cmt { color: var(--ink-soft); }
+
+  .thesis {
+    margin: 36px 0 44px; padding: 26px 28px; background: var(--paper-raised); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent); border-radius: 3px; box-shadow: var(--shadow);
+  }
+  .thesis .label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent-ink); margin-bottom: 10px; display: block;
+  }
+  .thesis p { font-size: 17.5px; line-height: 1.55; color: var(--ink); max-width: none; }
+
+  .lessons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .lessons li {
+    display: grid; grid-template-columns: 26px 1fr; gap: 14px; padding: 16px 18px;
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 5px;
+  }
+  .lessons .n {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--accent-ink);
+  }
+  .lessons b { color: var(--ink); }
+  .lessons span.a { color: var(--ink-soft); font-size: 16px; }
+
+  table.runs { width: 100%; border-collapse: collapse; font-size: 14px; margin: 14px 0; }
+  table.runs th, table.runs td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  table.runs th {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-soft); font-weight: 600;
+  }
+  table.runs td.mono, table.runs a { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+
+  footer {
+    margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--ink-soft);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  pre.mermaid {
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px;
+    padding: 20px; overflow-x: auto; box-shadow: var(--shadow); margin: 20px 0;
+  }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    .page { padding: 48px 18px 90px; }
+    .step { padding-left: 44px; }
+    .step-marker { width: 30px; height: 30px; left: -15px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="title-block">
+    <div class="eyebrow">Real run · langgraph autofix · ci-shared · flask-test-api #118</div>
+    <h1>Resolving PR #118: a live autopsy of the agentic loop</h1>
+    <p class="dek">A dependency bot reopens the same breaking bump three times. The loop that repairs it gets rebuilt on langgraph mid-session, is pointed at the reopened PR, and fails twice — for two different, real, fixable reasons that have nothing to do with the model's intelligence. The third run merges it. Every log line, model reply, and diff below is real, taken from the actual run on August 29, 2026 — nothing is reconstructed or invented.</p>
+    <div class="meta-row">
+      <span><b>PR</b> <a href="https://github.com/lorenzogirardi/flask-test-api/pull/118">lorenzogirardi/flask-test-api#118</a></span>
+      <span><b>Model</b> hy3-free via OpenCode Zen</span>
+      <span><b>Harness commits</b> <a href="https://github.com/lorenzogirardi/ci-shared/pull/1">ci-shared#1</a>, <a href="https://github.com/lorenzogirardi/ci-shared/pull/2">#2</a>, <a href="https://github.com/lorenzogirardi/ci-shared/pull/3">#3</a></span>
+      <span><b>Span</b> ~2 hours, 3 sweep runs, 2 live bugfixes</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <span class="label">Contents</span>
+    <ol>
+      <li><a href="#context">0. Why #118, not #117</a></li>
+      <li><a href="#agents">0.5. Three agents, not one</a></li>
+      <li><a href="#graph">1. The loop, as a graph</a></li>
+      <li><a href="#sequence">2. One round, end to end</a></li>
+      <li><a href="#timeline">3. Three iterations, two real bugs</a></li>
+      <li><a href="#thesis">4. What this actually proves</a></li>
+      <li><a href="#lessons">5. Five things worth keeping</a></li>
+      <li><a href="#appendix">6. Technical appendix</a></li>
+    </ol>
+  </nav>
+
+  <section id="context">
+    <p class="lede">Renovate wants <code class="inline">mcp</code> bumped from 1.29.1 to 2.1.1. The library renamed its main class (<code class="inline">FastMCP</code> → <code class="inline">MCPServer</code>) in the new major version, which breaks <code class="inline">app/mcp/tools.py</code> at import time. This exact bump was tried once already, as <a href="https://github.com/lorenzogirardi/flask-test-api/pull/117">PR #117</a>: the loop back then found the constructor had changed too, couldn't fully migrate it within its 3-attempt budget, and fell back to reverting the pin — a legitimate, honest outcome, but not a migration. Renovate has no memory of a rejected bump; it reopened the identical change as <b>PR #118</b>.</p>
+    <p>Between #117 and today, the autofix loop was rebuilt from a hand-rolled <code class="inline">for</code> loop into a <a href="https://github.com/lorenzogirardi/ci-shared">langgraph</a> <code class="inline">StateGraph</code> (for maintainability and to share the same core with a new no-PR, broken-<code class="inline">main</code> repair path), its attempt budget was raised from 3 to 20, and its prompt was given two new pieces of guidance — an explicit per-round budget line, and instructions to grep for other usages of a renamed symbol instead of fixing one call site and stopping. The obvious question, asked before any of this ran for real: <i>does any of that actually make #118 mergeable, or is it just a nicer-looking version of the same ceiling?</i> This case study is the answer, found by actually running it.</p>
+  </section>
+
+  <section id="agents">
+    <h2>0.5 · Three agents, not one</h2>
+    <p>"An AI fixed the PR" flattens three distinct actors into one. Keeping them separate is the only way the rest of this document makes sense — two of them never touch application code at all, and the one that does never touches the harness that runs it.</p>
+    <table class="runs">
+      <tr><th>Agent</th><th>Role</th><th>What it actually touched</th></tr>
+      <tr>
+        <td><b>A</b> — Claude Sonnet&nbsp;5<br/><span class="mono" style="font-size:11px">(this session)</span></td>
+        <td>Fixes the <i>harness</i>: the loop's own code, in <code class="inline">ci-shared</code></td>
+        <td><code class="inline">autofix_core.py</code>, <code class="inline">pr_review_sweep.py</code>, their test files — never <code class="inline">flask-test-api</code>'s application code</td>
+      </tr>
+      <tr>
+        <td><b>B</b> — hy3-free<br/><span class="mono" style="font-size:11px">(via OpenCode Zen)</span></td>
+        <td>Runs <i>inside</i> the harness, one subprocess call per round</td>
+        <td><code class="inline">app/mcp/tools.py</code>, <code class="inline">app/main.py</code>, <code class="inline">tests/integration/test_mcp.py</code> — never <code class="inline">ci-shared</code>, never sees its own harness's source</td>
+      </tr>
+      <tr>
+        <td><b>C</b> — the verifier<br/><span class="mono" style="font-size:11px">(flake8 + pytest + uvicorn, locally and on GitHub)</span></td>
+        <td>Not an LLM. The only thing either agent above is actually judged by</td>
+        <td>Runs <code class="inline">run_verify()</code>'s exact command locally before a push, then the identical <code class="inline">pr-checks.yml</code> steps for real on GitHub before a merge</td>
+      </tr>
+    </table>
+    <p>Section 3 below is Agent B's story: what it tried, round by round, inside a harness that was — twice — quietly failing to record what it wrote correctly. The diffs and tests in the <a href="#appendix">appendix</a> are Agent A's story: what was actually wrong with the harness, and what now proves it stays fixed. Every "verify passed" / "verify failed" chip in between is Agent C's verdict, the only one that ever decided anything.</p>
+  </section>
+
+  <section id="graph">
+    <h2>1 · The loop, as a graph</h2>
+    <p>This is <code class="inline">autofix_core.py</code>'s real structure — four nodes, no hidden state outside what's shown. It replaced a <code class="inline">for attempt in range(...)</code> loop where the same branches existed as nested <code class="inline">continue</code>/<code class="inline">return</code> statements; the topology below used to only exist in the reader's head.</p>
+    <pre class="mermaid">
+flowchart TD
+    Start(["autofix_one() / main_autofix.py<br/>checks out the branch, primes verify_command"]) --&gt; P["propose<br/><i>build prompt: header + budget line<br/>+ failing log + diff + history</i>"]
+    P -- "route: explore" --&gt; E["explore<br/>list / find / grep / read"]
+    P -- "route: apply" --&gt; AV["apply_and_verify<br/>apply_fix() then run_verify()"]
+    P -- "route: give_up<br/>(declined / rejected /<br/>model call failed)" --&gt; G["give_up"]
+    E -- "budget left" --&gt; P
+    E -- "budget exhausted" --&gt; G
+    AV -- "verify passed" --&gt; Done(["outcome: ready<br/>caller commits + pushes"])
+    AV -- "apply_fix() hard error<br/>(bad file / bad anchor)" --&gt; G
+    AV -- "verify failed,<br/>budget left" --&gt; P
+    AV -- "verify failed,<br/>budget exhausted" --&gt; G
+    G --&gt; End(["outcome: declined / rejected /<br/>skipped / exhausted"])
+    </pre>
+    <p style="margin-top:14px">On the run that finally merged #118, the path taken was <b>Start → P → E</b> ×7 (grep/list/read, gathering context) <b>→ AV</b> (fails, back to <b>P</b>) ×2 more explore/apply cycles <b>→ AV → Done</b> — attempt 15 of the 20 available.</p>
+  </section>
+
+  <section id="sequence">
+    <h2>2 · One round, end to end</h2>
+    <p>The graph above is the decision logic inside one job. This is what one full round actually touches across the whole system — the same six participants for every dependency-bot PR the sweep ever autofixes, not something specific to mcp.</p>
+    <pre class="mermaid">
+sequenceDiagram
+    participant Actions as GitHub Actions<br/>(ai-review-sweep.yml)
+    participant Script as pr_review_sweep.py<br/>+ autofix_core.py
+    participant Model as openrouter_ai.py<br/>-&gt; hy3-free
+    participant Tree as working tree (git)
+    participant CI as pr-checks.yml<br/>(real CI)
+
+    Actions-&gt;&gt;Script: python3 pr_review_sweep.py --autofix ...
+    Script-&gt;&gt;Script: collect_failure_logs() + build_diff()
+    Script-&gt;&gt;Tree: run_verify() once, discard result<br/>(installs the NEW dependency version)
+    loop up to max_autofix_attempts (20)
+        Script-&gt;&gt;Model: subprocess: system=AUTOFIX_SYSTEM<br/>user=header+budget+logs+diff+history
+        Model--&gt;&gt;Script: JSON reply
+        alt explore request (list/find/grep/read)
+            Script-&gt;&gt;Tree: read-only lookup
+            Tree--&gt;&gt;Script: result appended to history
+        else edits proposed
+            Script-&gt;&gt;Tree: apply_fix() -- writes files
+            Script-&gt;&gt;Tree: run_verify(): lint + pytest + boot + curl
+            alt verify passed
+                Script-&gt;&gt;Tree: git commit + push<br/>(autofix_push_token, not GITHUB_TOKEN)
+            else verify failed
+                Script-&gt;&gt;Tree: git checkout -- reverts the edit
+                Script-&gt;&gt;Script: real failure text appended to history
+            end
+        end
+    end
+    Script-&gt;&gt;Actions: outcome + detail -&gt; PR comment posted
+    Tree-&gt;&gt;CI: new commit triggers pull_request: synchronize
+    CI--&gt;&gt;Actions: checks / workflows conclusions
+    Actions-&gt;&gt;Actions: try_merge() polls checks_state()
+    Actions-&gt;&gt;Actions: merged (renovate[bot] is in auto_merge_authors)
+    </pre>
+    <p style="margin-top:14px">Two things worth noticing: the model is invoked as a fresh subprocess every single round — no conversation state carries over except what the script explicitly re-serializes into <code class="inline">history</code> and re-sends — and nothing is trusted twice. A "verify passed" locally still waits for the same commands to run for real, on GitHub, before anything merges.</p>
+  </section>
+
+  <section id="timeline">
+    <h2>3 · Three iterations, two real bugs</h2>
+    <p>Moving the harness improvements to production (<code class="inline">ci-shared</code>'s <code class="inline">v1</code> tag) doesn't touch #118's stale sweep comment — its dedup key is the PR's head SHA plus a cached verdict, and nothing about the harness changing invalidates that cache. Each iteration below starts with clearing that comment by hand and re-triggering the sweep, specifically to force a fresh evaluation against the new code.</p>
+
+    <table class="runs">
+      <tr><th>#</th><th>ci-shared @ v1</th><th>Sweep run</th><th>Result</th></tr>
+      <tr><td>1</td><td class="mono">4c68e84</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33252565927">33252565927</a></td><td>Rejected in round 1/20 — parser bug</td></tr>
+      <tr><td>2</td><td class="mono">f8e0868</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33255743087">33255743087</a></td><td>Exhausted at round 20/20 — apply_fix bug</td></tr>
+      <tr><td>3</td><td class="mono">eb19afb</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33256612361">33256612361</a></td><td>Pushed at round 15/20 — real CI green</td></tr>
+    </table>
+
+    <div class="step">
+      <div class="step-marker fail">1</div>
+      <div class="step-head"><h3>Iteration 1 — the model corrects itself, the parser doesn't notice</h3><span class="step-time">round 1/20</span></div>
+      <div class="step-body">
+        <p>The very first reply of the very first run already shows the model reasoning correctly — and then catching its own mistake mid-message:</p>
+        <div class="panel">
+          <div class="panel-label">real model reply — attempt 1/20, run 33252565927</div>
+          <pre class="code nowrap">```json
+{
+  "explanation": "The error names FastMCP as renamed to MCPServer in mcp 2.x; I must find every call site using the old symbol before fixing, per instructions.",
+  "edits": [
+    {"file": "repo", "find": "FastMCP", "replace": "__GREP_ONLY__"}
+  ]
+}
+```
+
+Wait, that's wrong -- grep is a separate tool, not an edit. Let me issue it correctly:
+
+```json
+{"grep": "FastMCP"}
+```</pre>
+        </div>
+        <p style="margin-top:10px"><span class="chip fail">rejected</span> The model's own correction — the real <code class="inline">grep</code> request — was exactly what the loop needed. But <code class="inline">_parse_json_reply()</code> matched fenced JSON blocks with a first-match regex, so it read the <i>abandoned</i> block instead: an "edit" to a file literally named <code class="inline">"repo"</code>. <code class="inline">apply_fix()</code> correctly rejected it (<code class="inline">"repo" does not exist</code>) — but that rejection was treated as terminal, so the entire 20-round budget was spent on round one, on a mistake the model had already caught and fixed itself one paragraph later.</p>
+        <div class="panel">
+          <div class="panel-label">real log line</div>
+          <pre class="code">autofix rejected: repo does not exist</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker pass">Fix 1</div>
+      <div class="step-head"><h3>Last fenced block wins; a bad edit retries instead of giving up</h3><span class="step-time"><a href="https://github.com/lorenzogirardi/ci-shared/pull/2">ci-shared#2</a></span></div>
+      <div class="step-body">
+        <p>Two changes, shipped together: <code class="inline">_parse_json_reply()</code> now takes the <i>last</i> fenced block in a reply, not the first — a model that emits more than one is almost always superseding an earlier mistake. And an <code class="inline">apply_fix()</code> error (missing file, ambiguous anchor) is now fed back into <code class="inline">history</code> and retried, the same way a failed <code class="inline">verify</code> already was, instead of ending the whole attempt. Full diff in the <a href="#appendix">appendix</a>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker fail">2</div>
+      <div class="step-head"><h3>Iteration 2 — the right fix, silently undone by its own harness</h3><span class="step-time">rounds 1–20/20</span></div>
+      <div class="step-body">
+        <p>With the parser fixed, the second run actually explores: <code class="inline">grep 'FastMCP'</code> (30 hits), reads <code class="inline">app/mcp/tools.py</code>, lists <code class="inline">app/mcp</code>, reads the real installed <code class="inline">mcp.server.mcpserver</code> module source via its dotted import path, reads <code class="inline">app/main.py</code>, greps for <code class="inline">streamable_http_app</code> — eight rounds of real investigation before proposing anything. Round 8 is the payoff:</p>
+        <div class="panel">
+          <div class="panel-label">real model reply — attempt 8/20, run 33255743087</div>
+          <pre class="code nowrap">{
+  "explanation": "mcp 2.x renamed FastMCP to MCPServer and removed
+    streamable_http_path/stateless_http from the constructor (now passed
+    to streamable_http_app()); update the import, the instantiation, and
+    the app-creation call so the module imports and the server mounts
+    correctly.",
+  "edits": [
+    {"file": "app/mcp/tools.py",
+     "find": "from mcp.server.fastmcp import FastMCP",
+     "replace": "from mcp.server.mcpserver import MCPServer"},
+    {"file": "app/mcp/tools.py",
+     "find": "mcp = FastMCP(\"pytbak\", streamable_http_path=\"/\", stateless_http=True)",
+     "replace": "mcp = MCPServer(\"pytbak\")"},
+    {"file": "app/main.py",
+     "find": "mcp_asgi_app = mcp_server.streamable_http_app()  # lazily creates session_manager",
+     "replace": "mcp_asgi_app = mcp_server.streamable_http_app(streamable_http_path=\"/\", stateless_http=True)  # lazily creates session_manager"}
+  ]
+}</pre>
+        </div>
+        <p style="margin-top:10px">This is a genuinely correct, well-reasoned three-edit fix — exactly the kind of rename-propagation the new prompt guidance was written to encourage. It failed anyway:</p>
+        <div class="panel">
+          <div class="panel-label">real log line</div>
+          <pre class="code">autofix attempt 8/20: verify failed on app/mcp/tools.py, app/main.py</pre>
+        </div>
+        <p style="margin-top:10px">Rounds 9–13 go looking for a <i>second</i> problem (a client-side rename, <code class="inline">streamablehttp_client</code> → <code class="inline">streamable_http_client</code>, that a real test file also needed). Rounds 14, then 18, 19, and 20 all propose variations converging back on the <b>exact same</b> tools.py + main.py edits — and all fail identically:</p>
+        <div class="panel">
+          <div class="panel-label">exhausted — real PR comment, run 33255743087</div>
+          <pre class="code">Automated fixes were tried and verified locally, but none worked: used
+all 20 attempt(s) (proposed fixes and file reads combined), none passed
+verification. Last failure:
+...
+./app/mcp/tools.py:38:7: F821 undefined name 'MCPServer'
+mcp = MCPServer("pytbak")</pre>
+        </div>
+        <p style="margin-top:10px">Read that carefully: the constructor line <i>did</i> get renamed to <code class="inline">MCPServer(...)</code> — but flake8 says the name is undefined, meaning the import line the model had also correctly written was somehow not there. The model had the right idea four separate times. Something below it was throwing the fix away.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker wait">Bug anatomy</div>
+      <div class="step-head"><h3>apply_fix(): two edits to one file, and only the last one survives</h3></div>
+      <div class="step-body">
+        <p>The bug was in how multiple edits to the <i>same file</i> were applied. Each edit's replacement text was computed from a fresh <code class="inline">path.read_text()</code> — independently, against the file's <b>original</b> on-disk content — and only afterward were all the results written to disk, in edit order:</p>
+        <pre class="mermaid">
+sequenceDiagram
+    participant Loop as apply_fix() (before the fix)
+    participant Disk as app/mcp/tools.py
+
+    Note over Loop,Disk: Edit 1: import FastMCP -&gt; MCPServer
+    Loop-&gt;&gt;Disk: read_text() -- gets the ORIGINAL file
+    Loop-&gt;&gt;Loop: stage "content with import fixed"
+    Note over Loop,Disk: Edit 2: FastMCP(...) -&gt; MCPServer(...)
+    Loop-&gt;&gt;Disk: read_text() -- gets the ORIGINAL file AGAIN
+    Loop-&gt;&gt;Loop: stage "content with constructor fixed"
+    Note over Loop,Disk: Write phase, in edit order
+    Loop-&gt;&gt;Disk: write "content with import fixed"
+    Note right of Disk: import is now correct
+    Loop-&gt;&gt;Disk: write "content with constructor fixed"
+    Note right of Disk: OVERWRITES the previous write --<br/>import reverts to FastMCP,<br/>only the constructor line survives
+    Disk--&gt;&gt;Loop: flake8: F821 undefined name 'MCPServer'
+        </pre>
+        <p style="margin-top:14px">Both edits were individually valid — each anchor matched exactly once, each replacement was correct in isolation. The bug was purely in composition: nothing about the design anticipated two edits landing on the same path in one round. Since the new prompt guidance explicitly asks the model to batch a rename and its call site into the <i>same</i> round rather than discover them one at a time, this bug was not a rare edge case for #118 — it was the default outcome for the exact behavior the harness had just started asking for.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker pass">Fix 2</div>
+      <div class="step-head"><h3>Edits to the same file now compose</h3><span class="step-time"><a href="https://github.com/lorenzogirardi/ci-shared/pull/3">ci-shared#3</a></span></div>
+      <div class="step-body">
+        <p><code class="inline">apply_fix()</code> now reads each file once, applies every edit targeting it in order against the <i>running</i> in-memory content — so edit 2's anchor check and replacement both see edit 1's result — and writes each file exactly once at the end. Full diff in the <a href="#appendix">appendix</a>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker pass">3</div>
+      <div class="step-head"><h3>Iteration 3 — the same investigation, a fix that actually holds</h3><span class="step-time">rounds 1–15/20</span></div>
+      <div class="step-body">
+        <p>Round for round, the third run repeats the same disciplined exploration as the second — grep, read the real tools.py, list the package, read the real <code class="inline">mcp.server.mcpserver</code> and <code class="inline">mcp.server.mcpserver.server</code> modules, read <code class="inline">app/main.py</code>, grep for <code class="inline">streamable_http_app</code>'s definition. Round 8 proposes the identical three-edit fix from before — and this time it survives being written:</p>
+        <div class="panel">
+          <div class="panel-label">real log line — attempt 8/20, run 33256612361</div>
+          <pre class="code">autofix attempt 8/20: verify failed on app/mcp/tools.py, app/main.py</pre>
+        </div>
+        <p style="margin-top:10px">Verify still fails — but for the <i>real</i>, remaining reason this time: the test suite's own import of the old client-side name. <code class="inline">changed</code> now lists each file once, not once per edit — visible proof the composition fix landed. Rounds 9–13 investigate the client side (<code class="inline">list 'mcp/client'</code> → not found, <code class="inline">read 'mcp.client.streamable_http'</code>, <code class="inline">read 'tests/integration/test_mcp.py'</code>, <code class="inline">grep 'streamable_http_client'</code>, 14 hits). Round 14 fixes the test file alone and gets closer, but not there:</p>
+        <div class="panel">
+          <div class="panel-label">real log line — attempt 14/20</div>
+          <pre class="code">autofix attempt 14/20: verify failed on tests/integration/test_mcp.py</pre>
+        </div>
+        <p style="margin-top:10px">Round 15 — the model's fifteenth subprocess call, with all fourteen prior rounds' real outcomes in its prompt — finally proposes everything together: both application-code edits from round 8, plus the test-file rename, aliased so every call site needs no further touch:</p>
+        <div class="panel">
+          <div class="panel-label">real model reply — attempt 15/20 (edits array, abridged)</div>
+          <pre class="code nowrap">{
+  "explanation": "mcp 2.x renamed FastMCP to MCPServer (moving
+    streamable_http_path/stateless_http to streamable_http_app) and
+    renamed the client transport function streamablehttp_client to
+    streamable_http_client; fix both the app import/instantiation/
+    app-creation and the integration test import (via alias so call
+    sites need no touch).",
+  "edits": [
+    {"file": "app/mcp/tools.py", "find": "from mcp.server.fastmcp import FastMCP", ...},
+    {"file": "app/mcp/tools.py", "find": "mcp = FastMCP(\"pytbak\", ...", ...},
+    {"file": "app/main.py", "find": "        mcp_asgi_app = mcp_server.streamable_http_app()...", ...},
+    {"file": "tests/integration/test_mcp.py", "find": "from mcp.client.streamable_http import streamablehttp_client as streamable_http_client", ...}
+  ]
+}</pre>
+        </div>
+        <div class="panel">
+          <div class="panel-label">real log line — the merge-worthy round</div>
+          <pre class="code">autofix attempt 15/20: verify passed on app/mcp/tools.py, app/main.py, tests/integration/test_mcp.py
+autofix pushed: mcp 2.x renamed FastMCP to MCPServer (moving
+streamable_http_path/stateless_http to streamable_http_app) and renamed
+the client transport function streamablehttp_client to
+streamable_http_client; fix both the app import/instantiation/
+app-creation and the integration test import (via alias so call sites
+need no touch). (edited app/mcp/tools.py, app/main.py,
+tests/integration/test_mcp.py, verified locally in 15 attempt(s))</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-marker pass">4</div>
+      <div class="step-head"><h3>Real CI agrees, autonomous merge</h3><span class="step-time">14:30:16 UTC</span></div>
+      <div class="step-body">
+        <p><span class="chip pass">checks: success</span> <span class="chip pass">workflows: success</span> <span class="chip pass">review: success</span> — on commit <code class="inline">f8207bd</code>, the one the loop itself pushed and verified locally. The merge poll inside the same job that pushed it (90s default) wasn't long enough for GitHub's checks to register yet, so the comment briefly said "CI is failing — the next sweep will re-review"; the very next scheduled/triggered sweep run saw the now-green commit at its current head SHA (no dedup skip — the SHA had changed) and merged it.</p>
+        <div class="panel">
+          <div class="panel-label">real state — lorenzogirardi/flask-test-api#118</div>
+          <pre class="code">mergedAt:     2026-08-29T14:30:16Z
+mergeCommit:  feedddff24fe987acbc3f89b20e7be82508c8056
+pushedCommit: f8207bd843548bf61e10ecf6d557f3babdf2f195
+originalSha:  632bbde7ae94a6efba8cdfcb012efb66693617ee  (Renovate's own commit)</pre>
+        </div>
+        <p style="margin-top:10px">No human wrote a line of the application diff. Two humans (well — one human and one Claude Code session) wrote the two harness fixes in between, each verified against ci-shared's own 100+-test suite and a real GitHub Actions run before being trusted against #118 again.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="thesis">
+    <div class="thesis">
+      <span class="label">What this actually proves</span>
+      <p>The model was never the bottleneck. By round 8 of the very first real attempt after the parser fix, it had already correctly diagnosed both renamed symbols and written a defensible fix for each — the same diagnosis survived, unchanged in substance, across all three iterations. What blocked the merge twice was code that had nothing to do with language understanding: a regex that picked the wrong one of two JSON blocks, and a file-write loop that didn't compose two edits to the same path. Neither bug would ever surface from a single-edit, single-file dependency bump — they only appear once you ask the loop to do the more ambitious thing (batch a rename with its call site, recover from its own mid-reply correction), which is exactly the behavior the newer prompt guidance was written to encourage. Making autofix more capable and finding out where its own plumbing quietly breaks turned out to be the same afternoon's work.</p>
+    </div>
+  </section>
+
+  <section id="lessons">
+    <h2>5 · Five things worth keeping</h2>
+    <ul class="lessons">
+      <li>
+        <span class="n">01</span>
+        <span><b>A pure control-flow refactor is not a capability upgrade, and shouldn't be sold as one.</b> <span class="a">Rebuilding the loop on langgraph changed nothing about what it could fix — same prompt, same model, same tools. It only became more capable once the prompt itself changed (budget awareness, grep-after-rename) and once real bugs surfaced from actually running it.</span></span>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <span><b>"Verified against unit tests" and "verified against a real PR" are different claims.</b> <span class="a">122 passing tests certified that every pure function behaved as designed in isolation. Neither bug here was reachable by a unit test that didn't happen to script a self-correcting reply or two edits to the same file — both are exactly the kind of thing a real, adversarial-by-accident model reply finds for free.</span></span>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <span><b>A model catching its own mistake is only useful if the harness lets it act on the correction.</b> <span class="a">The very first reply of the whole story already contained the right answer, one paragraph after a wrong one. First-match parsing threw it away. Last-match parsing is the entire fix — the model didn't need to be told to grep more clearly, it needed to be listened to correctly.</span></span>
+      </li>
+      <li>
+        <span class="n">04</span>
+        <span><b>Encouraging a more ambitious behavior surfaces the bugs that behavior depends on.</b> <span class="a">The prompt change asking the model to batch rename-propagation edits into one round is what turned a latent, never-before-triggered <code class="inline">apply_fix()</code> bug into the actual thing blocking every single attempt of iteration 2. Better prompts don't just get better answers — they exercise more of the surrounding code.</span></span>
+      </li>
+      <li>
+        <span class="n">05</span>
+        <span><b>The dedup cache needed manual intervention, and that's a real gap, not a footnote.</b> <span class="a">Every iteration here required a human (or Claude, acting as one) to delete a stale PR comment by hand before the sweep would look at #118 again — the "already reviewed at this head SHA, verdict: ci-failure" cache has no notion of "the harness itself changed since this verdict was cached." A production version of this workflow needs that closed, not worked around by hand each time.</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <section id="appendix">
+    <h2>6 · Technical appendix</h2>
+
+    <h3 class="sub">The real AUTOFIX_SYSTEM prompt, current text</h3>
+    <p>Unchanged in most of its structure since PR #117; the two blocks below are new, added specifically because of what this session found:</p>
+    <div class="panel">
+      <div class="panel-label">AUTOFIX_SYSTEM — the rename-propagation addition</div>
+      <pre class="code nowrap">A renamed or removed symbol is often used in more than one place, and the
+error output only ever names the FIRST call site that broke -- the
+traceback stops there, it does not know about the others. Before you
+consider a rename-style fix finished, `grep` for the OLD symbol name
+across the repo once: if other call sites use it too, fix them in the
+SAME round (multiple edits are allowed) rather than discovering them
+one at a time across several rounds after each one fails verification
+in turn -- that costs rounds you don't get back, and running out
+mid-migration leaves the PR half-fixed instead of not-fixed.</pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">autofix_core.py — the per-round budget line (new, added to the user prompt)</div>
+      <pre class="code nowrap">def _budget_line(attempt_number: int, max_attempts: int) -&gt; str:
+    remaining = max_attempts - attempt_number
+    line = f"This is round {attempt_number} of {max_attempts} available."
+    if remaining &lt;= 2:
+        line += (
+            f" Only {remaining} round(s) left after this one -- if you have "
+            "enough to propose a concrete edit, do that now rather than "
+            "exploring further."
+        )
+    return line</pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">test_autofix_core.py — TestBudgetLine, all four cases</div>
+      <pre class="code nowrap">def test_states_the_round_and_total(self):
+    assert "round 1 of 20" in _budget_line(1, 20)
+
+def test_no_urgency_nudge_with_plenty_of_budget_left(self):
+    assert "left after this one" not in _budget_line(1, 20)
+
+def test_urgency_nudge_appears_when_budget_is_nearly_spent(self):
+    line = _budget_line(19, 20)
+    assert "1 round(s) left after this one" in line
+    assert "propose a concrete edit, do that now" in line
+
+def test_urgency_nudge_on_the_last_round(self):
+    assert "0 round(s) left after this one" in _budget_line(20, 20)</pre>
+    </div>
+    <p style="margin-top:8px"><span class="chip wait" style="margin-right:6px">Agent A</span>, <a href="https://github.com/lorenzogirardi/ci-shared/pull/1">ci-shared#1</a> — this one is a capability addition, not a bugfix, and it shows in the numbers: Agent B never needed the urgency nudge in either iteration 2 or 3, since the merge-worthy fix landed on round 15 of 20 both times, comfortably inside budget. Its value is insurance for a harder migration than this one, not something this specific run exercised.</p>
+
+    <h3 class="sub">Bug 1, the actual diff — last fenced block wins</h3>
+    <p><span class="chip fail" style="margin-right:6px">Agent A</span> found and fixed this after reading Agent B's own transcript.</p>
+    <div class="panel">
+      <div class="panel-label">pr_review_sweep.py — _parse_json_reply(), before -&gt; after</div>
+      <pre class="code nowrap"><span class="diffline-del">- match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)</span>
+<span class="diffline-del">- blob = match.group(1) if match else text.strip()</span>
+<span class="diffline-add">+ matches = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)</span>
+<span class="diffline-add">+ blob = matches[-1] if matches else text.strip()</span></pre>
+    </div>
+    <p><code class="inline">parse_fix()</code> had its own independent copy of the same first-match regex; it was deleted and replaced with a direct call to the fixed <code class="inline">_parse_json_reply()</code>, so both share one code path from now on.</p>
+    <div class="panel">
+      <div class="panel-label">test_autofix_core.py — TestSelfCorrectingReply, the test that pins this down</div>
+      <pre class="code nowrap">def test_grep_request_after_a_self_correction_is_recognized(self, monkeypatch):
+    reply = (
+        '```json\n{"explanation": "wrong tool", "edits": '
+        '[{"file": "repo", "find": "FastMCP", "replace": "__GREP_ONLY__"}]}\n```\n\n'
+        "Wait, that's wrong -- grep is a separate tool, not an edit. "
+        "Let me issue it correctly:\n\n"
+        '```json\n{"grep": "FastMCP"}\n```'
+    )
+    assert autofix_core.parse_grep_request(reply) == "FastMCP"
+    assert autofix_core.parse_fix(reply) is None  # the edits shape is not what wins</pre>
+    </div>
+    <p style="margin-top:8px">Notice the test's <code class="inline">reply</code> string is not a hypothetical — it is Agent B's <i>actual</i> round-1 message from run 33252565927, copied verbatim into the test suite. A second test in the same class (<code class="inline">test_full_graph_follows_the_corrected_request_not_the_abandoned_one</code>) runs the whole graph against it end to end and asserts the outcome never touches a file named <code class="inline">"repo"</code>.</p>
+
+    <h3 class="sub">Bug 1, the retry-instead-of-terminal change</h3>
+    <p><span class="chip fail" style="margin-right:6px">Agent A</span> shipped alongside the parser fix, in the same <a href="https://github.com/lorenzogirardi/ci-shared/pull/2">ci-shared#2</a>.</p>
+    <div class="panel">
+      <div class="panel-label">autofix_core.py — apply_and_verify(), the apply_fix()-error branch</div>
+      <pre class="code nowrap"><span class="cmt"># before: any apply_fix() error ended the whole PR attempt immediately</span>
+<span class="diffline-del">- if error:</span>
+<span class="diffline-del">-     return {"route": "give_up", "outcome": "rejected", "detail": error}</span>
+
+<span class="cmt"># after: recoverable, same as a failed verify -- fed back, retried</span>
+<span class="diffline-add">+ if error:</span>
+<span class="diffline-add">+     history = state["history"] + [</span>
+<span class="diffline-add">+         f"Round {attempt}: you proposed editing {edits[0]['file']!r}, "</span>
+<span class="diffline-add">+         f"but that failed: {error}"</span>
+<span class="diffline-add">+     ]</span>
+<span class="diffline-add">+     return {"route": "retry", "history": history}</span></pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">test_autofix_core.py — the test that proves it retries, not gives up</div>
+      <pre class="code nowrap">def test_invalid_edit_target_does_not_burn_a_verify_but_does_retry(self, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    calls = {"verify": 0}
+    monkeypatch.setattr(autofix_core, "run_verify",
+        lambda c, t: calls.__setitem__("verify", calls["verify"] + 1) or (True, ""))
+    seen_prompts = []
+
+    def fake(args, system_file, user_path, number):
+        seen_prompts.append(pathlib.Path(user_path).read_text())
+        return None if len(seen_prompts) &gt; 1 else _fix_reply(
+            [{"file": "does-not-exist.txt", "find": "a", "replace": "b"}]
+        )
+
+    monkeypatch.setattr(autofix_core, "_call_model", fake)
+    result = run_autofix_graph(**_common_kwargs())
+
+    assert calls["verify"] == 0             # the bad edit never reached run_verify
+    assert result["outcome"] == "skipped"   # round 2's model call returned None
+    assert "does-not-exist.txt" in seen_prompts[1]  # round 2 saw round 1's real error
+    assert "does not exist" in seen_prompts[1]</pre>
+    </div>
+    <p style="margin-top:8px">A companion test, <code class="inline">test_recovers_from_a_bad_edit_and_still_reaches_ready</code>, scripts a bad edit on round 1 followed by a good one on round 2 and asserts the graph reaches <code class="inline">outcome == "ready"</code> — proving the retry isn't just non-fatal, it's actually usable by a following round.</p>
+
+    <h3 class="sub">Bug 2, the actual diff — same-file edits compose</h3>
+    <p><span class="chip fail" style="margin-right:6px">Agent A</span> found this by reading Agent B's identical, repeatedly-failing edit across rounds 8, 11, 14, 16, 18, 19, and 20 of run 33255743087.</p>
+    <div class="panel">
+      <div class="panel-label">pr_review_sweep.py — apply_fix(), before</div>
+      <pre class="code nowrap">staged: list[tuple[pathlib.Path, str]] = []
+for edit in edits:
+    path = pathlib.Path(edit["file"])
+    if not path.is_file():
+        return [], f"{edit['file']} does not exist"
+    content = path.read_text()                     <span class="cmt"># ALWAYS the original file</span>
+    occurrences = content.count(edit["find"])
+    if occurrences != 1:
+        return [], f"{edit['file']}: anchor appears {occurrences} times, expected exactly 1"
+    staged.append((path, content.replace(edit["find"], edit["replace"], 1)))
+
+for path, content in staged:                        <span class="cmt"># same path can appear twice --</span>
+    path.write_text(content)                        <span class="cmt"># the SECOND write wins, silently</span>
+return [str(p) for p, _ in staged], None</pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">pr_review_sweep.py — apply_fix(), after</div>
+      <pre class="code nowrap">order: list[pathlib.Path] = []
+contents: dict[pathlib.Path, str] = {}
+for edit in edits:
+    path = pathlib.Path(edit["file"])
+    if path not in contents:
+        if not path.is_file():
+            return [], f"{edit['file']} does not exist"
+        contents[path] = path.read_text()           <span class="cmt"># read ONCE per file</span>
+        order.append(path)
+    content = contents[path]                         <span class="cmt"># each edit sees the</span>
+    occurrences = content.count(edit["find"])        <span class="cmt"># PREVIOUS edit's result</span>
+    if occurrences != 1:
+        return [], f"{edit['file']}: anchor appears {occurrences} times, expected exactly 1"
+    contents[path] = content.replace(edit["find"], edit["replace"], 1)
+
+for path in order:                                   <span class="cmt"># each file written exactly once</span>
+    path.write_text(contents[path])
+return [str(p) for p in order], None</pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">test_pr_review_sweep.py — the test that reproduces the exact incident</div>
+      <pre class="code nowrap">def test_two_edits_to_the_same_file_both_survive(self, tmp_path, monkeypatch):
+    """Real incident, found running against flask-test-api PR #118: a
+    renamed import plus the renamed constructor call it enables, both in
+    the same file, in the same round..."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "tools.py").write_text(
+        "from mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(\"pytbak\")\n"
+    )
+    changed, error = apply_fix([
+        {"file": "tools.py", "find": "from mcp.server.fastmcp import FastMCP",
+         "replace": "from mcp.server.mcpserver import MCPServer"},
+        {"file": "tools.py", "find": 'mcp = FastMCP("pytbak")',
+         "replace": 'mcp = MCPServer("pytbak")'},
+    ])
+    assert error is None
+    assert changed == ["tools.py"]  # one file touched, not one entry per edit
+    assert (tmp_path / "tools.py").read_text() == (
+        "from mcp.server.mcpserver import MCPServer\n\nmcp = MCPServer(\"pytbak\")\n"
+    )</pre>
+    </div>
+    <p style="margin-top:8px">This test's two edits are literally the first two edits from Agent B's real round-8 reply, minimized to a two-line fixture. A second test, <code class="inline">test_second_edit_to_a_file_is_checked_against_the_first_edits_result</code>, locks in the other half of the contract: an anchor that only becomes ambiguous <i>because</i> of an earlier edit in the same batch must still be caught, not missed by checking against stale original content.</p>
+    <p style="margin-top:8px"><span class="chip pass" style="margin-right:6px">Agent C</span> is what actually closed the loop on this bug in production: <a href="https://github.com/lorenzogirardi/ci-shared/pull/3">ci-shared#3</a>'s own <code class="inline">test.yml</code> run (127 tests, including the two above) went green before merge; then, back in <code class="inline">flask-test-api</code>, the real <code class="inline">checks</code>/<code class="inline">workflows</code>/<code class="inline">review</code> check-runs on commit <code class="inline">f8207bd</code> — Agent B's actual pushed fix — went green too. Two separate real test runs, two different repos, one bug.</p>
+
+    <h3 class="sub">The file, as Renovate left it (unchanged across all three iterations)</h3>
+    <div class="panel">
+      <div class="panel-label">app/mcp/tools.py, lines 11–38</div>
+      <pre class="code nowrap">from __future__ import annotations
+
+import functools
+from collections.abc import Awaitable, Callable
+
+from fastapi import HTTPException
+from mcp.server.fastmcp import FastMCP
+from pydantic import ValidationError
+...
+mcp = FastMCP("pytbak", streamable_http_path="/", stateless_http=True)</pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">app/main.py, the ASGI mount (lines 76–93, abridged)</div>
+      <pre class="code nowrap">mcp_server = None
+mcp_asgi_app = None
+if settings.mcp_enabled:
+    from app.mcp.tools import mcp as mcp_server
+
+    mcp_asgi_app = mcp_server.streamable_http_app()  # lazily creates session_manager
+...
+    app.mount("/api/mcp", MCPBasicAuthMiddleware(mcp_asgi_app))</pre>
+    </div>
+
+    <h3 class="sub">The full round-by-round log, iteration 3 (the one that merged)</h3>
+    <div class="panel">
+      <div class="panel-label">real, unedited log summary — run 33256612361</div>
+      <pre class="code nowrap">attempt  1: grep 'FastMCP' (30 matches)
+attempt  2: read 'app/mcp/tools.py'
+attempt  3: list 'app/mcp'
+attempt  4: read 'mcp.server.mcpserver'
+attempt  5: read 'mcp.server.mcpserver.server'
+attempt  6: read 'app/main.py'
+attempt  7: grep 'def streamable_http_app' (4 matches)
+attempt  8: EDIT (tools.py import + ctor, main.py mount)  -&gt; verify FAILED
+attempt  9: list 'mcp/client' (not found)
+attempt 10: read 'mcp.client.streamable_http'
+attempt 11: read 'tests/integration/test_mcp.py'
+attempt 12: read 'mcp.client'
+attempt 13: grep 'streamable_http_client' (14 matches)
+attempt 14: EDIT (test file client rename only)           -&gt; verify FAILED
+attempt 15: EDIT (all four edits together)                 -&gt; verify PASSED, pushed</pre>
+    </div>
+
+    <h3 class="sub">Traceable, for anyone who wants to re-check this</h3>
+    <table class="runs">
+      <tr><th>What</th><th>Value</th></tr>
+      <tr><td>ci-shared feat PR — langgraph rebuild</td><td><a href="https://github.com/lorenzogirardi/ci-shared/pull/1">ci-shared#1</a>, merged <span class="mono">4c68e84</span></td></tr>
+      <tr><td>ci-shared fix PR — parser + retry</td><td><a href="https://github.com/lorenzogirardi/ci-shared/pull/2">ci-shared#2</a>, merged <span class="mono">f8e0868</span>, 13:42:51Z</td></tr>
+      <tr><td>ci-shared fix PR — apply_fix composition</td><td><a href="https://github.com/lorenzogirardi/ci-shared/pull/3">ci-shared#3</a>, merged <span class="mono">eb19afb</span>, 14:03:44Z</td></tr>
+      <tr><td>Sweep run — bug 1 exposed</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33252565927">33252565927</a></td></tr>
+      <tr><td>Sweep run — bug 2 exposed, 20/20 exhausted</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33255743087">33255743087</a></td></tr>
+      <tr><td>Sweep run — pushed the real fix</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33256612361">33256612361</a></td></tr>
+      <tr><td>Sweep run — merged</td><td><a href="https://github.com/lorenzogirardi/flask-test-api/actions/runs/33257724332">33257724332</a></td></tr>
+      <tr><td>Renovate's original commit</td><td class="mono">632bbde7ae94a6efba8cdfcb012efb66693617ee</td></tr>
+      <tr><td>The pushed fix commit</td><td class="mono">f8207bd843548bf61e10ecf6d557f3babdf2f195</td></tr>
+      <tr><td>The merge commit</td><td class="mono">feedddff24fe987acbc3f89b20e7be82508c8056</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    <span>lorenzogirardi/flask-test-api · ci-shared/autofix_core.py</span>
+    <span>Transcribed from the real logs of the run on August 29, 2026 — no invented dialogue.</span>
+  </footer>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+</script>
+</body>
+</html>

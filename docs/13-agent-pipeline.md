@@ -179,6 +179,6 @@ changelog is out of its scope.
   job. CI-only tests (the integration suite needs PostgreSQL and Redis) come back
   "unreproducible" and are judged on their log and the stated intent.
 - The direct-push mode can only react after the push; it cannot stop it.
-  Checks that fail on `main` itself are handled by `ai-autofix-main`.
+  Checks that fail on `main` itself are handled by `agent-main-guard.yml` (re-run once, then revert and redo).
 - `reusable_agent-review.yml` (reviewers only, no fixes) exists in `ci-shared`
   but is not wired to a trigger here.

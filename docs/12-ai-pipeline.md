@@ -1,6 +1,8 @@
 # AI Pipeline (GitHub Actions + OpenRouter)
 
-> **Superseded in part.** `ai-review.yml` was removed: every non-Renovate PR, and every direct push to `main`, now goes through `agent-change.yml`. The sweep is back to Renovate PRs only. The sections below that describe `ai-review.yml` or "Autofix now covers the owner's own PRs too" describe the previous setup.
+> **Superseded in part.** The `ai-autofix-main` job (a PR to repair a red `main`) was removed: a red `main` is now taken back to the last green state by `agent-main-guard.yml` and the change is redone by the agent pipeline, so two systems no longer react to the same failure. The sweep's CI repair uses the same engine as everything else.
+>
+> **Also superseded.** `ai-review.yml` was removed: every non-Renovate PR, and every direct push to `main`, now goes through `agent-change.yml`. The sweep is back to Renovate PRs only. The sections below that describe `ai-review.yml` or "Autofix now covers the owner's own PRs too" describe the previous setup.
 >
 > The role-based agent pipeline (planner, writer, reviewers, changelog, docs architect) and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md).
 
@@ -25,7 +27,7 @@ any OpenAI-compatible chat-completions endpoint.
 | 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews and pushes fixes to the PR branch; never merges (see [13](13-agent-pipeline.md)) |
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
-| 5 | Self-repair on a direct push to `main` | `pipeline.yml` → `ai-autofix-main` job | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
+| 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (revert + redo) | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
 | 6 | Automatic issue triage | `issue-triage.yml` | `issues` (opened), `bug`-labeled | No — labels/comment only |
 | 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
 
@@ -323,7 +325,7 @@ call) is **not** gated by this variable and always runs.
 | `agent-change.yml` | `contents: read`, `pull-requests: write` (+ `AUTOFIX_PUSH_TOKEN` in the publish step only) | review comment, fix commits on the PR branch |
 | `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
 | `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
-| `pipeline.yml` (`ai-autofix-main`) | `contents: write`, `pull-requests: write` | push a new branch + open a PR |
+| `agent-main-guard.yml` | `contents: read`, `actions: write` (+ `AUTOFIX_PUSH_TOKEN` to revert) | re-run a failed job once; revert the culprit |
 | `issue-triage.yml` | `issues: write`, `contents: read` | labels + comment |
 | `release-notes.yml` | `contents: read`, `pull-requests: write` | post comment |
 

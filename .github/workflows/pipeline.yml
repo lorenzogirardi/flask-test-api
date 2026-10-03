@@ -9,7 +9,6 @@ permissions:
   contents: write
   security-events: write
   actions: read
-  pull-requests: write  # ai-autofix-main opens a PR when a push to main breaks CI
 
 jobs:
   build:
@@ -366,53 +365,3 @@ jobs:
       openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
     secrets:
       openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
-
-  # A push straight to main (not a PR) broke CI: ai-analysis above only
-  # reports on that, it never fixes it. This opens a NEW PR with a verified
-  # fix instead -- never a direct push to main -- so the same pr-checks.yml
-  # gate any other change goes through also gates this one. See
-  # ci-shared/docs/architecture.md for why a PR, not a direct push.
-  ai-autofix-main:
-    needs: [build, docker, security-gate-trivy, docker-sbom, quality-gate, modifygit, k8s-check]
-    # Only code-level gates: verify_command (lint, tests, smoke) can reproduce
-    # build/quality-gate failures. Trivy CVEs, checkov rules, registry or
-    # cluster flakes (docker, security-gate-trivy, docker-sbom, modifygit,
-    # k8s-check) are not fixable by editing app code, so they must not trigger it.
-    if: >-
-      always() && vars.AI_ENABLED == 'true' &&
-      (needs.build.result == 'failure' || needs.quality-gate.result == 'failure')
-    permissions:
-      contents: write
-      pull-requests: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_main-autofix.yml@v2
-    with:
-      base_branch: main
-      python_version: "3.14"
-      # Mirrors pr-checks.yml's own steps (Resolve dependencies, Install,
-      # Lint, Tests, Smoke-test) -- same rationale as ai-review-sweep.yml's
-      # verify_command: a local pass here should mean the same thing a real
-      # pr-checks pass on the resulting PR would.
-      verify_command: |
-        set -euo pipefail
-        pip install --dry-run -r requirements.txt
-        pip install -q -r requirements.txt
-        pip install -q flake8 pytest
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        pytest tests/ -v
-        uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-        UVICORN_PID=$!
-        trap 'kill $UVICORN_PID 2>/dev/null || true' EXIT
-        for i in $(seq 1 30); do
-          curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready && exit 0
-          sleep 1
-        done
-        echo "app never returned 2xx on /api/mgmt/ready" >&2
-        exit 1
-      max_autofix_attempts: 20
-      openrouter_model: ${{ vars.OPENROUTER_MODEL }}
-      openrouter_endpoint: ${{ vars.OPENROUTER_ENDPOINT }}
-      openrouter_site_url: ${{ vars.OPENROUTER_SITE_URL }}
-      openrouter_app_name: ${{ vars.OPENROUTER_APP_NAME }}
-    secrets:
-      openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
-      autofix_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}
