@@ -86,6 +86,73 @@ jobs:
           curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/health
           curl -sf -o /dev/null http://127.0.0.1:8000/metrics
 
+  integration:
+    # The integration suite against the real backends. It used to be skipped
+    # everywhere (it needs a live service), so it rotted unnoticed and a broken
+    # /api/mgmt/mappings reached main. This is the gate that catches that class
+    # of defect before merge; the in-memory suite above cannot see it.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: pytbak
+          POSTGRES_PASSWORD: pytbak
+          POSTGRES_DB: pytbak
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pytbak" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Start the app against PostgreSQL and Redis
+        env:
+          APP_ENV: development
+          DATABASE_URL: postgresql+asyncpg://pytbak:pytbak@localhost:5432/pytbak
+          REDIS_URL: redis://localhost:6379/0
+          PROMETHEUS_ENABLED: "true"
+          DEBUG_ENDPOINTS_ENABLED: "true"
+          MCP_ENABLED: "true"
+          ERROR_INJECTION_ENABLED: "true"
+          DIAG_USERNAME: admin
+          DIAG_PASSWORD: password
+        run: |
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > app.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8000/api/mgmt/ready; then
+              echo "app is serving"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::app never returned 2xx on /api/mgmt/ready"
+          cat app.log
+          exit 1
+
+      - name: Integration tests
+        run: pytest tests/integration -v
+
+      - name: App log on failure
+        if: failure()
+        run: cat app.log
+
   workflows:
     runs-on: ubuntu-latest
     steps:

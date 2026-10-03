@@ -37,7 +37,16 @@ async def test_env(client):
 async def test_mappings(client):
     resp = await client.get("/api/mgmt/mappings")
     assert resp.status_code == 200
-    assert "mappings" in resp.json()
+    mappings = resp.json()["mappings"]
+    paths = [m["path"] for m in mappings]
+    # Every entry is a real path, never the repr of an internal router object.
+    assert all(isinstance(p, str) and p.startswith("/") for p in paths), paths
+    assert "_IncludedRouter" not in resp.text
+    # The routes of every included router are listed with their methods.
+    for expected in ("/api/contexts", "/api/mgmt/health", "/api/fib/{x}"):
+        assert expected in paths, f"{expected} missing from {paths}"
+    methods = {m for entry in mappings if entry["path"] == "/api/contexts" for m in entry["methods"]}
+    assert {"GET", "POST"} <= methods
 
 
 @pytest.mark.anyio

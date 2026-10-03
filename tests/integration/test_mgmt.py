@@ -3,17 +3,15 @@
 import pytest
 
 
-@pytest.mark.anyio
-async def test_ready(client):
-    resp = await client.get("/api/mgmt/ready")
+def test_ready(client):
+    resp = client.get("/api/mgmt/ready")
     assert resp.status_code == 200
     assert resp.json()["status"] == "READY"
 
 
-@pytest.mark.anyio
-async def test_health_backends_up(client):
+def test_health_backends_up(client):
     """Both PostgreSQL and Redis must report UP (not just NOT_CONFIGURED)."""
-    resp = await client.get("/api/mgmt/health")
+    resp = client.get("/api/mgmt/health")
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "UP"
@@ -22,9 +20,8 @@ async def test_health_backends_up(client):
     assert by_name.get("postgresql") == "UP", f"PostgreSQL not UP: {by_name}"
 
 
-@pytest.mark.anyio
-async def test_info(client):
-    resp = await client.get("/api/mgmt/info")
+def test_info(client):
+    resp = client.get("/api/mgmt/info")
     assert resp.status_code == 200
     app = resp.json()["app"]
     assert app["name"] == "pytbak"
@@ -32,9 +29,8 @@ async def test_info(client):
     assert app["environment"] == "development"
 
 
-@pytest.mark.anyio
-async def test_mappings_non_empty(client):
-    resp = await client.get("/api/mgmt/mappings")
+def test_mappings_non_empty(client):
+    resp = client.get("/api/mgmt/mappings")
     assert resp.status_code == 200
     mappings = resp.json()["mappings"]
     paths = [m["path"] for m in mappings]

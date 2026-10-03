@@ -13,9 +13,14 @@ Entries are added automatically on every merge to the default branch.
 - Deterministic changelog workflow (`changelog.yml`): one entry per push to `main`, no model involved.
 - Documentation architect (`docs-architect.yml`): a plan-only Diataxis proposal for the documentation; it changes no document.
 - `ai-autofix-main`: when `build` or `quality-gate` fails on a push to `main`, an automated fix is proposed as a pull request.
+- `tests/k8s/stack.yaml`: the throwaway app + PostgreSQL + Redis stack used by `k8s-check`.
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
 - The AI review sweep is limited to Renovate PRs again; all other PRs go through `agent-change.yml`.
 - Removed `ai-review.yml`: its single-reviewer comment is replaced by the two independent reviewers of `agent-change.yml`.
 - `modifygit` no longer sets a `GITHUB_TOKEN` env that had no effect on its push.
+- The integration suite (`tests/integration`) now runs in `PR Checks` (job `integration`, PostgreSQL and Redis as services) and in `k8s-check` against the deployed image in kind with real PostgreSQL and Redis. It was skipped on every CI run and had rotted (14 failures, 18 errors); its HTTP tests are now synchronous.
+
+### Fixed
+- `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.

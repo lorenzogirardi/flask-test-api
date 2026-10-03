@@ -279,14 +279,17 @@ jobs:
       - run: |
           kubectl cluster-info
           kubectl get nodes
-      - name : Preparing cluster for kube-check
+      - name: Deploy the stack (app image + PostgreSQL + Redis)
+        # Real backends, not the in-memory fallback: the integration suite below
+        # is only meaningful against the same dependencies production uses.
         run: |
-          kubectl run kube-check --image=lgirardi/pytbak:${{ needs.build.outputs.image_tag }} --port=8000
-          sleep 20
-          kubectl get po
-          kubectl port-forward kube-check 8000:8000 &>/dev/null &
-          sleep 5
-          kubectl port-forward kube-check 8000:8000 &>/dev/null &
+          sed "s#IMAGE_PLACEHOLDER#lgirardi/pytbak:${{ needs.build.outputs.image_tag }}#" tests/k8s/stack.yaml | kubectl apply -f -
+          # A stack that never becomes ready is reported by the probe step below,
+          # with the pod description and logs, rather than by a bare timeout here.
+          kubectl wait --for=condition=available deployment --all --timeout=240s || true
+          kubectl get po -o wide
+          kubectl port-forward deploy/pytbak 8000:8000 &>/dev/null &
+          sleep 3
       - name: Probe the deployed app
         run: |
           set +e
@@ -301,18 +304,38 @@ jobs:
           {
             echo "final HTTP code: ${code}"
             kubectl get po -o wide 2>&1
-            kubectl describe po kube-check 2>&1
+            kubectl describe po -l app=pytbak 2>&1
+            echo "-- app logs --"
+            kubectl logs deploy/pytbak --tail=100 2>&1
           } >> k8s-probe.txt
           if [[ ! "$code" =~ ^2 ]]; then
             echo "::error::app did not return 2xx on readiness within retry budget (got ${code})"
             exit 1
           fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Integration tests against the deployed stack
+        # tests/integration used to be skipped on every CI run (no live service),
+        # and rotted: it was found 14 failed + 18 errors, plus a real bug in
+        # /api/mgmt/mappings that the in-memory layer cannot see.
+        run: |
+          set +e
+          pip install -q -r requirements.txt pytest
+          pytest tests/integration -v 2>&1 | tee integration.txt
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            { echo "-- app logs at failure --"; kubectl logs deploy/pytbak --tail=100 2>&1; } >> integration.txt
+          fi
+          exit "$status"
       - name: Upload AI context (k8s probe)
         if: always() && vars.AI_ENABLED == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ai-context-k8s
-          path: k8s-probe.txt
+          path: |
+            k8s-probe.txt
+            integration.txt
           if-no-files-found: ignore
           include-hidden-files: true
           retention-days: 1

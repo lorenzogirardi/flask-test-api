@@ -23,13 +23,18 @@ def live_service() -> str:
     return _BASE_URL
 
 
+# Synchronous on purpose. These tests make real network calls and need no event
+# loop of their own; with an async fixture, httpx closed its connections after
+# anyio had already closed the loop and every test errored in teardown
+# ("Event loop is closed") -- which went unnoticed because CI always skipped
+# this suite. Only test_mcp.py needs async (the MCP SDK client is async).
 @pytest.fixture
-async def client(live_service: str):
-    async with httpx.AsyncClient(base_url=live_service, timeout=10) as c:
+def client(live_service: str):
+    with httpx.Client(base_url=live_service, timeout=10) as c:
         yield c
 
 
 @pytest.fixture
-async def auth_client(live_service: str):
-    async with httpx.AsyncClient(base_url=live_service, timeout=10, auth=_AUTH) as c:
+def auth_client(live_service: str):
+    with httpx.Client(base_url=live_service, timeout=10, auth=_AUTH) as c:
         yield c

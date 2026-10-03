@@ -56,17 +56,30 @@ async def app_env():
     return {k: v for k, v in os.environ.items() if k in safe_vars}
 
 
+def _flatten_routes(routes, prefix: str = ""):
+    """Yield one entry per real route.
+
+    Recent FastAPI versions keep an included router as a single wrapper object
+    (it has no ``path``) instead of splicing its routes into ``app.routes``, so
+    the wrapper has to be unwrapped or it is reported as the repr of an
+    internal object.
+    """
+    for route in routes:
+        inner = getattr(route, "original_router", None)
+        if inner is not None:
+            context = getattr(route, "include_context", None)
+            yield from _flatten_routes(inner.routes, prefix + (getattr(context, "prefix", "") or ""))
+        elif hasattr(route, "path"):
+            yield {
+                "path": prefix + route.path,
+                "methods": sorted(getattr(route, "methods", None) or []),
+                "name": getattr(route, "name", None),
+            }
+
+
 @router.get("/mappings", summary="All URL route mappings")
 async def app_mappings(request: Request):
-    routes = []
-    for route in request.app.routes:
-        info = {
-            "path": getattr(route, "path", str(route)),
-            "methods": sorted(getattr(route, "methods", set())),
-            "name": getattr(route, "name", None),
-        }
-        routes.append(info)
-    return {"mappings": routes}
+    return {"mappings": list(_flatten_routes(request.app.routes))}
 
 
 @router.get(
