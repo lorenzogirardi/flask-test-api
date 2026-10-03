@@ -195,6 +195,13 @@ class RedisBackend:
             return await redis_op_with_retry(lambda: r.incr(key))
         return None
 
+    async def get_value(self, key: str) -> str | None:
+        """Read a raw Redis value without mutating it (used to warm the connection)."""
+        r = get_redis()
+        if r:
+            return await redis_op_with_retry(lambda: r.get(key))
+        return None
+
 
 # ── StorageService ─────────────────────────────────────────────────────────────
 
@@ -342,6 +349,13 @@ async def redis_incr(key: str) -> int | None:
     if not _service._redis.is_available():
         return None
     return await _service._redis.incr(key)
+
+
+async def redis_get(key: str) -> str | None:
+    """Read a Redis value without mutating it. Returns None if Redis unavailable."""
+    if not _service._redis.is_available():
+        return None
+    return await _service._redis.get_value(key)
 
 
 def reset_memory_store() -> None:
