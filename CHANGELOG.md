@@ -27,6 +27,7 @@ Entries are added automatically on every merge to the default branch.
 - `modifygit` no longer sets a `GITHUB_TOKEN` env that had no effect on its push.
 - The integration suite (`tests/integration`) now runs in `PR Checks` (job `integration`, PostgreSQL and Redis as services) and in `k8s-check` against the deployed image in kind with real PostgreSQL and Redis. It was skipped on every CI run and had rotted (14 failures, 18 errors); its HTTP tests are now synchronous.
 - A change that does not converge is retried once with twice the budget and then abandoned (labelled, commented, the agent's own PR closed); no outcome waits for a person.
+- Fix(ci): grant actions: read to agent-change.yml (pipeline red) ([`ecbedbd`](https://github.com/lorenzogirardi/flask-test-api/commit/ecbedbd))
 
 ### Fixed
 - `/api/mgmt/mappings` reported included routers as the repr of an internal FastAPI object (`_IncludedRouter(...)`, 63 KB) instead of their routes; the unit test only checked that the key existed.
