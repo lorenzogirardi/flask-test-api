@@ -72,6 +72,7 @@ jobs:
       # A blocking finding is not a stop sign: it goes to the writer loop and is pushed if it
       # converges; what cannot be fixed is abandoned (labelled, commented, closed).
       fix_findings: true
+      workflow_prs_to_bot: true
       max_autofix_commits: 3
       merge_method: squash
       # The job names from pr-checks.yml. Without this the gate only asks that
