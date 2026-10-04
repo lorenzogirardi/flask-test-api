@@ -41,6 +41,7 @@ Entries are added automatically on every merge to the default branch.
 - Simplify the fibonacci loop ([#168](https://github.com/lorenzogirardi/flask-test-api/pull/168))
 - Update actions/setup-python action to v7 ([#164](https://github.com/lorenzogirardi/flask-test-api/pull/164))
 - Warm the Redis connection before counting ([#171](https://github.com/lorenzogirardi/flask-test-api/pull/171))
+- Leave workflow PRs to Renovate, abandon red ones ([#172](https://github.com/lorenzogirardi/flask-test-api/pull/172))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
