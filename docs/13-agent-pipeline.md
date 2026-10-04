@@ -14,7 +14,7 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 | Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
 | `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
-| Renovate PRs | `ai-review-sweep.yml` | Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the two reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. PRs that touch `.github/workflows/` are merged by Renovate itself (the agent token cannot). |
+| Renovate PRs | `ai-review-sweep.yml` | Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the two reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. A PR that touches `.github/workflows/` is not reviewed or repaired (the agent token has no `workflow` scope): Renovate merges it itself once the required checks pass, and if those checks are red on current code it is labelled `agent-abandoned` and closed, so no one waits on it. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
 
 Two guards stop loops and noise: every commit the pipeline makes has the author
@@ -65,7 +65,7 @@ hours**: that circuit breaker also stops automatic merging until they age out.
 
 **Limits that no code removes.** Changes to `.github/workflows/` are outside the
 agent's scope (its token has no `workflow` scope, and GitHub rejects the push), so
-a person who edits CI merges their own change. And the guarantee is only as strong
+a person who edits CI merges their own change; for Renovate's workflow bumps, Renovate merges them and a red one is abandoned. And the guarantee is only as strong
 as the checks: a defect none of them sees will merge, and the revert is what limits
 the damage. A spending cap belongs on the OpenRouter key itself.
 
