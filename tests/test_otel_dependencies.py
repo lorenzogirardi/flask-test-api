@@ -53,6 +53,19 @@ def test_otel_sdk_and_instrumentation_share_a_release_train():
         "trains; pip will be unable to resolve the semantic-conventions pin"
     )
 
+    # The instrumentation patch suffix (the ``N`` in ``0.XbN``) must match the
+    # SDK patch version, because both sides pin a different
+    # ``opentelemetry-semantic-conventions`` release: the SDK picks
+    # ``0.XbN`` from its own version and the instrumentation package must pin
+    # exactly the same one (1.45.1 <-> 0.66b1, 1.45.0 <-> 0.66b0, ...).
+    sdk_patch = sdk_version.split(".")[2]
+    assert instrumentation_match.group(2) == sdk_patch, (
+        "opentelemetry-sdk "
+        f"{sdk_version} and opentelemetry-instrumentation-fastapi "
+        f"{instrumentation_version} pin different opentelemetry-semantic-"
+        "conventions releases; pip will fail with ResolutionImpossible"
+    )
+
 
 def test_otel_api_and_sdk_are_pinned_to_the_same_version():
     assert _pinned_version("opentelemetry-api") == _pinned_version("opentelemetry-sdk")
