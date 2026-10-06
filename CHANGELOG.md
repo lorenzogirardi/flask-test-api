@@ -44,6 +44,7 @@ Entries are added automatically on every merge to the default branch.
 - Leave workflow PRs to Renovate, abandon red ones ([#172](https://github.com/lorenzogirardi/flask-test-api/pull/172))
 - Update bridgecrewio/checkov-action action to v12.3129.0 ([#173](https://github.com/lorenzogirardi/flask-test-api/pull/173))
 - Update step-security/harden-runner action to v2.22.0 ([#174](https://github.com/lorenzogirardi/flask-test-api/pull/174))
+- Update helm/kind-action action to v1.15.1 ([#175](https://github.com/lorenzogirardi/flask-test-api/pull/175))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
