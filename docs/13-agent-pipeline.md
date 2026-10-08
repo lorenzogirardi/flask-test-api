@@ -1,6 +1,6 @@
 # Agent pipeline (ci-shared v2)
 
-Role-based agents that take an issue to a reviewable pull request, plus a
+Role-based agents that review, repair, certify and merge every pull request, plus a
 changelog step and a documentation architect. The roles and the code that acts
 on their output live in `ci-shared` (tag `v2`), so other repositories can reuse
 them. This repository only wires them up. For the older single-purpose AI
@@ -10,7 +10,6 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 
 | Change | Workflow | What happens |
 |---|---|---|
-| Issue labelled `agent` (or run by hand) | `agent-pipeline.yml` | Full pipeline from the request: planner, writer, checks, reviewers, fix loop, final review, docs, changelog, PR. |
 | Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
 | `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
@@ -95,8 +94,8 @@ Every change ends in one of three ways, and none waits for a person:
 | End | When | What the system does |
 |---|---|---|
 | **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
-| **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. An issue gets a comment with the reason. The base branch is untouched |
-| **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` takes `main` back to the last green state (every change since the last green run, in one commit; the pipeline's bookkeeping commits are left alone) and opens an issue labelled `agent`, so the pipeline redoes it knowing why it broke |
+| **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. The base branch is untouched |
+| **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` takes `main` back to the last green state (every change since the last green run, in one commit; the pipeline's bookkeeping commits are left alone) and says so, with the failure, on the pull request each change came from (label `agent-reverted`). No issue is opened: reverted is where the change ends, and a new pull request starts a new attempt |
 
 **Certification** is a comment by the agent account carrying
 `<!-- agent-certified: <sha> -->` for exactly the head commit. A new push changes
@@ -145,18 +144,9 @@ does not test it).
 Failures that are not test failures (lint, collection errors) go straight to the
 writer without a verdict.
 
-## How to run the issue pipeline
+## What it needs
 
-1. Create an issue that describes the change.
-2. Add the label `agent` (or run the workflow **Agent Pipeline** by hand with
-   the issue number).
-3. Follow the run in Actions. The result is a comment on the issue and a pull
-   request from the branch `agent/issue-<n>-<run>`.
-
-Nothing waits for a person. The PR is certified at its head commit and merged by
-the merge gate once its CI is green (see "How a change ends" below). If the loop
-does not converge it is retried once with twice the budget, then abandoned: the
-issue gets a comment with the reason and nothing is pushed.
+There is no issue-driven flow: every change starts as a pull request (yours, Renovate's or the canary's).
 
 Required: variable `AI_ENABLED=true`, variable `OPENROUTER_MODEL`
 (`deepseek/deepseek-v4.1-flash`), secret `OPENROUTER_API_KEY`, and secret
