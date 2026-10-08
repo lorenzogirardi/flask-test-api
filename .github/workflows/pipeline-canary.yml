@@ -28,6 +28,7 @@ jobs:
     if: vars.AI_ENABLED == 'true'
     permissions:
       contents: read
+      pull-requests: write   # open and close the canary pull requests
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-canary.yml@v2
     with:
       only: ${{ inputs.only || '' }}
