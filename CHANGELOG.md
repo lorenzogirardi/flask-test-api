@@ -67,3 +67,4 @@ Entries are added automatically on every merge to the default branch.
 - A PR that fell behind `main` was never detected (GitHub only reports "behind" with branch protection), so it kept check results from before the base moved and lacked newer checks such as `image`. Staleness is now counted from the commits; Renovate is asked to rebase its own PRs.
 - A certified pull request with green CI could stay open: the merge gate trusted only the repository owner while the agent workflows post as `github-actions[bot]`, and when CI ended before the certification no later event picked it up. Both are trusted now, and `agent-merge.yml` judges every open PR on each CI end, on each push to `main` and every 30 minutes.
 - Sleep endpoint rejects values that are too long ([#191](https://github.com/lorenzogirardi/flask-test-api/pull/191))
+- Restore the documented error envelope for 400 responses ([#194](https://github.com/lorenzogirardi/flask-test-api/pull/194))
