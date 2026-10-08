@@ -92,5 +92,5 @@ See `.env.example` for full list. Key ones:
 - Type hints on all functions
 - Black formatting (line-length=120)
 - Loguru for logging (structured JSON)
-- Error responses return `{"error": "message"}`; 400 responses additionally include the route's message in `detail` (e.g. `{"error": "Bad request", "detail": "Input too large, max 5000"}`)
+- Error responses always return `{"error": "message"}`
 - Tests use pytest + anyio with httpx AsyncClient

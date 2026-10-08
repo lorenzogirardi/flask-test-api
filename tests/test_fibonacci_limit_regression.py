@@ -7,7 +7,7 @@ import pytest
 async def test_fibonacci_limit_is_lowered_to_5000(client):
     too_large = await client.get("/api/fib/5001")
     assert too_large.status_code == 400
-    assert too_large.json()["detail"] == "Input too large, max 5000"
+    assert too_large.json() == {"error": "Bad request"}
 
 
 @pytest.mark.anyio
