@@ -72,8 +72,8 @@ async def delete_context(context_id: str):
 async def fibonacci(x: int):
     if x < 0:
         raise HTTPException(status_code=400, detail="Input must be non-negative")
-    if x > 10000:
-        raise HTTPException(status_code=400, detail="Input too large, max 10000")
+    if x > 5000:
+        raise HTTPException(status_code=400, detail="Input too large, max 5000")
 
     def _compute(n: int) -> str:
         a, b = 0, 1
