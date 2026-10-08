@@ -52,7 +52,9 @@ the latter, so a merge made with it would build no image, run no `k8s-check` and
   made with the job's `GITHUB_TOKEN` causes exactly this, and three dependency bumps once stayed unbuilt for hours;
 - a pull request was certified although an agent could not do its job (for instance the test steward's reply was
   unusable);
-- one of the agent workflows ended in failure.
+- one of the agent workflows ended in failure;
+- a pull request is open with no verdict on its head commit (neither certified nor abandoned) and nothing has run on it
+  for 90 minutes. It is then abandoned, so it never waits for a person; a new push starts a new attempt.
 
 ## What to expect on your own pull request
 
