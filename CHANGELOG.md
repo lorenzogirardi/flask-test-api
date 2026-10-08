@@ -24,6 +24,7 @@ Entries are added automatically on every merge to the default branch.
 - Allow sleeping up to 30 seconds ([#169](https://github.com/lorenzogirardi/flask-test-api/pull/169))
 - A CI job that fails in the runner rather than in the code (runner start-up, checkout, cluster creation) is re-run once instead of being sent to the repair loop; the independent reviewers now run at the same time, and a review finding about a file the plan declared out of scope is not acted on.
 - Lower the Fibonacci input limit from 20000 to 10000 ([#190](https://github.com/lorenzogirardi/flask-test-api/pull/190))
+- Lower the Fibonacci input limit from 10000 to 5000 ([#193](https://github.com/lorenzogirardi/flask-test-api/pull/193))
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
