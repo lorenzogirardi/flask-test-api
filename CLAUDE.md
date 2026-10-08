@@ -92,5 +92,5 @@ See `.env.example` for full list. Key ones:
 - Type hints on all functions
 - Black formatting (line-length=120)
 - Loguru for logging (structured JSON)
-- Error responses always return `{"error": "message"}`
+- Error responses raised via `HTTPException` return `{"detail": "message"}` (no generic 400 handler overrides them)
 - Tests use pytest + anyio with httpx AsyncClient
