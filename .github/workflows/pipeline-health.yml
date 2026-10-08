@@ -2,7 +2,7 @@ name: Pipeline Health
 
 # The pipeline checks itself, because nobody else does: a commit on main that no build covers (the build
 # is then started), a pull request certified although an agent could not do its job, an agent workflow
-# that fails. No model. Red means one of those was found; the run summary says which.
+# that fails, a pull request left with no verdict and nothing running (it is then abandoned). No model. Red means one of those was found; the run summary says which.
 # Design: docs/13-agent-pipeline.md.
 
 on:
@@ -21,8 +21,8 @@ jobs:
     permissions:
       contents: read
       actions: write        # start pipeline.yml on main when commits have no build
-      pull-requests: read
-      issues: read
+      pull-requests: write  # abandon a pull request that has no verdict and nothing left to run
+      issues: write
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-health.yml@v2
     with:
       base_branch: main
