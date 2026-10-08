@@ -201,7 +201,14 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(400)
     async def bad_request_handler(request: Request, exc):
-        return JSONResponse(status_code=400, content={"error": "Bad request"})
+        # Keep the app-wide error envelope, but surface the specific message the
+        # route raised (FastAPI's HTTPException detail) instead of hiding it, e.g.
+        # "Input too large, max 5000" vs. a generic bad request.
+        content = {"error": "Bad request"}
+        detail = getattr(exc, "detail", None)
+        if isinstance(detail, str) and detail:
+            content["detail"] = detail
+        return JSONResponse(status_code=400, content=content)
 
     return app
 
