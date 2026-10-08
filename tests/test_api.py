@@ -99,14 +99,18 @@ async def test_sleep_too_long(client):
 
 
 @pytest.mark.anyio
-async def test_sleep_up_to_30_seconds_allowed(client, monkeypatch):
+async def test_sleep_up_to_25_seconds_allowed(client, monkeypatch):
     async def _no_sleep(_seconds):
         return None
 
     monkeypatch.setattr("asyncio.sleep", _no_sleep)
-    resp = await client.get("/api/sleep/30")
+    resp = await client.get("/api/sleep/25")
     assert resp.status_code == 200
-    assert resp.json() == {"message": "Delayed by 30 seconds"}
+    assert resp.json() == {"message": "Delayed by 25 seconds"}
+
+    # The old maximum of 30 seconds is no longer allowed.
+    too_long = await client.get("/api/sleep/30")
+    assert too_long.status_code == 400
 
 
 @pytest.mark.anyio
