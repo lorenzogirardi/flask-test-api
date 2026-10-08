@@ -1,0 +1,40 @@
+{
+  "base": "main",
+  "timeout_minutes": 50,
+  "required_checks": ["checks", "integration", "image", "workflows"],
+  "scenarios": [
+    {
+      "name": "repair",
+      "title": "refactor: simplify the comparison in the canary helper",
+      "body": "Tidy the comparison in `within_limit`.",
+      "edits": [
+        {"file": "app/canary.py", "find": "return value <= CANARY_LIMIT", "replace": "return value < CANARY_LIMIT"}
+      ],
+      "expect": {
+        "verdict": "certified",
+        "agent_commit": true,
+        "allowed_paths": ["app/canary.py", "tests/"],
+        "unchanged": ["tests/test_canary.py"],
+        "contains": [{"file": "app/canary.py", "text": "return value <= CANARY_LIMIT"}]
+      }
+    },
+    {
+      "name": "intent",
+      "variants": [
+        {
+          "title": "feat: raise the canary limit from 10 to 20",
+          "body": "Intentional behaviour change: the canary limit is now 20 instead of 10, so `CANARY_LIMIT == 20`. The test that says the limit is ten must be updated to 20.",
+          "edits": [{"file": "app/canary.py", "find": "CANARY_LIMIT = 10", "replace": "CANARY_LIMIT = 20"}],
+          "expect": {
+            "verdict": "certified",
+            "agent_commit": true,
+            "allowed_paths": ["app/canary.py", "tests/"],
+            "changed": ["tests/test_canary.py"],
+            "contains": [{"file": "app/canary.py", "text": "CANARY_LIMIT = 20"},
+                         {"file": "app/canary.py", "text": "return value <= CANARY_LIMIT"}]
+          }
+        }
+      ]
+    }
+  ]
+}
