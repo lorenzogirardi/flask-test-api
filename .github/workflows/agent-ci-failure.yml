@@ -1,5 +1,5 @@
 name: Agent CI Failure
-run-name: "Agent CI Failure · ${{ github.event_name }} · ${{ github.event.workflow_run.display_title || github.event.head_commit.message || 'scheduled' }}"
+run-name: "Agent CI Failure · ${{ github.event_name }} · ${{ github.event.workflow_run.display_title || github.event.pull_request.title || github.ref_name }}"
 
 # When PR Checks fails on a pull request, the agent takes the failing checks'
 # own logs (including `integration`, which needs services the agent's job does
