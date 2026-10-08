@@ -60,7 +60,7 @@ jobs:
       # unattended is not (that's what a human review is for). This is the
       # actual safety boundary now -- `authors` above may be wider than this.
       auto_merge_authors: 'renovate[bot]'
-      # agent/* PRs are certified inside agent-pipeline.yml; the sweep must not
+      # agent/* PRs are certified by the agent that opens them; the sweep must not
       # review, autofix or merge them on top of that.
       skip_head_prefixes: 'agent/'
       # Review with the two independent reviewers (structured findings validated against the

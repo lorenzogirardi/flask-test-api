@@ -28,7 +28,6 @@ any OpenAI-compatible chat-completions endpoint.
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
 | 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (revert + redo) | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
-| 6 | Automatic issue triage | `issue-triage.yml` | `issues` (opened), `bug`-labeled | No — labels/comment only |
 | 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
 
 Features 2 and 3 are split by actor for the *review* prompt (dependency-bump-focused vs.
@@ -326,7 +325,6 @@ call) is **not** gated by this variable and always runs.
 | `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
 | `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
 | `agent-main-guard.yml` | `contents: read`, `actions: write` (+ `AUTOFIX_PUSH_TOKEN` to revert) | re-run a failed job once; revert the culprit |
-| `issue-triage.yml` | `issues: write`, `contents: read` | labels + comment |
 | `release-notes.yml` | `contents: read`, `pull-requests: write` | post comment |
 
 No workflow requests `write-all`.
