@@ -44,6 +44,18 @@ green), not a failure.
 A merge must be made with the push token, not the job's `GITHUB_TOKEN`: GitHub starts no workflow for events made with
 the latter, so a merge made with it would build no image, run no `k8s-check` and leave the guard blind.
 
+## The pipeline checks itself
+
+`pipeline-health.yml` runs every 30 minutes, with no model. It goes red, and says why in the run summary, when:
+
+- a commit is on `main` and no `Python application` run covers it (it then starts that workflow on `main`). A merge
+  made with the job's `GITHUB_TOKEN` causes exactly this, and three dependency bumps once stayed unbuilt for hours;
+- a pull request was certified although an agent could not do its job (for instance the test steward's reply was
+  unusable);
+- one of the agent workflows ended in failure;
+- a pull request is open with no verdict on its head commit (neither certified nor abandoned) and nothing has run on it
+  for 90 minutes. It is then abandoned, so it never waits for a person; a new push starts a new attempt.
+
 ## What to expect on your own pull request
 
 Open a pull request from a branch as usual, with a title that says what it does (the title and description are

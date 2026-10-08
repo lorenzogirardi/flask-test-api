@@ -52,6 +52,8 @@ Entries are added automatically on every merge to the default branch.
 - Update step-security/harden-runner action to v2.22.1 ([#184](https://github.com/lorenzogirardi/flask-test-api/pull/184))
 - Say what each workflow_run run is about; map the workflows in the docs ([#187](https://github.com/lorenzogirardi/flask-test-api/pull/187))
 - Keep the commit message out of run names ([#189](https://github.com/lorenzogirardi/flask-test-api/pull/189))
+- Pipeline health check; one agent at a time on a pull request ([#196](https://github.com/lorenzogirardi/flask-test-api/pull/196))
+- Let the health check abandon a pull request that has no verdict ([#198](https://github.com/lorenzogirardi/flask-test-api/pull/198))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
