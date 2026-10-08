@@ -90,8 +90,8 @@ async def fibonacci(x: int):
 async def sleep_endpoint(seconds: int):
     if seconds < 0:
         raise HTTPException(status_code=400, detail="Sleep time must be non-negative")
-    if seconds > 30:
-        raise HTTPException(status_code=400, detail="Sleep time too long, max 30 seconds")
+    if seconds > 25:
+        raise HTTPException(status_code=400, detail="Sleep time too long, max 25 seconds")
     await asyncio.sleep(seconds)
     return {"message": f"Delayed by {seconds} seconds"}
 
