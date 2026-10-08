@@ -24,6 +24,26 @@ A change the agent did not alter is certified by the first review alone, with
 no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
 PR checks re-run on them.
 
+## Reading the Actions tab
+
+Twelve workflows, but only three moments. Runs started by another workflow finishing (`workflow_run`) are
+listed under the branch `main` by GitHub even when they are about a pull request; their title now says what
+they are about (`Agent Merge · workflow_run · <pull request title>`).
+
+| Moment | Workflows, in the order they start |
+|---|---|
+| A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green), `AI Review Sweep` (Renovate pull requests only). After the merge: `AI Release Notes`. |
+| Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image, `ai-analysis`), next to `Changelog`, `Agent Merge`, `AI Review Sweep` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
+| Time passes | `Agent Merge` every 30 minutes and `AI Review Sweep` twice a day pick up whatever an event missed. |
+
+Two different images are built: the `image` job of `PR Checks` builds from the pull request and never publishes it
+(it proves the code becomes an image that runs); `docker` on `main` builds the same Dockerfile and publishes it.
+A run that is `skipped` is a guard that decided it had nothing to do (for instance `Agent Main Guard` when `main` is
+green), not a failure.
+
+A merge must be made with the push token, not the job's `GITHUB_TOKEN`: GitHub starts no workflow for events made with
+the latter, so a merge made with it would build no image, run no `k8s-check` and leave the guard blind.
+
 ## What to expect on your own pull request
 
 Open a pull request from a branch as usual, with a title that says what it does (the title and description are
