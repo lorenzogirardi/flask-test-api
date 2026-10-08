@@ -56,6 +56,20 @@ the latter, so a merge made with it would build no image, run no `k8s-check` and
 - a pull request is open with no verdict on its head commit (neither certified nor abandoned) and nothing has run on it
   for 90 minutes. It is then abandoned, so it never waits for a person; a new push starts a new attempt.
 
+## The canary: known changes, checked outcomes
+
+`pipeline-canary.yml` runs every night. For each scenario in `.github/canary.json` it opens a pull request that changes
+`app/canary.py` (a module nothing imports) in a known way, against a throwaway copy of `main`. The ordinary workflows
+run on it; the canary then checks facts and closes it. It is never merged.
+
+| Scenario | The change | What must happen |
+|---|---|---|
+| `repair` | A bug the existing tests catch, with a vague description | The agent restores the code, the tests are not touched, the commit is certified |
+| `intent` | A limit raised on purpose, said in the description, that an existing test contradicts | The test is updated, the code keeps the new limit, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
+
+A red run means the agents did something else: no verdict, an abandonment, a file changed that should not be, a test
+weakened. The health check reports a failed canary like any failed agent workflow.
+
 ## What to expect on your own pull request
 
 Open a pull request from a branch as usual, with a title that says what it does (the title and description are
