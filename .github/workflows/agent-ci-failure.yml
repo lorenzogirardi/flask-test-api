@@ -26,7 +26,10 @@ jobs:
       github.event.workflow_run.pull_requests[0] != null &&
       !startsWith(github.event.workflow_run.head_branch, 'renovate/')
     concurrency:
-      group: agent-ci-${{ github.event.workflow_run.pull_requests[0].number }}
+      # Same group as agent-change.yml: one agent at a time on a pull request. When its checks fail this run
+      # takes over (it has the real logs, the integration suite included) and the review that started with
+      # the push is cancelled, instead of both repairing the same failure side by side.
+      group: agent-change-pr-${{ github.event.workflow_run.pull_requests[0].number }}
       cancel-in-progress: true
     permissions:
       contents: read
