@@ -56,6 +56,7 @@ Entries are added automatically on every merge to the default branch.
 - Pipeline health check; one agent at a time on a pull request ([#196](https://github.com/lorenzogirardi/flask-test-api/pull/196))
 - Let the health check abandon a pull request that has no verdict ([#198](https://github.com/lorenzogirardi/flask-test-api/pull/198))
 - Nightly pipeline canary on an isolated module ([#199](https://github.com/lorenzogirardi/flask-test-api/pull/199))
+- Let the canary open and close its pull requests ([#200](https://github.com/lorenzogirardi/flask-test-api/pull/200))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
