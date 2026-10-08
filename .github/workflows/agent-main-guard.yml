@@ -1,4 +1,5 @@
 name: Agent Main Guard
+run-name: "Agent Main Guard · ${{ github.event_name }} · ${{ github.event.workflow_run.display_title || github.event.head_commit.message || 'scheduled' }}"
 
 # The safety net after the merge. If the pipeline on main FAILS after a merge,
 # the commit that plausibly caused it is reverted automatically and an issue
