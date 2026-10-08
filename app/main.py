@@ -199,10 +199,6 @@ def create_app() -> FastAPI:
     async def not_found_handler(request: Request, exc):
         return JSONResponse(status_code=404, content={"error": "Not found"})
 
-    @app.exception_handler(400)
-    async def bad_request_handler(request: Request, exc):
-        return JSONResponse(status_code=400, content={"error": "Bad request"})
-
     return app
 
 

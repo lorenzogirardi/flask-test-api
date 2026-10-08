@@ -94,19 +94,28 @@ async def test_sleep_endpoint(client):
 
 @pytest.mark.anyio
 async def test_sleep_too_long(client):
-    resp = await client.get("/api/sleep/31")
+    resp = await client.get("/api/sleep/26")
     assert resp.status_code == 400
+    assert resp.json()["detail"] == "Sleep time too long, max 25 seconds"
 
 
 @pytest.mark.anyio
-async def test_sleep_up_to_30_seconds_allowed(client, monkeypatch):
+async def test_sleep_up_to_25_seconds_allowed(client, monkeypatch):
     async def _no_sleep(_seconds):
         return None
 
     monkeypatch.setattr("asyncio.sleep", _no_sleep)
-    resp = await client.get("/api/sleep/30")
+    resp = await client.get("/api/sleep/25")
     assert resp.status_code == 200
-    assert resp.json() == {"message": "Delayed by 30 seconds"}
+    assert resp.json() == {"message": "Delayed by 25 seconds"}
+
+
+@pytest.mark.anyio
+async def test_bad_request_keeps_http_exception_detail(client):
+    """No generic 400 handler may swallow the HTTPException detail body."""
+    resp = await client.get("/api/sleep/-1")
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Sleep time must be non-negative"
 
 
 @pytest.mark.anyio
