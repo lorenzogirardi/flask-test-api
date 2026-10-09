@@ -5,7 +5,7 @@ change it in known ways and checks what the agent pipeline does with them, so a 
 shows up on a module where it can do no harm instead of on a real change.
 """
 
-CANARY_LIMIT = 20
+CANARY_LIMIT = 10
 
 
 def within_limit(value: int) -> bool:
