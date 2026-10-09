@@ -61,6 +61,7 @@ Entries are added automatically on every merge to the default branch.
 - Simplify the comparison in the canary helper ([`6605ad6`](https://github.com/lorenzogirardi/flask-test-api/commit/6605ad6))
 - Refactor: simplify the comparison in the canary helper (pipeline red) ([`f0abce4`](https://github.com/lorenzogirardi/flask-test-api/commit/f0abce4))
 - Describe the agent pipeline and the canary module in CLAUDE.md ([#210](https://github.com/lorenzogirardi/flask-test-api/pull/210))
+- A scenario for new code that has no test ([#211](https://github.com/lorenzogirardi/flask-test-api/pull/211))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
