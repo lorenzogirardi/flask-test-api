@@ -28,6 +28,7 @@ FastAPI-based debug/test API application. Migrated from Flask v1. Serves as a de
 app/
 ├── main.py              # create_app() + lifespan (also starts MCP session manager)
 ├── auth.py              # BasicAuth dependency
+├── canary.py            # Isolated module for the pipeline canary; nothing imports it (see below)
 ├── config/settings.py   # Pydantic Settings
 ├── mcp/
 │   └── tools.py         # MCP server (FastMCP) mounted at /api/mcp — see docs/11-mcp-server.md
@@ -47,6 +48,24 @@ app/
     ├── error_injection.py
     └── mcp_auth.py       # ASGI Basic Auth guard for the /api/mcp mount
 ```
+
+### Agent Pipeline (no person in the loop)
+Every pull request is reviewed, repaired, certified and merged by agents; the engine lives in
+`lorenzogirardi/ci-shared` (tag `v2`) and this repository only wires it up. Full description:
+`docs/13-agent-pipeline.md`.
+
+- A change ends **merged**, **abandoned** (label `agent-abandoned`, reason in a comment) or **reverted**
+  (`main` goes back to the last green state). Nothing waits for a person, and there is no issue-driven flow.
+- **Tests are the specification.** If a change intentionally redefines behaviour an existing test checks,
+  say so in the pull request title or description in plain words: the agents may update that test only when
+  they can quote those words. Otherwise the code is what gets fixed.
+- A description must be true: one that promises behaviour the code does not have sends the agents looking for it.
+- Agents never edit `.github/workflows/`, and the documentation reviewer never edits this file. Changes to
+  either are made and merged by a person.
+- `app/canary.py` and `tests/test_canary.py` belong to the pipeline canary (`.github/canary.json`,
+  `pipeline-canary.yml`, nightly). Do not import the module, and do not change its behaviour or its tests
+  without updating the scenarios.
+- `pipeline-health.yml` checks the pipeline itself every 30 minutes; a red run says what it found in its summary.
 
 ### Running Tests
 ```bash
