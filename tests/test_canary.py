@@ -15,5 +15,5 @@ def test_a_value_above_the_limit_is_rejected():
     assert not within_limit(CANARY_LIMIT + 1)
 
 
-def test_the_limit_is_ten():
+def test_the_limit_is_twenty():
     assert CANARY_LIMIT == 20
