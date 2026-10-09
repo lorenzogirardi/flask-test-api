@@ -71,6 +71,9 @@ The same scenarios also guard the engine itself: before `ci-shared` moves its `v
 canary in candidate mode (`repository_dispatch`), where the pull requests are judged by the engine about to be released.
 The tag moves only if every scenario holds.
 
+A scenario also states what the agents' report must say (`code_defect` for `repair`, `test_defect` for `intent`): the
+right files reached through the wrong verdict are a failure too.
+
 A red run means the agents did something else: no verdict, an abandonment, a file changed that should not be, a test
 weakened. The health check reports a failed canary like any failed agent workflow.
 

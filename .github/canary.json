@@ -34,6 +34,12 @@
             "file": "app/canary.py",
             "text": "return value <= CANARY_LIMIT"
           }
+        ],
+        "report_contains": [
+          "**code_defect**"
+        ],
+        "report_not_contains": [
+          "**test_defect**"
         ]
       }
     },
@@ -69,6 +75,12 @@
                 "file": "app/canary.py",
                 "text": "return value <= CANARY_LIMIT"
               }
+            ],
+            "report_contains": [
+              "**test_defect**"
+            ],
+            "report_not_contains": [
+              "**code_defect**"
             ]
           }
         }
