@@ -1,21 +1,40 @@
 {
   "base": "main",
   "timeout_minutes": 50,
-  "required_checks": ["checks", "integration", "image", "workflows"],
+  "required_checks": [
+    "checks",
+    "integration",
+    "image",
+    "workflows"
+  ],
   "scenarios": [
     {
       "name": "repair",
       "title": "refactor: simplify the comparison in the canary helper",
       "body": "Tidy the comparison in `within_limit`.",
       "edits": [
-        {"file": "app/canary.py", "find": "return value <= CANARY_LIMIT", "replace": "return value < CANARY_LIMIT"}
+        {
+          "file": "app/canary.py",
+          "find": "return value <= CANARY_LIMIT",
+          "replace": "return value < CANARY_LIMIT"
+        }
       ],
       "expect": {
         "verdict": "certified",
         "agent_commit": true,
-        "allowed_paths": ["app/canary.py", "tests/"],
-        "unchanged": ["tests/test_canary.py"],
-        "contains": [{"file": "app/canary.py", "text": "return value <= CANARY_LIMIT"}]
+        "allowed_paths": [
+          "app/canary.py",
+          "tests/"
+        ],
+        "unchanged": [
+          "tests/test_canary.py"
+        ],
+        "contains": [
+          {
+            "file": "app/canary.py",
+            "text": "return value <= CANARY_LIMIT"
+          }
+        ]
       }
     },
     {
@@ -24,17 +43,69 @@
         {
           "title": "feat: raise the canary limit from 10 to 20",
           "body": "Intentional behaviour change: the canary limit is now 20 instead of 10, so `CANARY_LIMIT == 20`. The test that says the limit is ten must be updated to 20.",
-          "edits": [{"file": "app/canary.py", "find": "CANARY_LIMIT = 10", "replace": "CANARY_LIMIT = 20"}],
+          "edits": [
+            {
+              "file": "app/canary.py",
+              "find": "CANARY_LIMIT = 10",
+              "replace": "CANARY_LIMIT = 20"
+            }
+          ],
           "expect": {
             "verdict": "certified",
             "agent_commit": true,
-            "allowed_paths": ["app/canary.py", "tests/"],
-            "changed": ["tests/test_canary.py"],
-            "contains": [{"file": "app/canary.py", "text": "CANARY_LIMIT = 20"},
-                         {"file": "app/canary.py", "text": "return value <= CANARY_LIMIT"}]
+            "allowed_paths": [
+              "app/canary.py",
+              "tests/"
+            ],
+            "changed": [
+              "tests/test_canary.py"
+            ],
+            "contains": [
+              {
+                "file": "app/canary.py",
+                "text": "CANARY_LIMIT = 20"
+              },
+              {
+                "file": "app/canary.py",
+                "text": "return value <= CANARY_LIMIT"
+              }
+            ]
           }
         }
       ]
+    },
+    {
+      "name": "coverage",
+      "title": "feat: add below_limit to the canary helper",
+      "body": "New helper `below_limit(value)` in `app/canary.py`: true when `value` is strictly below `CANARY_LIMIT`, so the limit itself is not below the limit. `within_limit` is unchanged.",
+      "edits": [
+        {
+          "file": "app/canary.py",
+          "find": "    return value <= CANARY_LIMIT\n",
+          "replace": "    return value <= CANARY_LIMIT\n\n\ndef below_limit(value: int) -> bool:\n    \"\"\"True when `value` is strictly below the limit. The limit itself is not below it.\"\"\"\n    return value < CANARY_LIMIT\n"
+        }
+      ],
+      "expect": {
+        "verdict": "certified",
+        "agent_commit": true,
+        "allowed_paths": [
+          "app/canary.py",
+          "tests/"
+        ],
+        "changed": [
+          "tests/"
+        ],
+        "contains": [
+          {
+            "file": "app/canary.py",
+            "text": "def below_limit(value: int) -> bool:"
+          },
+          {
+            "file": "app/canary.py",
+            "text": "return value <= CANARY_LIMIT"
+          }
+        ]
+      }
     }
   ]
 }
