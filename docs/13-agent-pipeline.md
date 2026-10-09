@@ -67,6 +67,10 @@ run on it; the canary then checks facts and closes it. It is never merged.
 | `intent` | A limit raised on purpose, said in the description, that an existing test contradicts | The test is updated, the code keeps the new limit, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
 | `coverage` | A new function added with no test | The test steward adds a test for it, the function stays as written, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
 
+The same scenarios also guard the engine itself: before `ci-shared` moves its `v2` tag to a new commit it starts this
+canary in candidate mode (`repository_dispatch`), where the pull requests are judged by the engine about to be released.
+The tag moves only if every scenario holds.
+
 A red run means the agents did something else: no verdict, an abandonment, a file changed that should not be, a test
 weakened. The health check reports a failed canary like any failed agent workflow.
 

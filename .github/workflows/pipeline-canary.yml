@@ -1,4 +1,5 @@
 name: Pipeline Canary
+run-name: "Pipeline Canary · ${{ github.event_name }}${{ github.event.client_payload.sha && format(' · candidate {0}', github.event.client_payload.sha) || '' }}"
 
 # Known changes through the real agent pipeline, every night, with the outcome checked. The scenarios are
 # in .github/canary.json and only touch app/canary.py, which nothing imports. Each one is a pull request
@@ -9,6 +10,10 @@ name: Pipeline Canary
 on:
   schedule:
     - cron: '23 2 * * *'
+  # Sent by ci-shared before it moves its v2 tag: the scenarios are then judged by the engine about to be
+  # released (v2-next), and v2 moves only if they all hold. The run's title carries the candidate commit.
+  repository_dispatch:
+    types: [engine-candidate]
   workflow_dispatch:
     inputs:
       only:
@@ -32,5 +37,6 @@ jobs:
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-canary.yml@v2
     with:
       only: ${{ inputs.only || '' }}
+      candidate: ${{ github.event_name == 'repository_dispatch' }}
     secrets:
       agent_push_token: ${{ secrets.AUTOFIX_PUSH_TOKEN }}
