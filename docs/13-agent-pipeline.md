@@ -65,6 +65,7 @@ run on it; the canary then checks facts and closes it. It is never merged.
 |---|---|---|
 | `repair` | A bug the existing tests catch, with a vague description | The agent restores the code, the tests are not touched, the commit is certified |
 | `intent` | A limit raised on purpose, said in the description, that an existing test contradicts | The test is updated, the code keeps the new limit, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
+| `coverage` | A new function added with no test | The test steward adds a test for it, the function stays as written, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
 
 A red run means the agents did something else: no verdict, an abandonment, a file changed that should not be, a test
 weakened. The health check reports a failed canary like any failed agent workflow.
