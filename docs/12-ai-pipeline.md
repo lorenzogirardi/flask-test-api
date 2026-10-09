@@ -1,10 +1,10 @@
 # AI Pipeline (GitHub Actions + OpenRouter)
 
-> **Superseded in part.** The `ai-autofix-main` job (a PR to repair a red `main`) was removed: a red `main` is now taken back to the last green state by `agent-main-guard.yml` and the change is redone by the agent pipeline, so two systems no longer react to the same failure. The sweep's CI repair uses the same engine as everything else.
+> **Superseded in part.** The `ai-autofix-main` job (a PR to repair a red `main`) was removed: a red `main` is now taken back to the last green state by `agent-main-guard.yml`, which says so on the pull request the change came from; nothing is redone automatically. The sweep's CI repair uses the same engine as everything else.
 >
 > **Also superseded.** `ai-review.yml` was removed: every non-Renovate PR, and every direct push to `main`, now goes through `agent-change.yml`. The sweep is back to Renovate PRs only. The sections below that describe `ai-review.yml` or "Autofix now covers the owner's own PRs too" describe the previous setup.
 >
-> The role-based agent pipeline (planner, writer, reviewers, changelog, docs architect) and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md).
+> The role-based agent pipeline (writer, reviewers, failure adjudicator, test steward, changelog), its health check and its canary, and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md). **That document is the current description; this one is kept for the reasoning behind the older workflows.**
 
 This repository's AI features are split across two repos:
 
@@ -24,10 +24,10 @@ any OpenAI-compatible chat-completions endpoint.
 | # | Feature | Workflow | Trigger | Merges/blocks anything? |
 |---|---------|----------|---------|--------------------------|
 | 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
-| 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews and pushes fixes to the PR branch; never merges (see [13](13-agent-pipeline.md)) |
+| 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews, pushes fixes to the PR branch and certifies; `agent-merge.yml` merges a certified, green commit (see [13](13-agent-pipeline.md)) |
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
-| 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (revert + redo) | `push` to `main` (only when `build` or `quality-gate` fails) | Opens a PR — never pushes to `main` itself |
+| 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (re-run once, then revert) | after `Python application` fails on `main` | **Yes** — reverts `main` to the last green state |
 | 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
 
 Features 2 and 3 are split by actor for the *review* prompt (dependency-bump-focused vs.

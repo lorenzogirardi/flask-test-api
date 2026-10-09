@@ -16,9 +16,13 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 | Renovate PRs | `ai-review-sweep.yml` | Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the two reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. A PR that touches `.github/workflows/` is not reviewed or repaired (the agent token has no `workflow` scope): Renovate merges it itself once the required checks pass, and if those checks are red on current code it is labelled `agent-abandoned` and closed, so no one waits on it. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
 
-Two guards stop loops and noise: every commit the pipeline makes has the author
-`ci-shared agents`, and a run whose head commit has that author does nothing; a
-push whose commit belongs to a PR is skipped, because the PR was reviewed.
+Guards against loops and noise: every commit the pipeline makes has the author
+`ci-shared agents`, and a run whose head commit has that author and already carries
+a verdict does nothing (one without a verdict is reviewed, at most 3 in a row); a
+push whose commit belongs to a PR is skipped, because the PR was reviewed. Only one
+agent run works on a pull request at a time: when `PR Checks` fails,
+`agent-ci-failure.yml` takes over and the run started by the push is cancelled.
+A run that finishes after the branch has moved publishes nothing.
 A change the agent did not alter is certified by the first review alone, with
 no extra calls. Pushes to a PR branch are made with `AUTOFIX_PUSH_TOKEN`, so the
 PR checks re-run on them.
@@ -26,7 +30,7 @@ PR checks re-run on them.
 ## Reading the Actions tab
 
 Twelve workflows, but only three moments. Runs started by another workflow finishing (`workflow_run`) are
-listed under the branch `main` by GitHub even when they are about a pull request; their title now says what
+listed under the branch `main` by GitHub even when they are about a pull request; their title says what
 they are about (`Agent Merge · workflow_run · <pull request title>`).
 
 | Moment | Workflows, in the order they start |
@@ -49,9 +53,9 @@ the latter, so a merge made with it would build no image, run no `k8s-check` and
 
 - a commit is on `main` and no `Python application` run covers it (it then starts that workflow on `main`). A merge
   made with the job's `GITHUB_TOKEN` causes exactly this, and three dependency bumps once stayed unbuilt for hours;
-- a pull request was certified although an agent could not do its job (for instance the test steward's reply was
-  unusable);
-- one of the agent workflows ended in failure;
+- a pull request was certified although an agent could not do its job (reported for one day: it can be noticed, not
+  repaired after the fact);
+- one of the agent workflows is failing: a failed run with no successful run of the same workflow after it;
 - a pull request is open with no verdict on its head commit (neither certified nor abandoned) and nothing has run on it
   for 90 minutes. It is then abandoned, so it never waits for a person; a new push starts a new attempt.
 
@@ -101,7 +105,7 @@ Every change ends in one of three ways, and none waits for a person:
 
 | End | When | What the system does |
 |---|---|---|
-| **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
+| **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `image`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
 | **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. The base branch is untouched |
 | **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` takes `main` back to the last green state (every change since the last green run, in one commit; the pipeline's bookkeeping commits are left alone) and says so, with the failure, on the pull request each change came from (label `agent-reverted`). No issue is opened: reverted is where the change ends, and a new pull request starts a new attempt |
 
@@ -137,10 +141,24 @@ a regression). Then a **failure adjudicator** classifies each one:
 | `preexisting` | Already failing on the base commit | The writer fixes it as part of the change, so the checks go green |
 
 **Tests are the specification.** The code is fixed unless the change's own stated
-intent (title, description, plan) explicitly redefines what the test checks. A
-`test_defect` verdict stands only if the model quotes that intent verbatim, and
-the quote is checked in code; without a valid quote the verdict becomes
-`code_defect`. Deterministic evidence overrides the model.
+intent (title, description) explicitly redefines what the test checks. A
+`test_defect` verdict stands only if the model quotes that intent, and the quote is
+checked in code: every piece of it (pieces may be joined by `...`) must be in the
+intent word for word. Without a valid quote the verdict becomes `code_defect`.
+Deterministic evidence overrides the model, and it counts only when pytest really
+ran the test: a job that cannot run it gives "unreproducible", never "failing".
+
+Three consequences, all enforced in code:
+
+- After a `code_defect` verdict the writer may not edit the file of the failing
+  test. A change that does is reverted and refused; a second one ends without
+  certification.
+- A test the steward has just written or rewritten is not the specification. If it
+  fails it is discarded and the steward is asked again with the failure; the
+  application is never changed to satisfy it.
+- An agent that cannot produce a usable answer (the steward, the documentation
+  reviewer) is told what was wrong and tries once more. If that fails too the
+  commit is not certified.
 
 The **test steward** may change only test files, and the code refuses any change
 that deletes a test file, reduces the number of tests or assertions in a file, or
@@ -158,24 +176,29 @@ There is no issue-driven flow: every change starts as a pull request (yours, Ren
 
 Required: variable `AI_ENABLED=true`, variable `OPENROUTER_MODEL`
 (`deepseek/deepseek-v4.1-flash`), secret `OPENROUTER_API_KEY`, and secret
-`AUTOFIX_PUSH_TOKEN` with **Contents and Pull requests** read/write on this
-repository (never `workflow` scope). A pull request opened as `GITHUB_TOKEN`
-would not trigger PR Checks, so the workflow refuses to publish without it.
+`AUTOFIX_PUSH_TOKEN` with **Contents** read/write on this repository (never
+`workflow` scope). The token pushes and merges, so that the checks and the
+pipeline on `main` start; a push or a merge made with the job's `GITHUB_TOKEN`
+starts nothing. Pull requests the pipeline opens itself (the canary's, a fix after
+a direct push) are opened with the job token, which needs the repository setting
+*Allow GitHub Actions to create and approve pull requests*, and are then started
+by a push made with the push token.
 
 ## What happens
 
+The description of the pull request is the plan: there is no planner here.
+
 | Step | Role | Notes |
 |---|---|---|
-| 1 | Planner | Reads the issue and the repository, writes scope, out-of-scope and acceptance criteria. Never edits code. May stop with "not feasible" and say what is missing. |
-| 2 | Writer | Implements the change and its tests inside the plan: at most 8 changes per turn, unique-anchor edits or new files, never `.github/workflows/`. |
-| 3 | Deterministic checks | Same steps as `pr-checks.yml` (dependency resolution, install, lint, tests, smoke test). Run after every change. A failure is reverted and fed back to the writer. |
-| 4 | Reviewer A | Correctness and design, against the plan. |
-| 5 | Reviewer B | Security and operability. Does not see reviewer A's output. |
-| 6 | Dedup and validation | Findings need severity, file, line, evidence and a fix. A finding whose line is not in a changed hunk is dropped. Findings about the same place and topic are merged. |
-| 7 | Fix loop | Blocking findings (`critical`, `high`) go back to the writer; then steps 3 to 6 run again. At most `max_iterations` (3) rounds. |
-| 8 | Final reviewer | Checks the blocking findings are really fixed and looks for regressions. |
-| 9 | Documentation reviewer | Edits only documentation files, only when the diff justifies it, then re-runs the checks. |
-| 10 | Changelog | A deterministic entry in `CHANGELOG.md` unless the change already has one. |
+| 1 | Writer | Implements the change and its tests inside the plan: at most 8 changes per turn, unique-anchor edits or new files, never `.github/workflows/`. |
+| 2 | Deterministic checks | Same steps as `pr-checks.yml` (dependency resolution, install, lint, tests, smoke test). Run after every change. A failure is reverted and fed back to the writer. |
+| 3 | Reviewer A | Correctness and design, against the plan. |
+| 4 | Reviewer B | Security and operability. Does not see reviewer A's output. |
+| 5 | Dedup and validation | Findings need severity, file, line, evidence and a fix. A finding whose line is not in a changed hunk is dropped. Findings about the same place and topic are merged. |
+| 6 | Fix loop | Blocking findings (`critical`, `high`) go back to the writer; then steps 2 to 5 run again. At most `max_iterations` (3) rounds. |
+| 7 | Final reviewer | Checks the blocking findings are really fixed and looks for regressions. |
+| 8 | Documentation reviewer | Gets the passages of the documents that mention what the diff touches. Edits only documentation files (never `CLAUDE.md`, `AGENTS.md` or `.claude/`), only when the diff justifies it, then re-runs the checks. |
+| 9 | Changelog | A deterministic entry in `CHANGELOG.md` unless the change already has one. |
 
 All agents use the model in `OPENROUTER_MODEL`. Independence between reviewers
 comes from separate calls, different prompts and no shared context, not from
@@ -214,7 +237,7 @@ changelog is out of its scope.
   failed-check retries, `writer_rounds` turns per attempt.
 - A reviewer that returns no usable reply ends the attempt as not converged; nothing
   is certified by default.
-- Cost per role is recorded in the run artifact (`agent-run-<issue>`) and shown
+- Cost per role is recorded in the run artifact (`agent-change-pr-<run>`) and shown
   in the PR.
 - If the stated intent is vague and the test is ambiguous, the model picks a
   side; the "tests win" rule makes that predictable, but it will sometimes fix
@@ -223,6 +246,12 @@ changelog is out of its scope.
   job. CI-only tests (the integration suite needs PostgreSQL and Redis) come back
   "unreproducible" and are judged on their log and the stated intent.
 - The direct-push mode can only react after the push; it cannot stop it.
-  Checks that fail on `main` itself are handled by `agent-main-guard.yml` (re-run once, then revert and redo).
-- `reusable_agent-review.yml` (reviewers only, no fixes) exists in `ci-shared`
-  but is not wired to a trigger here.
+  Checks that fail on `main` itself are handled by `agent-main-guard.yml` (re-run once, then revert).
+- A description is part of the input. One that promises behaviour the code does
+  not have sends the agents looking for it; the rules above keep the outcome
+  safe, but the change may be abandoned instead of merged.
+- The canary covers three scenarios. A defect none of them exercises is not seen
+  before a release of the engine.
+- `reusable_agent-review.yml` (reviewers only, no fixes) and
+  `reusable_agent-pipeline.yml` (planner, from a written request) exist in
+  `ci-shared` but are not wired to a trigger here.
