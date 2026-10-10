@@ -5,9 +5,17 @@ name: Pipeline Health
 # that fails, a pull request left with no verdict and nothing running (it is then abandoned). No model. Red means one of those was found; the run summary says which.
 # Design: docs/13-agent-pipeline.md.
 
+# Started by events as well as by the clock: GitHub runs scheduled workflows late on a small repository
+# (three runs in fourteen hours were seen for this "every 30 minutes"), and a safety net that waits six
+# hours is not one. A run takes about twenty seconds.
 on:
   schedule:
     - cron: '7,37 * * * *'
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["PR Checks"]
+    types: [completed]
   workflow_dispatch:
 
 permissions: {}

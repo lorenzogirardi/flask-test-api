@@ -65,7 +65,7 @@ Every pull request is reviewed, repaired, certified and merged by agents; the en
 - `app/canary.py` and `tests/test_canary.py` belong to the pipeline canary (`.github/canary.json`,
   `pipeline-canary.yml`, nightly). Do not import the module, and do not change its behaviour or its tests
   without updating the scenarios.
-- `pipeline-health.yml` checks the pipeline itself every 30 minutes; a red run says what it found in its summary.
+- `pipeline-health.yml` checks the pipeline itself on every push to `main`, when `PR Checks` ends and on a schedule; a red run says what it found in its summary.
 
 ### Running Tests
 ```bash

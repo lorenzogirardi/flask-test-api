@@ -37,7 +37,7 @@ they are about (`Agent Merge · workflow_run · <pull request title>`).
 |---|---|
 | A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green), `AI Review Sweep` (Renovate pull requests only). After the merge: `AI Release Notes`. |
 | Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image, `ai-analysis`), next to `Changelog`, `Agent Merge`, `AI Review Sweep` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
-| Time passes | `Agent Merge` every 30 minutes and `AI Review Sweep` twice a day pick up whatever an event missed. |
+| Time passes | `Agent Merge` (every 30 minutes), `AI Review Sweep` (twice a day), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: the first three also start on events. |
 
 Two different images are built: the `image` job of `PR Checks` builds from the pull request and never publishes it
 (it proves the code becomes an image that runs); `docker` on `main` builds the same Dockerfile and publishes it.
@@ -49,7 +49,8 @@ the latter, so a merge made with it would build no image, run no `k8s-check` and
 
 ## The pipeline checks itself
 
-`pipeline-health.yml` runs every 30 minutes, with no model. It goes red, and says why in the run summary, when:
+`pipeline-health.yml` runs on every push to `main`, when `PR Checks` ends, and on a schedule (every 30 minutes, which
+GitHub may delay by hours), with no model. It goes red, and says why in the run summary, when:
 
 - a commit is on `main` and no `Python application` run covers it (it then starts that workflow on `main`). A merge
   made with the job's `GITHUB_TOKEN` causes exactly this, and three dependency bumps once stayed unbuilt for hours;
@@ -61,7 +62,7 @@ the latter, so a merge made with it would build no image, run no `k8s-check` and
 
 ## The canary: known changes, checked outcomes
 
-`pipeline-canary.yml` runs every night. For each scenario in `.github/canary.json` it opens a pull request that changes
+`pipeline-canary.yml` runs once a day (scheduled for the night; GitHub may start it hours later). For each scenario in `.github/canary.json` it opens a pull request that changes
 `app/canary.py` (a module nothing imports) in a known way, against a throwaway copy of `main`. The ordinary workflows
 run on it; the canary then checks facts and closes it. It is never merged.
 
