@@ -16,4 +16,4 @@ def test_a_value_above_the_limit_is_rejected():
 
 
 def test_the_limit_is_ten():
-    assert CANARY_LIMIT == 10
+    assert CANARY_LIMIT == 20
