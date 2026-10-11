@@ -26,7 +26,6 @@ any OpenAI-compatible chat-completions endpoint.
 | 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
 | 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews, pushes fixes to the PR branch and certifies; `agent-merge.yml` merges a certified, green commit (see [13](13-agent-pipeline.md)) |
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
-| 4 | Post-pipeline security/quality report | `pipeline.yml` → `ai-analysis` job | `push` to `main` | No — job summary + artifact |
 | 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (re-run once, then revert) | after `Python application` fails on `main` | **Yes** — reverts `main` to the last green state |
 | 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
 
@@ -323,7 +322,6 @@ call) is **not** gated by this variable and always runs.
 | `pr-checks.yml` | `contents: read` | no model call, no comment |
 | `agent-change.yml` | `contents: read`, `pull-requests: write` (+ `AUTOFIX_PUSH_TOKEN` in the publish step only) | review comment, fix commits on the PR branch |
 | `ai-review-sweep.yml` | `contents: write`, `pull-requests: write` | merge + push autofix commits |
-| `pipeline.yml` (`ai-analysis`) | `contents: read`, `actions: read` | download/upload artifacts |
 | `agent-main-guard.yml` | `contents: read`, `actions: write` (+ `AUTOFIX_PUSH_TOKEN` to revert) | re-run a failed job once; revert the culprit |
 | `release-notes.yml` | `contents: read`, `pull-requests: write` | post comment |
 
