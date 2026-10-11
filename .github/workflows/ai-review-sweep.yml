@@ -51,6 +51,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # The review verdict as the commit status `agent-review`, on a pull request Renovate merges itself.
+      statuses: write
     uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pr-review-sweep.yml@v2
     with:
       # The `||` fallback matters: on a schedule run inputs.authors is empty.
