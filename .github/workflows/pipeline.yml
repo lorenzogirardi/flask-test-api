@@ -72,6 +72,40 @@ jobs:
         if-no-files-found: ignore
         include-hidden-files: true
         retention-days: 1
+  secrets:
+    # Awareness, never a gate: nothing needs this job and it cannot fail on a finding.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: TruffleHog on the pushed commits
+        id: trufflehog
+        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        continue-on-error: true
+        with:
+          extra_args: --results=verified,unknown
+      - name: Report what TruffleHog found (awareness, never blocks)
+        if: always()
+        env:
+          OUTCOME: ${{ steps.trufflehog.outcome }}
+        run: |
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "::warning title=TruffleHog::possible secrets in the pushed commits, see the annotations of this job"
+            echo "TruffleHog: possible secrets found in the pushed commits (file and line are in the job's annotations)." > secrets-evidence.txt
+          else
+            echo "TruffleHog: no secrets found in the pushed commits." > secrets-evidence.txt
+          fi
+          { echo "### TruffleHog: secrets in the commits (not blocking)"; cat secrets-evidence.txt; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload AI context (secrets)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-secrets
+          path: secrets-evidence.txt
+          if-no-files-found: ignore
+          retention-days: 1
+
   docker:
         needs: build
         runs-on: ubuntu-latest

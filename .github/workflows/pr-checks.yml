@@ -162,6 +162,40 @@ jobs:
       - name: Build the image from this pull request
         run: docker build -t pytbak:pr .
 
+      # Awareness, never a gate: what the scan finds is a warning on the run, a section of its
+      # summary and evidence for the agents (artifact ai-context-*). It cannot fail this job.
+      - name: Scan the image (awareness)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        continue-on-error: true
+        with:
+          image-ref: pytbak:pr
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+          output: trivy-results.txt
+      - name: Report what the scan found (awareness, never blocks)
+        if: always()
+        run: |
+          if grep -q "CRITICAL: [1-9]" trivy-results.txt 2>/dev/null; then
+            echo "::warning title=Trivy::critical vulnerabilities in the image, listed in the run summary"
+          fi
+          {
+            echo "### Trivy: critical vulnerabilities in the image (not blocking)"
+            echo '```'
+            head -c 20000 trivy-results.txt 2>/dev/null || echo "the scan produced no output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload evidence (trivy)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-trivy
+          path: trivy-results.txt
+          if-no-files-found: ignore
+          retention-days: 1
+
       - name: Create a kind cluster
         uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
         with:
@@ -193,6 +227,95 @@ jobs:
         run: |
           kubectl get po -o wide || true
           kubectl logs deploy/pytbak --tail=100 || true
+
+      - name: Deploy evidence for the agents
+        # What an SRE would look at: did the pods come up, did they restart, what did the app log.
+        if: always()
+        run: |
+          {
+            echo "## Deploy of this pull request's image in a kind cluster"
+            echo "job status: ${{ job.status }}"
+            echo "### Pods"; kubectl get po -o wide 2>&1 || true
+            echo "### Rollout"; kubectl rollout status deployment/pytbak --timeout=5s 2>&1 || true
+            echo "### App log (last lines)"; kubectl logs deploy/pytbak --tail=40 2>&1 || true
+          } > deploy-evidence.txt
+      - name: Upload evidence (deploy)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-deploy
+          path: deploy-evidence.txt
+          if-no-files-found: ignore
+          retention-days: 1
+
+  awareness:
+    # Security tools inform; they do not gate. This job is not a required check and no step in it
+    # can fail it on a finding: each tool leaves a warning on the run, a section of its summary and
+    # an ai-context-* artifact the agents read as evidence. What gates is whether the app works.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Checkov on the helm chart
+        uses: bridgecrewio/checkov-action@d0dd2e9434b4428060edba72d050c135273bd677 # v12.3132.0
+        continue-on-error: true
+        with:
+          framework: helm
+          directory: ./helm/
+          output_format: sarif
+          soft_fail: true
+          quiet: true
+      - name: Report what Checkov found (awareness, never blocks)
+        if: always()
+        run: |
+          count=$(jq '[.runs[].results[]] | length' results.sarif 2>/dev/null || echo 0)
+          if [ "$count" -gt 0 ]; then
+            echo "::warning title=Checkov::$count finding(s) in the helm chart, listed in the run summary"
+          fi
+          {
+            echo "### Checkov: helm chart ($count finding(s), not blocking)"
+            jq -r '[.runs[].results[] | "- `\(.ruleId)` \(.message.text) (\(.locations[0].physicalLocation.artifactLocation.uri // "?"))"] | unique | .[]' results.sarif 2>/dev/null | head -n 60 || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: TruffleHog on the commits of this pull request
+        id: trufflehog
+        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        continue-on-error: true
+        with:
+          extra_args: --results=verified,unknown
+      - name: Report what TruffleHog found (awareness, never blocks)
+        if: always()
+        env:
+          OUTCOME: ${{ steps.trufflehog.outcome }}
+        run: |
+          # The values themselves are never written here: only that something was found, and where
+          # to look (the annotations of the step above carry file and line).
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "::warning title=TruffleHog::possible secrets in the commits of this pull request, see the annotations of this job"
+            echo "TruffleHog: possible secrets found in the commits of this change (file and line are in the job's annotations)." > secrets-evidence.txt
+          else
+            echo "TruffleHog: no secrets found in the commits of this change." > secrets-evidence.txt
+          fi
+          { echo "### TruffleHog: secrets in the commits (not blocking)"; cat secrets-evidence.txt; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence (checkov)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-checkov
+          path: results.sarif
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload evidence (secrets)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-secrets
+          path: secrets-evidence.txt
+          if-no-files-found: ignore
+          retention-days: 1
 
   workflows:
     runs-on: ubuntu-latest
