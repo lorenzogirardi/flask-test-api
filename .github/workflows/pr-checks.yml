@@ -156,15 +156,49 @@ jobs:
     # instead of being discovered on main and reverted. Reviewers cannot verify that from a
     # diff, so this check is what answers "do the dependencies still work on the new image?".
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
     steps:
       - uses: actions/checkout@v7
 
+      - name: Does this commit change what this job proves?
+        # A commit that only adds or changes unit tests, on top of a commit whose image was built,
+        # deployed and tested here with success, ships the same image: building and deploying it
+        # again proves nothing new and was two and a half minutes of every agent commit that adds
+        # tests. The job still ends in success, which is what the merge gate asks of it. Anything
+        # else, or any doubt (no parent result, an error), builds as before.
+        id: scope
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          same=false
+          commit="$(gh api "repos/$REPO/commits/$HEAD_SHA" 2>/dev/null || true)"
+          parent="$(jq -r '.parents[0].sha // empty' <<<"$commit" 2>/dev/null || true)"
+          files="$(jq -r '.files[].filename' <<<"$commit" 2>/dev/null || true)"
+          if [ -n "$parent" ] && [ -n "$files" ] \
+             && ! grep -qvE '^tests/' <<<"$files" \
+             && ! grep -qE '^tests/(integration|k8s)/' <<<"$files"; then
+            proved="$(gh api "repos/$REPO/commits/$parent/check-runs?check_name=image" \
+                      --jq '[.check_runs[] | select(.conclusion == "success")] | length' 2>/dev/null || echo 0)"
+            if [ "${proved:-0}" -gt 0 ]; then same=true; fi
+          fi
+          echo "same=$same" >> "$GITHUB_OUTPUT"
+          if [ "$same" = "true" ]; then
+            echo "Only unit tests changed since ${parent:0:7}, whose image passed this job: nothing to build again." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Build the image from this pull request
+        if: steps.scope.outputs.same != 'true'
         run: docker build -t pytbak:pr .
 
       # Awareness, never a gate: what the scan finds is a warning on the run, a section of its
       # summary and evidence for the agents (artifact ai-context-*). It cannot fail this job.
       - name: Scan the image (awareness)
+        if: steps.scope.outputs.same != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         continue-on-error: true
         with:
@@ -176,7 +210,7 @@ jobs:
           severity: 'CRITICAL'
           output: trivy-results.txt
       - name: Report what the scan found (awareness, never blocks)
-        if: always()
+        if: always() && steps.scope.outputs.same != 'true'
         run: |
           if grep -q "CRITICAL: [1-9]" trivy-results.txt 2>/dev/null; then
             echo "::warning title=Trivy::critical vulnerabilities in the image, listed in the run summary"
@@ -197,11 +231,13 @@ jobs:
           retention-days: 1
 
       - name: Create a kind cluster
+        if: steps.scope.outputs.same != 'true'
         uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
         with:
           cluster_name: pytbak-pr
 
       - name: Deploy the stack with the image (app + PostgreSQL + Redis)
+        if: steps.scope.outputs.same != 'true'
         run: |
           set -euo pipefail
           kind load docker-image pytbak:pr --name pytbak-pr
@@ -215,9 +251,11 @@ jobs:
           sleep 3
 
       - name: Set up Python (the version the image runs)
+        if: steps.scope.outputs.same != 'true'
         uses: ./.github/actions/setup-python
 
       - name: Integration tests against the image
+        if: steps.scope.outputs.same != 'true'
         run: |
           pip install -r requirements.txt pytest
           pytest tests/integration -v
@@ -230,7 +268,7 @@ jobs:
 
       - name: Deploy evidence for the agents
         # What an SRE would look at: did the pods come up, did they restart, what did the app log.
-        if: always()
+        if: always() && steps.scope.outputs.same != 'true'
         run: |
           {
             echo "## Deploy of this pull request's image in a kind cluster"
