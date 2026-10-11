@@ -138,6 +138,20 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL'
           output: trivy-results.txt
+      - name: Report what the scan found (awareness, never blocks)
+        # Security tools inform; they do not gate. A finding is a warning on the run and a
+        # section of its summary, and the pipeline goes on: what gates is whether the app works.
+        if: always()
+        run: |
+          if grep -q "CRITICAL: [1-9]" trivy-results.txt 2>/dev/null; then
+            echo "::warning title=Trivy::critical vulnerabilities in the image, listed in the run summary"
+          fi
+          {
+            echo "### Trivy: critical vulnerabilities in the image (not blocking)"
+            echo '```'
+            head -c 20000 trivy-results.txt 2>/dev/null || echo "the scan produced no output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload AI context (trivy scan)
         if: always() && vars.AI_ENABLED == 'true'
         uses: actions/upload-artifact@v7
@@ -192,6 +206,17 @@ jobs:
           output_format: sarif
           soft_fail: true
           quiet: true
+      - name: Report what the check found (awareness, never blocks)
+        if: always()
+        run: |
+          count=$(jq '[.runs[].results[]] | length' results.sarif 2>/dev/null || echo 0)
+          if [ "$count" -gt 0 ]; then
+            echo "::warning title=Checkov::$count finding(s) in the helm chart, listed in the run summary"
+          fi
+          {
+            echo "### Checkov: helm chart ($count finding(s), not blocking)"
+            jq -r '[.runs[].results[] | "- `\(.ruleId)` \(.message.text) (\(.locations[0].physicalLocation.artifactLocation.uri // "?"))"] | unique | .[]' results.sarif 2>/dev/null | head -n 60 || true
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload AI context (checkov results)
         if: always() && vars.AI_ENABLED == 'true'
         uses: actions/upload-artifact@v7

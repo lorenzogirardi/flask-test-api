@@ -62,6 +62,8 @@ Every pull request is reviewed, repaired, certified and merged by agents; the en
 - A description must be true: one that promises behaviour the code does not have sends the agents looking for it.
 - Agents never edit `.github/workflows/`, and the documentation reviewer never edits this file. Changes to
   either are made and merged by a person.
+- Security and quality tools (Trivy, Checkov, SBOM) inform and never block: a finding is a warning on the
+  run and a section of its summary. What gates a change is whether the application works (tests, build, deploy).
 - The Python version is written in one place, the `FROM python:` line of the `Dockerfile`. Every workflow
   reads it from there (`.github/actions/setup-python`, `python_version_dockerfile`); do not write a version
   in a workflow.
