@@ -16,7 +16,10 @@ async def test_health(client):
 async def test_ready(client):
     resp = await client.get("/api/mgmt/ready")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "READY"
+    body = resp.json()
+    assert body["status"] == "READY"
+    from app.config.settings import get_settings
+    assert body["version"] == get_settings().app_version
 
 
 @pytest.mark.anyio
