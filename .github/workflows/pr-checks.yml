@@ -41,7 +41,7 @@ jobs:
           # Must match pipeline.yml and the Dockerfile base image: a
           # dependency set can resolve on one interpreter and not another
           # (that is exactly how the 3.14 bump broke main).
-          python-version: "3.14"
+          python-version: "3.15"
 
       - name: Resolve dependencies
         # Separate from the install so a resolver conflict is reported as its
@@ -115,7 +115,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: "3.15"
 
       - name: Install dependencies
         run: |
@@ -187,7 +187,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: "3.15"
 
       - name: Integration tests against the image
         run: |
