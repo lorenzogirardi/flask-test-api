@@ -29,8 +29,8 @@ async def health_check():
 
 @router.get("/ready", summary="Readiness probe")
 async def readiness():
-    """Returns 200 when app is ready to serve traffic (always true once started)."""
-    return {"status": "READY"}
+    """Returns 200 when app is ready to serve traffic (always true once started), with the version serving it."""
+    return {"status": "READY", "version": get_settings().app_version}
 
 
 @router.get("/info", response_model=AppInfoResponse, summary="Application info")
