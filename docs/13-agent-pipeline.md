@@ -62,21 +62,22 @@ GitHub may delay by hours), with no model. It goes red, and says why in the run 
 
 ## The canary: known changes, checked outcomes
 
-`pipeline-canary.yml` runs once a day (scheduled for the night; GitHub may start it hours later). For each scenario in `.github/canary.json` it opens a pull request that changes
+`pipeline-canary.yml` runs once a day (scheduled for the night; GitHub may start it hours later). For the scenario in `.github/canary.json` it opens one pull request that changes
 `app/canary.py` (a module nothing imports) in a known way, against a throwaway copy of `main`. The ordinary workflows
 run on it; the canary then checks facts and closes it. It is never merged.
 
 | Scenario | The change | What must happen |
 |---|---|---|
-| `repair` | A bug the existing tests catch, with a vague description | The agent restores the code, the tests are not touched, the commit is certified |
-| `intent` | A limit raised on purpose, said in the description, that an existing test contradicts | The test is updated, the code keeps the new limit, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
-| `coverage` | A new function added with no test | The test steward adds a test for it, the function stays as written, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
+| `change` | In one pull request: a bug the existing tests catch, described vaguely, and a new function added with no test | The agent restores the code, the test steward adds a test for the new function, which stays as written, nothing outside `app/canary.py` and `tests/` changes, the commit is certified |
 
-The same scenarios also guard the engine itself: before `ci-shared` moves its `v2` tag to a new commit it starts this
-canary in candidate mode (`repository_dispatch`), where the pull requests are judged by the engine about to be released.
-The tag moves only if every scenario holds.
+It used to be three scenarios in three pull requests, on every run and on every release of `ci-shared`: 36 of them in
+one day. A change of behaviour made on purpose, where a test must be updated, is no longer in the canary.
 
-A scenario also states what the agents' report must say (`code_defect` for `repair`, `test_defect` for `intent`): the
+The same scenario also guards the engine itself: before `ci-shared` moves its `v2` tag to a new commit it starts this
+canary in candidate mode (`repository_dispatch`), where the pull request is judged by the engine about to be released.
+The tag moves only if the scenario holds.
+
+The scenario also states what the agents' report must say (`code_defect`, and no `test_defect`): the
 right files reached through the wrong verdict are a failure too.
 
 A red run means the agents did something else: no verdict, an abandonment, a file changed that should not be, a test
