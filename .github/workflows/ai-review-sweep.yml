@@ -103,9 +103,9 @@ jobs:
       # which it never got a spare round to reach. 20 gives a real multi-file
       # migration room to actually finish, not just make progress.
       max_autofix_attempts: 20
-      # Must match pr-checks.yml's own python-version — otherwise this proves
-      # nothing about the real gate. See python_version's description.
-      python_version: "3.14"
+      # The same source pr-checks.yml reads its interpreter from — otherwise
+      # this proves nothing about the real gate.
+      python_version_dockerfile: Dockerfile
       # Mirrors pr-checks.yml's own steps exactly (Resolve dependencies,
       # Install, Lint, Tests, Smoke-test), so a local pass here means the
       # same thing a real pr-checks pass would. Lint/pytest are included

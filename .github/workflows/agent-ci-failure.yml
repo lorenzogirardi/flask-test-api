@@ -41,7 +41,7 @@ jobs:
       base_branch: main
       required_checks: 'checks,integration,image,workflows'
       max_ci_attempts: 3
-      python_version: "3.14"
+      python_version_dockerfile: Dockerfile
       verify_command: |
         set -euo pipefail
         pip install --dry-run -r requirements.txt

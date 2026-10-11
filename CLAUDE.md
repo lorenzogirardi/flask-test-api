@@ -62,6 +62,9 @@ Every pull request is reviewed, repaired, certified and merged by agents; the en
 - A description must be true: one that promises behaviour the code does not have sends the agents looking for it.
 - Agents never edit `.github/workflows/`, and the documentation reviewer never edits this file. Changes to
   either are made and merged by a person.
+- The Python version is written in one place, the `FROM python:` line of the `Dockerfile`. Every workflow
+  reads it from there (`.github/actions/setup-python`, `python_version_dockerfile`); do not write a version
+  in a workflow.
 - `app/canary.py` and `tests/test_canary.py` belong to the pipeline canary (`.github/canary.json`,
   `pipeline-canary.yml`, nightly). Do not import the module, and do not change its behaviour or its tests
   without updating the scenarios.

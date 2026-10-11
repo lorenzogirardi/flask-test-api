@@ -37,7 +37,7 @@ jobs:
       mode: pr
       base_branch: main
       required_checks: 'checks,integration,image,workflows'
-      python_version: "3.14"
+      python_version_dockerfile: Dockerfile
       verify_command: |
         set -euo pipefail
         pip install --dry-run -r requirements.txt
@@ -75,7 +75,7 @@ jobs:
     with:
       mode: push
       base_branch: main
-      python_version: "3.14"
+      python_version_dockerfile: Dockerfile
       verify_command: |
         set -euo pipefail
         pip install --dry-run -r requirements.txt

@@ -1,0 +1,21 @@
+name: Set up Python (the version the image runs)
+description: >-
+  Installs the Python version named in the Dockerfile's `FROM python:` line. The Dockerfile is the
+  only place the version is written: CI cannot test on an interpreter the image does not run, and a
+  dependency update of the base image moves both in one pull request the agents can handle.
+
+runs:
+  using: composite
+  steps:
+    - name: Python version of the image
+      id: version
+      shell: bash
+      run: |
+        version=$(sed -n 's/^FROM python:\([0-9]*\.[0-9]*\).*/\1/p' Dockerfile | head -n 1)
+        [ -n "$version" ] || { echo "::error::no 'FROM python:<version>' line in Dockerfile"; exit 1; }
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "Python $version"
+
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ steps.version.outputs.version }}

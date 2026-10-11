@@ -132,7 +132,7 @@ repair it, `autofix: true`:
    locally, the same way fixing this class of bug interactively does (propose → check the real
    output → adjust), instead of only discovering it a full CI round trip later.
    `verify_command` here re-runs `pr-checks.yml`'s own steps verbatim (resolve → install → lint →
-   **pytest** → boot → curl) on `python_version: "3.14"` — lint and the real test suite are in it,
+   **pytest** → boot → curl) on the interpreter named in the `Dockerfile` (`python_version_dockerfile`) — lint and the real test suite are in it,
    not just install/boot, because a code-level fix needs the real test suite to mean anything;
    matching the real gate's interpreter is not optional either — a dependency set can resolve on
    one Python version and not another, which is literally how the incident above happened.

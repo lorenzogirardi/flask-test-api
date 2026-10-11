@@ -35,13 +35,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          # Must match pipeline.yml and the Dockerfile base image: a
-          # dependency set can resolve on one interpreter and not another
-          # (that is exactly how the 3.14 bump broke main).
-          python-version: "3.15"
+      - name: Set up Python (the version the image runs)
+        # Read from the Dockerfile, the only place the version is written: a
+        # dependency set can resolve on one interpreter and not another
+        # (that is exactly how the 3.14 bump broke main).
+        uses: ./.github/actions/setup-python
 
       - name: Resolve dependencies
         # Separate from the install so a resolver conflict is reported as its
@@ -112,10 +110,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.15"
+      - name: Set up Python (the version the image runs)
+        uses: ./.github/actions/setup-python
 
       - name: Install dependencies
         run: |
@@ -184,10 +180,8 @@ jobs:
           kubectl port-forward deploy/pytbak 8000:8000 &>/dev/null &
           sleep 3
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.15"
+      - name: Set up Python (the version the image runs)
+        uses: ./.github/actions/setup-python
 
       - name: Integration tests against the image
         run: |
