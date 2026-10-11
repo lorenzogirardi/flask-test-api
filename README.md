@@ -117,7 +117,7 @@ helm upgrade pytbak ./helm/pytbak \
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/mgmt/health` | Health check (PG + Redis status) |
-| GET | `/mgmt/ready` | Readiness probe |
+| GET | `/mgmt/ready` | Readiness probe (returns `status` and serving `version`) |
 | GET | `/mgmt/info` | App info |
 | GET | `/mgmt/env` | Safe env vars |
 | GET | `/mgmt/mappings` | Route mappings |
