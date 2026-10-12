@@ -1,7 +1,7 @@
 name: Agent Change
 
 # The agent pipeline on EVERY code change that already exists:
-#   - each pull request (except Renovate's, which the sweep owns): checks, two
+#   - each pull request, the dependency bot's included (the sweep still merges those): checks, two
 #     independent reviewers, fixes pushed to the PR branch by the agent, final
 #     review, docs review. One comment on the PR.
 #   - each push straight to main with no PR: same review; if something blocks it
@@ -23,8 +23,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request' && vars.AI_ENABLED == 'true' &&
       github.event.pull_request.head.repo.fork == false &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.user.login != 'renovate[bot]'
+      github.event.pull_request.draft == false
     concurrency:
       group: agent-change-pr-${{ github.event.pull_request.number }}
       cancel-in-progress: true
