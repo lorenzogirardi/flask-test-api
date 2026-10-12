@@ -57,8 +57,10 @@ suite. Also runs `actionlint` on every workflow file (job name: `workflows`), wh
 latent bug on its first run: a `docker/build-push-action` step with no `id`, silently making
 `steps.docker_build.outputs.digest` resolve to nothing.
 
-Heavy jobs (multi-arch docker build, trivy, sbom, kind cluster) stay in `pipeline.yml` on `main` —
-too slow to run per PR.
+Heavy jobs (multi-arch docker build, trivy, kind cluster) stay in `pipeline.yml` on `main` —
+too slow to run per PR. SBOM is the exception: `pr-checks.yml` produces the SBOM of the image built
+from the pull request for awareness (never a gate, it cannot fail the job) and uploads it as the
+`ai-context-sbom` artifact with a summary of the package counts and Python package versions.
 
 ## Why two review workflows, gated by actor
 
