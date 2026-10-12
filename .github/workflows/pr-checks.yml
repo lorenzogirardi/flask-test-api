@@ -230,6 +230,43 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
+      # Awareness, never a gate: what the image contains, for the security role to read. On main the
+      # SBOM was produced and read by nobody. It cannot fail this job.
+      - name: SBOM of the image (awareness)
+        if: steps.scope.outputs.same != 'true'
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        continue-on-error: true
+        with:
+          image: pytbak:pr
+          output-file: sbom.spdx.json
+          upload-artifact: false
+      - name: Report what the image contains (awareness, never blocks)
+        if: always() && steps.scope.outputs.same != 'true'
+        run: |
+          {
+            echo "SBOM of the image built from this pull request (syft, SPDX)."
+            if [ -s sbom.spdx.json ]; then
+              jq -r '
+                def kind: [.externalRefs[]?.referenceLocator // empty | select(startswith("pkg:")) | split("/")[0] | ltrimstr("pkg:")][0] // "other";
+                (.packages // []) as $p
+                | "packages: \($p | length) in all; by kind: \([$p[] | kind] | group_by(.) | map("\(.[0]) \(length)") | join(", "))",
+                  "python packages (name version):",
+                  ($p[] | select(kind == "pypi") | "  \(.name) \(.versionInfo // "?")")
+              ' sbom.spdx.json | head -n 150
+            else
+              echo "the SBOM could not be produced for this image"
+            fi
+          } > sbom-evidence.txt
+          { echo "### SBOM: what the image contains (not blocking)"; echo '```'; head -c 6000 sbom-evidence.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload evidence (sbom)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-context-sbom
+          path: sbom-evidence.txt
+          if-no-files-found: ignore
+          retention-days: 1
+
       - name: Create a kind cluster
         if: steps.scope.outputs.same != 'true'
         uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
