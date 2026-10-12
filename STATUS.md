@@ -1,5 +1,9 @@
 # Project Status — pytbak FastAPI Rewrite
 
+> **Historical.** This is the checklist of the FastAPI rewrite as it stood on its branch. The rewrite is on
+> `main`; the items under TODO are not tracked here any more. How a change is tested, built, deployed and
+> merged today is in [docs/13-agent-pipeline.md](docs/13-agent-pipeline.md).
+
 ## Branch: `feat/fastapi-rewrite`
 
 ### Completed

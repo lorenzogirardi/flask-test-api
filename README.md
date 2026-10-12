@@ -269,7 +269,7 @@ $ curl -s http://localhost:8000/mgmt/health | python3 -m json.tool
 
 ```bash
 $ curl -s http://localhost:8000/mgmt/ready
-{"status": "READY"}
+{"status": "READY", "version": "2.0.0"}
 
 $ curl -s http://localhost:8000/mgmt/info | python3 -m json.tool
 {
@@ -349,7 +349,7 @@ $ curl -s http://localhost:8000/mgmt/info?inject_error=500
 
 ```bash
 $ time curl -s http://localhost:8000/mgmt/ready?delay_ms=200
-{"status": "READY"}
+{"status": "READY", "version": "2.0.0"}
 real    0m0.222s   # ~200ms delay confirmed
 ```
 

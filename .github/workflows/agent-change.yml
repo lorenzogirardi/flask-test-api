@@ -1,9 +1,9 @@
 name: Agent Change
 
 # The agent pipeline on EVERY code change that already exists:
-#   - each pull request, the dependency bot's included (the sweep still merges those): checks, two
-#     independent reviewers, fixes pushed to the PR branch by the agent, final
-#     review, docs review. One comment on the PR.
+#   - each pull request, the dependency bot's included (the sweep still merges those): checks, the
+#     test steward, four reviewers (second developer, security, SRE, architect), one fix asked by
+#     the second developer and pushed to the PR branch, docs review. One comment on the PR.
 #   - each push straight to main with no PR: same review; if something blocks it
 #     opens a fix PR (never pushes to main), otherwise leaves a commit comment.
 # A certified PR whose CI is green is merged by agent-merge.yml (also at the end of this

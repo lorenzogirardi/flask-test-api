@@ -65,7 +65,7 @@ jobs:
       # agent/* PRs are certified by the agent that opens them; the sweep must not
       # review, autofix or merge them on top of that.
       skip_head_prefixes: 'agent/'
-      # Review with the two independent reviewers (structured findings validated against the
+      # Review with the reviewers of the agent pipeline (structured findings validated against the
       # diff) instead of one, and review a machine-written autofix commit before it can merge.
       structured_review: true
       # A PR that fell behind main is updated (with the push token) so its CI describes current

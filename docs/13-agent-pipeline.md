@@ -1,7 +1,9 @@
 # Agent pipeline (ci-shared v2)
 
 Role-based agents that review, repair, certify and merge every pull request, plus a
-changelog step and a documentation architect. The roles and the code that acts
+changelog step and a documentation architect. One graph: a developer who writes and repairs, and a
+review by different roles (a second developer for correctness, a QA tester, an SRE, an architect, a
+security role that reports what the tools found, a documentation writer). The roles and the code that acts
 on their output live in `ci-shared` (tag `v2`), so other repositories can reuse
 them. This repository only wires them up. For the older single-purpose AI
 workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
@@ -10,10 +12,10 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 
 | Change | Workflow | What happens |
 |---|---|---|
-| Any pull request except Renovate's | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, reviewers A and B, fix loop that **pushes fix commits to the PR branch**, final review, docs review. One comment on the PR, edited on every run. |
+| Any pull request, Renovate's included since #307 | `agent-change.yml` (job `pull-request`) | No planner (the author's description is the intent). Checks, the test steward, then four roles in parallel: the second developer (correctness), security, SRE, architect. Only the second developer sends the change back: one fix, **pushed to the PR branch**, which it then rereads. Then the documentation reviewer. One comment on the PR, edited on every run, with every role's verdict and what the tools reported. |
 | `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
-| Renovate PRs | `ai-review-sweep.yml` | Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the two reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. A PR that touches `.github/workflows/` is reviewed like any other, and the agents repair what is outside the workflow files (their token has no `workflow` scope). The verdict is written as the commit status `agent-review`; Renovate, which has the permission, merges it itself once every check is green, that status included. If the required checks are red on current code it is labelled `agent-abandoned` and closed, so no one waits on it. |
+| Renovate PRs, also | `ai-review-sweep.yml` | A second engine, still the one that repairs and merges them; it is to be reduced to asking Renovate for a rebase once the graph has been seen to work on a pull request opened by the bot. Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. A PR that touches `.github/workflows/` is reviewed like any other, and the agents repair what is outside the workflow files (no agent edits a workflow file). The verdict is written as the commit status `agent-review`; Renovate, which has the permission, merges it itself once every check is green, that status included. If the required checks are red on current code it is labelled `agent-abandoned` and closed, so no one waits on it. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
 
 Guards against loops and noise: every commit the pipeline makes has the author
@@ -36,7 +38,7 @@ they are about (`Agent Merge · workflow_run · <pull request title>`).
 | Moment | Workflows, in the order they start |
 |---|---|
 | A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green), `AI Review Sweep` (Renovate pull requests only). After the merge: `AI Release Notes`. |
-| Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image, `ai-analysis`), next to `Changelog`, `Agent Merge`, `AI Review Sweep` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
+| Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image), next to `Changelog`, `Agent Merge`, `AI Review Sweep` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
 | Time passes | `Agent Merge` (every 30 minutes), `AI Review Sweep` (twice a day), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: the first three also start on events. |
 
 Two different images are built: the `image` job of `PR Checks` builds from the pull request and never publishes it
@@ -90,10 +92,13 @@ the agent's only statement of intent, and the changelog entry is made from the t
 
 1. `PR Checks` runs the lint and unit tests, the integration suite against real PostgreSQL and Redis, the
    image built from your branch, and the workflow lint.
-2. `agent-change.yml` reviews the diff with two independent reviewers. If it changes application code, the
-   test steward looks at the tests. If a check fails, `agent-ci-failure.yml` reads the failing logs and decides
+2. `agent-change.yml` has four roles review the diff, each on its own: a second developer, security, an
+   SRE and an architect. If it changes application code, the test steward looks at the tests first and
+   adds the missing ones. Only the second developer can ask for a fix, once; the others leave notes. The
+   documentation reviewer then brings the documents in line. If a check fails, `agent-ci-failure.yml` reads the failing logs and decides
    whether the code or the test is wrong, then pushes a fix to your branch (at most 3 automatic commits in a row).
-3. When the checks and every review pass, the agent comments `Certified at <sha>` on the pull request.
+3. When the checks pass and the review is done, the agent comments `Certified at <sha>` on the pull
+   request. Findings that were not resolved are listed in that comment; they do not hold a change that works.
 4. `agent-merge.yml` squash-merges it once the required checks have succeeded on that same commit. A new push
    from you invalidates the certification, and the cycle runs again on the new commit.
 5. `changelog.yml` adds the entry to `CHANGELOG.md` after the merge, unless your change already edited it.
@@ -108,13 +113,13 @@ Every change ends in one of three ways, and none waits for a person:
 | End | When | What the system does |
 |---|---|---|
 | **Merged** | Its head commit is certified and the required checks (`checks`, `integration`, `image`, `workflows`) succeeded on that same commit | `agent-merge.yml` squash-merges it, using the agent token so the push workflows on `main` run |
-| **Abandoned** | It did not converge, even after one retry with twice the budget | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. The base branch is untouched |
+| **Abandoned** | Its checks could not be made to pass, or a role that must answer (the second developer, the test steward, the documentation reviewer) gave no usable answer | The PR (if any) is labelled `agent-abandoned`, and closed if the agent opened it; a person's own PR is left open and unmerged. The base branch is untouched |
 | **Reverted** | It merged and the pipeline on `main` then failed | `agent-main-guard.yml` takes `main` back to the last green state (every change since the last green run, in one commit; the pipeline's bookkeeping commits are left alone) and says so, with the failure, on the pull request each change came from (label `agent-reverted`). No issue is opened: reverted is where the change ends, and a new pull request starts a new attempt |
 
 **Certification** is a comment by the agent account carrying
 `<!-- agent-certified: <sha> -->` for exactly the head commit. A new push changes
 the sha, so an old certification never applies to new code; a comment from anyone
-else is ignored. It is issued only when the checks and every review passed.
+else is ignored. It is issued only when the checks passed and the second developer answered.
 
 **The revert is conservative.** It happens only if a failed job is one a code
 change causes (`build`, `quality-gate`, `k8s-check`, `docker`); not for scanners
@@ -122,11 +127,14 @@ or SBOM. Not if `main` was already red before the commit, not for a commit that
 is itself an automatic revert, and not once **3 automatic reverts landed in 24
 hours**: that circuit breaker also stops automatic merging until they age out.
 
-**Limits that no code removes.** Changes to `.github/workflows/` are outside the
-agent's scope (its token has no `workflow` scope, and GitHub rejects the push), so
-a person who edits CI merges their own change; for Renovate's workflow bumps, the agents review them, Renovate merges them and a red one is abandoned. And the guarantee is only as strong
+**Limits that no code removes.** No agent edits a file under `.github/workflows/`: a change to the
+pipeline is written by a person. It is reviewed and merged like any other (the agents' token has the
+`workflow` permission since 2026-10-11; seen on #306, #307 and #308). For Renovate's workflow bumps, the
+agents review them, Renovate merges them and a red one is abandoned. And the guarantee is only as strong
 as the checks: a defect none of them sees will merge, and the revert is what limits
-the damage. A spending cap belongs on the OpenRouter key itself.
+the damage. A spending cap belongs on the OpenRouter key itself; when it is reached every pull request
+ends abandoned (the comment names the role that had no answer, the cause is in the job log), and a commit
+abandoned that way is reviewed again only after a new push.
 
 ## When a test fails: is the code wrong or the test?
 
@@ -158,9 +166,11 @@ Three consequences, all enforced in code:
 - A test the steward has just written or rewritten is not the specification. If it
   fails it is discarded and the steward is asked again with the failure; the
   application is never changed to satisfy it.
-- An agent that cannot produce a usable answer (the steward, the documentation
-  reviewer) is told what was wrong and tries once more. If that fails too the
-  commit is not certified.
+- An agent that must answer and cannot (the steward, the documentation reviewer) is
+  told what was wrong and tries once more. If that fails too the commit is not
+  certified. The same holds without an answer from the second developer. A role that
+  only informs (security, SRE, architect) and gives no answer is reported in the
+  comment, and the change goes on.
 
 The **test steward** may change only test files, and the code refuses any change
 that deletes a test file, reduces the number of tests or assertions in a file, or
@@ -178,8 +188,8 @@ There is no issue-driven flow: every change starts as a pull request (yours, Ren
 
 Required: variable `AI_ENABLED=true`, variable `OPENROUTER_MODEL`
 (`deepseek/deepseek-v4.1-flash`), secret `OPENROUTER_API_KEY`, and secret
-`AUTOFIX_PUSH_TOKEN` with **Contents** read/write on this repository (never
-`workflow` scope). The token pushes and merges, so that the checks and the
+`AUTOFIX_PUSH_TOKEN` with **Contents**, **Pull requests** and **Workflows** read/write on
+this repository (the last one lets the merge gate merge a change to a workflow file). The token pushes and merges, so that the checks and the
 pipeline on `main` start; a push or a merge made with the job's `GITHUB_TOKEN`
 starts nothing. Pull requests the pipeline opens itself (the canary's, a fix after
 a direct push) are opened with the job token, which needs the repository setting
@@ -194,17 +204,19 @@ The description of the pull request is the plan: there is no planner here.
 |---|---|---|
 | 1 | Writer | Implements the change and its tests inside the plan: at most 8 changes per turn, unique-anchor edits or new files, never `.github/workflows/`. |
 | 2 | Deterministic checks | Same steps as `pr-checks.yml` (dependency resolution, install, lint, tests, smoke test). Run after every change. A failure is reverted and fed back to the writer. |
-| 3 | Reviewer A | Correctness and design, against the plan. |
-| 4 | Reviewer B | Security and operability. Does not see reviewer A's output. |
+| 3 | Test steward (QA) | When application code changed: adds the tests it lacks, once. They are run by step 2. |
+| 4 | Four reviewers, in parallel | The second developer (correctness, against the plan), security (also reads what Trivy, Checkov, TruffleHog, the SBOM and the deploy reported, and reports it as awareness), SRE (build, deploy, health), architect (fit with the design, with the project's own description). None sees another's output. |
 | 5 | Dedup and validation | Findings need severity, file, line, evidence and a fix. A finding whose line is not in a changed hunk is dropped. Findings about the same place and topic are merged. |
-| 6 | Fix loop | Blocking findings (`critical`, `high`) go back to the writer; then steps 2 to 5 run again. At most `max_iterations` (3) rounds. |
-| 7 | Final reviewer | Checks the blocking findings are really fixed and looks for regressions. |
+| 6 | One fix | A `critical` or `high` finding of the second developer goes back to the writer, one time; step 2 runs on the fix. Every other finding is a note. |
+| 7 | The second developer rereads | The fix alone, not the whole change. What it still finds is reported; it does not hold a change whose checks pass. |
 | 8 | Documentation reviewer | Gets the passages of the documents that mention what the diff touches. Edits only documentation files (never `CLAUDE.md`, `AGENTS.md` or `.claude/`), only when the diff justifies it, then re-runs the checks. |
 | 9 | Changelog | A deterministic entry in `CHANGELOG.md` unless the change already has one. |
 
 All agents use the model in `OPENROUTER_MODEL`. Independence between reviewers
 comes from separate calls, different prompts and no shared context, not from
-different models.
+different models. Every role but the writer is asked with no thinking before the
+answer: the roles of a change answer in seconds (a real change, #302, went from
+opened to merged in six minutes, most of it the checks).
 
 ## Credential boundaries
 
@@ -235,10 +247,12 @@ changelog is out of its scope.
 
 ## Limits and known gaps
 
-- The loop is bounded: `max_iterations` review rounds, `max_verify_retries`
-  failed-check retries, `writer_rounds` turns per attempt.
-- A reviewer that returns no usable reply ends the attempt as not converged; nothing
-  is certified by default.
+- The loop is bounded: one fix asked by the second developer, `max_verify_retries`
+  failed-check retries, `writer_rounds` turns of the writer.
+- Without a usable reply from the second developer nothing is certified.
+- The second developer answers with no thinking: it sees an evident defect and weighs a
+  subtle one less well, and a defect the writer does not fix in its one round is merged
+  with the finding written in the comment.
 - Cost per role is recorded in the run artifact (`agent-change-pr-<run>`) and shown
   in the PR.
 - If the stated intent is vague and the test is ambiguous, the model picks a
@@ -252,8 +266,9 @@ changelog is out of its scope.
 - A description is part of the input. One that promises behaviour the code does
   not have sends the agents looking for it; the rules above keep the outcome
   safe, but the change may be abandoned instead of merged.
-- The canary covers three scenarios. A defect none of them exercises is not seen
-  before a release of the engine.
+- The canary covers one scenario (a bug to repair and a function to test). A defect it
+  does not exercise is not seen before a release of the engine; a change of behaviour made
+  on purpose is no longer in it.
 - `reusable_agent-review.yml` (reviewers only, no fixes) and
   `reusable_agent-pipeline.yml` (planner, from a written request) exist in
   `ci-shared` but are not wired to a trigger here.

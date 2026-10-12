@@ -61,7 +61,7 @@ Every pull request is reviewed, repaired, certified and merged by agents; the en
   they can quote those words. Otherwise the code is what gets fixed.
 - A description must be true: one that promises behaviour the code does not have sends the agents looking for it.
 - Agents never edit `.github/workflows/`, and the documentation reviewer never edits this file. Changes to
-  either are made and merged by a person.
+  either are written by a person; they are reviewed and merged like any other change.
 - Security and quality tools (Trivy, Checkov, SBOM, TruffleHog) inform and never block: a finding is a warning
   on the run, a section of its summary and an `ai-context-*` artifact the agents read. They run on pull requests
   (`pr-checks.yml`: step in `image`, job `awareness`) and on `main` (`pipeline.yml`). What gates a change is whether the application works (tests, build, deploy).

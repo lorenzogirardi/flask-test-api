@@ -5,6 +5,8 @@
 > **Also superseded.** `ai-review.yml` was removed: every non-Renovate PR, and every direct push to `main`, now goes through `agent-change.yml`. The sweep is back to Renovate PRs only. The sections below that describe `ai-review.yml` or "Autofix now covers the owner's own PRs too" describe the previous setup.
 >
 > The role-based agent pipeline (writer, reviewers, failure adjudicator, test steward, changelog), its health check and its canary, and the move to `ci-shared` `v2` are described in [13-agent-pipeline.md](13-agent-pipeline.md). **That document is the current description; this one is kept for the reasoning behind the older workflows.**
+>
+> **Also superseded (2026-10-11 and 12).** The `ai-analysis` job of `pipeline.yml` (feature 4) was removed: the security and SRE roles of the graph read the same evidence on every pull request. `agent-change.yml` no longer skips Renovate's pull requests. The agents' token has the `workflow` permission and the merge gate merges a change to a workflow file like any other, so "a person merges CI changes" below no longer holds.
 
 This repository's AI features are split across two repos:
 
@@ -24,7 +26,7 @@ any OpenAI-compatible chat-completions endpoint.
 | # | Feature | Workflow | Trigger | Merges/blocks anything? |
 |---|---------|----------|---------|--------------------------|
 | 1 | Deterministic pre-merge gate | `pr-checks.yml` | `pull_request` | **Yes** — required check for auto-merge |
-| 2 | AI code review (human PRs) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request`, skips `renovate[bot]` | Reviews, pushes fixes to the PR branch and certifies; `agent-merge.yml` merges a certified, green commit (see [13](13-agent-pipeline.md)) |
+| 2 | AI code review (every PR) | ~~`ai-review.yml`~~ → `agent-change.yml` | `pull_request` (Renovate's too since #307) | Reviews, pushes fixes to the PR branch and certifies; `agent-merge.yml` merges a certified, green commit (see [13](13-agent-pipeline.md)) |
 | 3 | Sweep: review + self-repair (Renovate and the owner), auto-merge (Renovate only) | `ai-review-sweep.yml` | `schedule` (2×/day) + `workflow_dispatch` | **Yes**, but only for `renovate[bot]` — see below |
 | 5 | Self-repair on a direct push to `main` | ~~`pipeline.yml` → `ai-autofix-main`~~ → `agent-main-guard.yml` (re-run once, then revert) | after `Python application` fails on `main` | **Yes** — reverts `main` to the last green state |
 | 7 | Automatic release notes | `release-notes.yml` | `pull_request` (closed, merged) | No — comment only |
