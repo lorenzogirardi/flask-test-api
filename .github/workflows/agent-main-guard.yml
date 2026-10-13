@@ -30,7 +30,7 @@ jobs:
     permissions:
       contents: read
       actions: write     # re-run the failed jobs once before reverting anything
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-main-guard.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-main-guard.yml@v3
     with:
       run_id: ${{ github.event.workflow_run.id }}
       base_branch: main

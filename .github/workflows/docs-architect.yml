@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_docs-architect.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_docs-architect.yml@v3
     with:
       post_issue: ${{ inputs.post_issue }}
       openrouter_model: ${{ vars.OPENROUTER_MODEL }}

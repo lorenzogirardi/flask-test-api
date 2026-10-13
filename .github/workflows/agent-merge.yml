@@ -36,7 +36,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-merge.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-merge.yml@v3
     with:
       # 0 = every open pull request: one pass judges them all, so no event can be missed.
       pr_number: 0

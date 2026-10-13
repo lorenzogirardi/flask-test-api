@@ -31,7 +31,7 @@ jobs:
       actions: write        # start pipeline.yml on main when commits have no build
       pull-requests: write  # abandon a pull request that has no verdict and nothing left to run
       issues: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-health.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-health.yml@v3
     with:
       base_branch: main
       build_workflow: pipeline.yml
