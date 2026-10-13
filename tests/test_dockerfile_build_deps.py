@@ -25,3 +25,13 @@ def test_dockerfile_installs_c_compiler_before_pip_install():
     assert "gcc" in install_block or "build-essential" in install_block, (
         "hiredis has no cp315 wheel and must be compiled in the image"
     )
+
+
+def test_dockerfile_installs_libc_headers_before_pip_install():
+    content = DOCKERFILE.read_text()
+    apt_index = content.index("apt-get install")
+    pip_index = content.index("pip install")
+    install_block = content[apt_index:pip_index]
+    assert "libc6-dev" in install_block or "build-essential" in install_block, (
+        "libc6-dev provides assert.h, needed to compile hiredis on python:3.15-slim"
+    )
