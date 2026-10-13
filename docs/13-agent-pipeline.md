@@ -13,10 +13,9 @@ workflows see [12-ai-pipeline.md](12-ai-pipeline.md).
 
 | Change | Workflow | What happens |
 |---|---|---|
-| Any pull request, Renovate's included since #307 | `agent-change.yml` (job `pull-request`) | The author's title and description are the task. Checks, then the architect's brief; the developer agent does what it asks (commits **pushed to the PR branch**); a second developer accepts or sends back; QA adds the missing tests; SRE and security when the files call for them; the documentation reviewer; the architect closes. One comment on the PR, edited on every run: what happened, the brief, every role's findings and what the tools reported. |
-| `PR Checks` fails on a PR (not Renovate's) | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
+| Any pull request, Renovate's included | `agent-change.yml` (job `pull-request`) | The author's title and description are the task. Checks, then the architect's brief; the developer agent does what it asks (commits **pushed to the PR branch**); a second developer accepts or sends back; QA adds the missing tests; SRE and security when the files call for them; the documentation reviewer; the architect closes. One comment on the PR, edited on every run: what happened, the brief, every role's findings and what the tools reported. |
+| `PR Checks` fails on a PR, Renovate's included | `agent-ci-failure.yml` | The failing checks' real logs are the first input, including `integration`. Each failing test gets a verdict (below) before anything changes. Fixes are pushed to the PR branch; it stops after 3 consecutive agent commits that still fail CI. |
 | Push straight to `main` with no PR | `agent-change.yml` (job `direct-push`) | Same review. If something blocks it opens a fix PR from `agent/push-<sha>` (never pushes to `main`); otherwise it leaves a commit comment with the advisory findings. |
-| Renovate PRs, also | `ai-review-sweep.yml` | A second engine, still the one that repairs and merges them; the graph reviews and merges them too (seen on #313), so such a pull request gets two comments. It goes once the graph has been seen to repair a dependency update with red checks. Starts by itself when a PR's CI ends and when `main` moves; the cron is a safety net. A PR that fell behind `main` (counted from the commits, since this repo has no branch protection) is refreshed: Renovate is asked to rebase its own (label `rebase`), so CI runs on current code, including the `image` check. The sweep then waits for the required checks, gives the reviewers the check results of that commit as evidence, and merges a clean PR. A blocking finding goes to the writer loop and is pushed if it converges; otherwise, or after 3 automatic fixes in a row, the PR is labelled `agent-abandoned` and closed. A PR that touches `.github/workflows/` is reviewed like any other, and the agents repair what is outside the workflow files (no agent edits a workflow file). The verdict is written as the commit status `agent-review`; Renovate, which has the permission, merges it itself once every check is green, that status included. If the required checks are red on current code it is labelled `agent-abandoned` and closed, so no one waits on it. |
 | Every push to `main` | `changelog.yml` | One deterministic entry. |
 
 Guards against loops and noise: every commit the pipeline makes has the author
@@ -38,9 +37,9 @@ they are about (`Agent Merge · workflow_run · <pull request title>`).
 
 | Moment | Workflows, in the order they start |
 |---|---|
-| A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green), `AI Review Sweep` (Renovate pull requests only). After the merge: `AI Release Notes`. |
-| Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image), next to `Changelog`, `Agent Merge`, `AI Review Sweep` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
-| Time passes | `Agent Merge` (every 30 minutes), `AI Review Sweep` (twice a day), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: the first three also start on events. |
+| A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green). After the merge: `AI Release Notes`. |
+| Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image), next to `Changelog`, `Agent Merge` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
+| Time passes | `Agent Merge` (every 30 minutes), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: the first three also start on events. |
 
 Two different images are built: the `image` job of `PR Checks` builds from the pull request and never publishes it
 (it proves the code becomes an image that runs); `docker` on `main` builds the same Dockerfile and publishes it.
@@ -134,8 +133,8 @@ hours**: that circuit breaker also stops automatic merging until they age out.
 
 **Limits that no code removes.** No agent edits a file under `.github/workflows/`: a change to the
 pipeline is written by a person. It is reviewed and merged like any other (the agents' token has the
-`workflow` permission since 2026-10-11; seen on #306, #307 and #308). For Renovate's workflow bumps, the
-agents review them, Renovate merges them and a red one is abandoned. And the guarantee is only as strong
+`workflow` permission since 2026-10-11; seen on #306, #307 and #308). Renovate's workflow bumps are
+reviewed and merged the same way: Renovate no longer merges anything itself. And the guarantee is only as strong
 as the checks: a defect none of them sees will merge, and the revert is what limits
 the damage. A spending cap belongs on the OpenRouter key itself; when it is reached every pull request
 ends abandoned (the comment names the role that had no answer, the cause is in the job log), and a commit

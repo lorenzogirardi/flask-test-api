@@ -2,26 +2,5 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
-  ],
-  "packageRules": [
-    {
-      "description": "GitHub Actions version bumps touch .github/workflows/**, which our own AI sweep deliberately refuses to merge (GITHUB_TOKEN can't write workflow files without `workflow` scope). Renovate's own app install already has that permission, and it still waits for our required checks (checks, workflows from pr-checks.yml) to pass before merging -- so this closes the gap without giving the AI bot any extra scope.",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "automerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash"
-    },
-    {
-      "description": "The agents' job runs on the Python of the Dockerfile, and the engine (LangGraph needs ormsgpack) does not install on 3.15 yet: with 3.15 on main no agent job could start (2026-10-13, after #316). Hold the image at 3.14 until the engine runs on its own Python or its dependencies support 3.15.",
-      "matchDatasources": [
-        "docker"
-      ],
-      "matchPackageNames": [
-        "python"
-      ],
-      "allowedVersions": "<3.15"
-    }
   ]
 }

@@ -1,7 +1,7 @@
 name: Agent Change
 
 # The agent pipeline on EVERY code change that already exists:
-#   - each pull request, the dependency bot's included (the sweep still merges those): checks, the
+#   - each pull request, the dependency bot's included: checks, the
 #     test steward, four reviewers (second developer, security, SRE, architect), one fix asked by
 #     the second developer and pushed to the PR branch, docs review. One comment on the PR.
 #   - each push straight to main with no PR: same review; if something blocks it

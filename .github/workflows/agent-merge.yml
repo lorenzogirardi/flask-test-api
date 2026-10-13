@@ -2,15 +2,14 @@ name: Agent Merge
 run-name: "Agent Merge · ${{ github.event_name }} · ${{ github.event.workflow_run.display_title || github.event.pull_request.title || github.ref_name }}"
 
 # Merge authority, with no way to miss it: it runs when a PR's CI succeeds, when main moves,
-# and every 30 minutes, and each run judges EVERY open pull request (Renovate's belong to the
-# sweep). Whichever finishes first, certification or CI, and whatever event is lost, the next
+# and every 30 minutes, and each run judges EVERY open pull request, the dependency bot's
+# included. Whichever finishes first, certification or CI, and whatever event is lost, the next
 # pass merges it. When PR Checks succeeds on a pull request, merge it if its
 # current head commit is certified by the agent pipeline (a comment by the
 # repository owner's agent account carrying the head sha), all required checks
 # succeeded on that commit, and the circuit breaker is closed. The same gate also
 # runs at the end of agent-change.yml / agent-ci-failure.yml, so it does not
-# matter whether certification or CI finishes first. Renovate's PRs are merged by
-# the sweep, which has its own gate. Design: docs/13-agent-pipeline.md.
+# matter whether certification or CI finishes first. Design: docs/13-agent-pipeline.md.
 
 on:
   workflow_run:

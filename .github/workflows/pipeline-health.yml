@@ -35,4 +35,4 @@ jobs:
     with:
       base_branch: main
       build_workflow: pipeline.yml
-      agent_workflows: 'Agent Change,Agent CI Failure,Agent Merge,Agent Main Guard,AI Review Sweep,Changelog,Pipeline Canary'
+      agent_workflows: 'Agent Change,Agent CI Failure,Agent Merge,Agent Main Guard,Changelog,Pipeline Canary'
