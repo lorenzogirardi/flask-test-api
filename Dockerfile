@@ -7,7 +7,7 @@ ARG USER=pytbak
 # Install system deps for network tools + healthcheck
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        iputils-ping traceroute dnsutils curl && \
+        iputils-ping traceroute dnsutils curl gcc && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
