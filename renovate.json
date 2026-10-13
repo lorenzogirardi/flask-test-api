@@ -2,5 +2,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "GitHub Actions version bumps touch .github/workflows/**, which our agents never edit. Renovate's own app install has the `workflow` permission, and it waits for the required checks (checks, workflows from pr-checks.yml) before merging, so Renovate merges these itself.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
+    }
   ]
 }
