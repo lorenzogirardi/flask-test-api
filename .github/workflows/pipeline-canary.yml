@@ -10,8 +10,8 @@ run-name: "Pipeline Canary · ${{ github.event_name }}${{ github.event.client_pa
 on:
   schedule:
     - cron: '23 2 * * *'
-  # Sent by ci-shared before it moves its v2 tag: the scenarios are then judged by the engine about to be
-  # released (v2-next), and v2 moves only if they all hold. The run's title carries the candidate commit.
+  # Sent by ci-shared before it moves its v3 tag: the scenarios are then judged by the engine about to be
+  # released (v3-next), and v3 moves only if they all hold. The run's title carries the candidate commit.
   repository_dispatch:
     types: [engine-candidate]
   workflow_dispatch:
@@ -34,7 +34,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # open and close the canary pull requests
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-canary.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_pipeline-canary.yml@v3
     with:
       only: ${{ inputs.only || '' }}
       candidate: ${{ github.event_name == 'repository_dispatch' }}

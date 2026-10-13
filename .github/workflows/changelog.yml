@@ -19,7 +19,7 @@ jobs:
   changelog:
     permissions:
       contents: write
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_changelog.yml@v2
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_changelog.yml@v3
     with:
       changelog_path: CHANGELOG.md
       branch: main

@@ -51,7 +51,7 @@ app/
 
 ### Agent Pipeline (no person in the loop)
 Every pull request is reviewed, repaired, certified and merged by agents; the engine lives in
-`lorenzogirardi/ci-shared` (tag `v2`) and this repository only wires it up. Full description:
+`lorenzogirardi/ci-shared` (tag `v3`) and this repository only wires it up. Full description:
 `docs/13-agent-pipeline.md`.
 
 - A change ends **merged**, **abandoned** (label `agent-abandoned`, reason in a comment) or **reverted**
