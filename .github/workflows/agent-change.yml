@@ -31,7 +31,7 @@ jobs:
       contents: read
       pull-requests: write
       actions: write     # read failed checks' logs, and re-run a job that failed in the runner (mode ci)
-    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@v3
+    uses: lorenzogirardi/ci-shared/.github/workflows/reusable_agent-change.yml@fix/agents-job-two-pythons
     with:
       mode: pr
       base_branch: main

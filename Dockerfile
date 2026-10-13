@@ -1,4 +1,4 @@
-FROM python:3.14.8-slim
+FROM python:3.15.0-slim
 
 ARG UID=10001
 ARG GID=10001
@@ -7,7 +7,7 @@ ARG USER=pytbak
 # Install system deps for network tools + healthcheck
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        iputils-ping traceroute dnsutils curl && \
+        iputils-ping traceroute dnsutils curl gcc libc6-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
