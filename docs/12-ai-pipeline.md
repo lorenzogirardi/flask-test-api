@@ -78,7 +78,7 @@ review only, no autofix. `ai-review-sweep.yml` (`schedule` + `workflow_dispatch`
 owner's get a verified fix pushed to the same PR, same as Renovate's, and then wait for the owner
 to merge. See "Autofix now covers the owner's own PRs too" below.
 
-### Why the Renovate path is a *sweep*, not another `pull_request` trigger
+### Why the Renovate path was a *sweep*, not another `pull_request` trigger
 
 The event-driven approach was tried first and works, but needed a real fight to get there:
 `pull_request` gives a read-only `GITHUB_TOKEN` and no secrets to runs authored by a bot (this
@@ -86,10 +86,11 @@ turned out **not** to be Dependabot-specific — `renovate[bot]` hit the identic
 `pull_request_target` (the usual escape hatch) defaults to checking out the *base* branch instead
 of the PR, and a workflow added today can never retroactively fire for PRs opened yesterday.
 
-A `schedule` run has none of that: no PR actor, no fork, full `GITHUB_TOKEN` by construction. It
-also mirrors how [`openwrt/openwrt`](https://github.com/openwrt/openwrt) actually drives its own
-LLM review (`cron '0 3,15 * * *'` + `workflow_dispatch`, no `pull_request` trigger at all — verified
-by reading its real workflow file, not assumed).
+The sweep was removed: Renovate's pull requests are now repaired by `agent-ci-failure.yml` and
+merged by `agent-merge.yml`, the same gate every other pull request goes through.
+(That scheduled-sweep approach — a `cron` run plus `workflow_dispatch` and no `pull_request`
+trigger, as [`openwrt/openwrt`](https://github.com/openwrt/openwrt) drives its own LLM review —
+is no longer used here.)
 
 ### The merge gate: CI, not the AI verdict
 
@@ -101,12 +102,12 @@ authors): "nothing objected" is not "something verified". The AI review's `VERDI
 model writing "no `[Critical]` issues found" to mean *clean* must not read as dirty) only decides
 whether a human needs to look; it has never been the thing that decides whether code merges.
 
-### Why GitHub Actions version bumps don't merge through the sweep at all
+### Why GitHub Actions version bumps don't merge through the agents at all
 
 A PR that bumps a pin inside `.github/workflows/*.yml` (e.g. `docker/setup-buildx-action@v4.2.0` →
 `@v4.3.0`) produces a merge commit that changes the content of a workflow file — and GitHub gates
 *that*, specifically, behind the `workflow` OAuth scope, regardless of any `permissions:` a job
-declares. `GITHUB_TOKEN` never has it, so the sweep's `touches_workflow_files()` refuses the merge
+declares. `GITHUB_TOKEN` never has it, so the agents' `touches_workflow_files()` refuses the merge
 outright rather than let GitHub reject it with a confusing API error after a clean review and green
 CI (which is exactly what happened on PRs #103/#105/#107/#114 before that check existed).
 

@@ -31,7 +31,7 @@ PR checks re-run on them.
 
 ## Reading the Actions tab
 
-Twelve workflows, but only three moments. Runs started by another workflow finishing (`workflow_run`) are
+Eleven workflows, but only three moments. Runs started by another workflow finishing (`workflow_run`) are
 listed under the branch `main` by GitHub even when they are about a pull request; their title says what
 they are about (`Agent Merge · workflow_run · <pull request title>`).
 
@@ -39,7 +39,7 @@ they are about (`Agent Merge · workflow_run · <pull request title>`).
 |---|---|
 | A pull request is opened or updated | `PR Checks` (jobs `checks`, `integration`, `image`, `workflows`) and `Agent Change` (reviewers, fixes, certification) start together. When `PR Checks` ends: `Agent CI Failure` (repairs if red), `Agent Merge` (merges if certified and green). After the merge: `AI Release Notes`. |
 | Something lands on `main` | `Python application` builds, tests and **publishes the image** (`build`, `docker`, `security-gate-trivy`, `docker-sbom`, `quality-gate`, `modifygit` bumps the tag in `helm/pytbak/values.yaml`, `k8s-check` deploys the published image), next to `Changelog`, `Agent Merge` and `Agent Change`. When `Python application` ends red: `Agent Main Guard`. |
-| Time passes | `Agent Merge` (every 30 minutes), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: the first three also start on events. |
+| Time passes | `Agent Merge` (every 30 minutes), `Pipeline Health` (every 30 minutes) and `Pipeline Canary` (nightly) pick up whatever an event missed. GitHub starts scheduled workflows late, sometimes by hours, so nothing depends on the clock alone: `Agent Merge` and `Pipeline Health` start on events too. |
 
 Two different images are built: the `image` job of `PR Checks` builds from the pull request and never publishes it
 (it proves the code becomes an image that runs); `docker` on `main` builds the same Dockerfile and publishes it.
