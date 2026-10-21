@@ -103,6 +103,7 @@ Entries are added automatically on every merge to the default branch.
 - Update trufflesecurity/trufflehog action to v3.99.3 ([#346](https://github.com/lorenzogirardi/flask-test-api/pull/346))
 - Update dependency fastapi to v0.156.4 ([#348](https://github.com/lorenzogirardi/flask-test-api/pull/348))
 - Update dependency fastapi to v0.156.7 ([#349](https://github.com/lorenzogirardi/flask-test-api/pull/349))
+- Update dependency fastapi to v0.156.8 ([#350](https://github.com/lorenzogirardi/flask-test-api/pull/350))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
