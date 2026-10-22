@@ -107,6 +107,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency fastapi to v0.157.0 ([#352](https://github.com/lorenzogirardi/flask-test-api/pull/352))
 - Update dependency sqlalchemy to v2.1.6 ([#351](https://github.com/lorenzogirardi/flask-test-api/pull/351))
 - Update dependency fastapi to v0.159.1 ([#353](https://github.com/lorenzogirardi/flask-test-api/pull/353))
+- Update python docker tag to v3.15.1 ([#354](https://github.com/lorenzogirardi/flask-test-api/pull/354))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
