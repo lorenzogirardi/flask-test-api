@@ -111,6 +111,7 @@ Entries are added automatically on every merge to the default branch.
 - Update actions/setup-python action to v7.1.0 ([#355](https://github.com/lorenzogirardi/flask-test-api/pull/355))
 - Update dependency alembic to v1.20.1 ([#356](https://github.com/lorenzogirardi/flask-test-api/pull/356))
 - Update trufflesecurity/trufflehog action to v3.99.4 ([#357](https://github.com/lorenzogirardi/flask-test-api/pull/357))
+- Update dependency coverage to v7.17.0 ([#358](https://github.com/lorenzogirardi/flask-test-api/pull/358))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
