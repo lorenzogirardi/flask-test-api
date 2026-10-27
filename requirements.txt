@@ -36,7 +36,7 @@ slowapi==0.1.10
 mcp==2.3.0
 
 # Testing
-pytest==9.1.1
+pytest==9.2.0
 pytest-asyncio==1.4.1
 anyio==4.15.1
 coverage==7.17.0
