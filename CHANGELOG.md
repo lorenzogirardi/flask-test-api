@@ -120,6 +120,7 @@ Entries are added automatically on every merge to the default branch.
 - Update trufflesecurity/trufflehog action to v3.99.7 ([#364](https://github.com/lorenzogirardi/flask-test-api/pull/364))
 - Update dependency pytest-asyncio to v1.4.1 ([#365](https://github.com/lorenzogirardi/flask-test-api/pull/365))
 - Update python docker tag to v3.15.2 ([#366](https://github.com/lorenzogirardi/flask-test-api/pull/366))
+- Update step-security/harden-runner action to v2.22.3 ([#367](https://github.com/lorenzogirardi/flask-test-api/pull/367))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
