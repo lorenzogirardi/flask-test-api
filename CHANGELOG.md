@@ -125,6 +125,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency ddtrace to v4.16.1 ([#369](https://github.com/lorenzogirardi/flask-test-api/pull/369))
 - Update dependency pydantic-settings to v2.16.2 ([#370](https://github.com/lorenzogirardi/flask-test-api/pull/370))
 - Update bridgecrewio/checkov-action action to v12.3136.0 ([#371](https://github.com/lorenzogirardi/flask-test-api/pull/371))
+- Update dependency pydantic to v2.14.2 ([#373](https://github.com/lorenzogirardi/flask-test-api/pull/373))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
