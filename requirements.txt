@@ -24,8 +24,14 @@ jinja2==3.1.6
 # Observability
 loguru==0.7.3
 prometheus-fastapi-instrumentator==8.1.0
+# API/SDK/exporter and the instrumentation stream ship as one release train:
+# sdk 1.45.2 would pair with opentelemetry-instrumentation-fastapi==0.66b2,
+# which has never been published (pip: "No matching distribution found for
+# opentelemetry-instrumentation-fastapi==0.66b2").  Bumping the sdk alone also
+# leaves opentelemetry-api unsatisfiable, so the whole train stays on
+# 1.45.1 / 0.66b1 until the 1.45.2 instrumentation package exists.
 opentelemetry-api==1.45.1
-opentelemetry-sdk==1.45.2
+opentelemetry-sdk==1.45.1
 opentelemetry-exporter-otlp-proto-grpc==1.45.1
 opentelemetry-instrumentation-fastapi==0.66b1
 
