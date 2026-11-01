@@ -132,6 +132,7 @@ Entries are added automatically on every merge to the default branch.
 - Update opentelemetry-python monorepo to v1.45.2 ([#377](https://github.com/lorenzogirardi/flask-test-api/pull/377))
 - Update dependency opentelemetry-instrumentation-fastapi to v0.66b2 ([#376](https://github.com/lorenzogirardi/flask-test-api/pull/376))
 - Update dependency python-multipart to v0.0.33 ([#378](https://github.com/lorenzogirardi/flask-test-api/pull/378))
+- Update dependency anyio to v4.16.0 ([#379](https://github.com/lorenzogirardi/flask-test-api/pull/379))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
