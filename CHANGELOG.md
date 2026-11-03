@@ -135,6 +135,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency anyio to v4.16.0 ([#379](https://github.com/lorenzogirardi/flask-test-api/pull/379))
 - Update dependency pytest-asyncio to v1.4.1.post1 ([#380](https://github.com/lorenzogirardi/flask-test-api/pull/380))
 - Update bridgecrewio/checkov-action action to v12.3138.0 ([#381](https://github.com/lorenzogirardi/flask-test-api/pull/381))
+- Update trufflesecurity/trufflehog action to v3.99.8 ([#382](https://github.com/lorenzogirardi/flask-test-api/pull/382))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
