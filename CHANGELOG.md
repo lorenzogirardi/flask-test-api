@@ -139,6 +139,7 @@ Entries are added automatically on every merge to the default branch.
 - Update bridgecrewio/checkov-action action to v12.3139.0 ([#383](https://github.com/lorenzogirardi/flask-test-api/pull/383))
 - Update dependency coverage to v7.17.1 ([#384](https://github.com/lorenzogirardi/flask-test-api/pull/384))
 - Update dependency sqlalchemy to v2.1.7 ([#385](https://github.com/lorenzogirardi/flask-test-api/pull/385))
+- Update dependency sqlalchemy to v2.1.8 ([#386](https://github.com/lorenzogirardi/flask-test-api/pull/386))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
