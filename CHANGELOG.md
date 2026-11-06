@@ -144,6 +144,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency ddtrace to v4.16.3 ([#389](https://github.com/lorenzogirardi/flask-test-api/pull/389))
 - Update dependency coverage to v7.17.2 ([#388](https://github.com/lorenzogirardi/flask-test-api/pull/388))
 - Update dependency pydantic to v2.14.3 ([#390](https://github.com/lorenzogirardi/flask-test-api/pull/390))
+- Update docker/login-action action to v4.8.0 ([#391](https://github.com/lorenzogirardi/flask-test-api/pull/391))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
