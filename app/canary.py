@@ -10,7 +10,7 @@ CANARY_LIMIT = 10
 
 def within_limit(value: int) -> bool:
     """True when `value` does not exceed the limit. The limit itself is allowed."""
-    return value < CANARY_LIMIT
+    return value <= CANARY_LIMIT
 
 
 def below_limit(value: int) -> bool:
