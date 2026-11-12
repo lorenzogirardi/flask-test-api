@@ -15,5 +15,13 @@ def test_a_value_above_the_limit_is_rejected():
     assert not within_limit(CANARY_LIMIT + 1)
 
 
+def test_below_limit_excludes_the_limit():
+    from app.canary import CANARY_LIMIT, below_limit
+
+    assert below_limit(CANARY_LIMIT - 1) is True
+    assert below_limit(CANARY_LIMIT) is False
+    assert below_limit(CANARY_LIMIT + 1) is False
+
+
 def test_the_limit_is_ten():
     assert CANARY_LIMIT == 10
