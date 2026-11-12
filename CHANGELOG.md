@@ -155,6 +155,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency fastapi to v0.162.5 ([#405](https://github.com/lorenzogirardi/flask-test-api/pull/405))
 - Update dependency loguru to v0.8.0 ([#406](https://github.com/lorenzogirardi/flask-test-api/pull/406))
 - Update dependency coverage to v7.17.3 ([#408](https://github.com/lorenzogirardi/flask-test-api/pull/408))
+- Update bridgecrewio/checkov-action action to v12.3141.0 ([#409](https://github.com/lorenzogirardi/flask-test-api/pull/409))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
