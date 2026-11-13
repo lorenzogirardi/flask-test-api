@@ -158,6 +158,7 @@ Entries are added automatically on every merge to the default branch.
 - Update bridgecrewio/checkov-action action to v12.3141.0 ([#409](https://github.com/lorenzogirardi/flask-test-api/pull/409))
 - Update dependency ddtrace to v4.17.0 ([#410](https://github.com/lorenzogirardi/flask-test-api/pull/410))
 - Update dependency pytest-asyncio to v1.5.0 ([#411](https://github.com/lorenzogirardi/flask-test-api/pull/411))
+- Update lgirardi/pytbak docker tag to v2.0.404 ([#412](https://github.com/lorenzogirardi/flask-test-api/pull/412))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
