@@ -163,6 +163,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency pydantic-settings to v2.16.3 ([#416](https://github.com/lorenzogirardi/flask-test-api/pull/416))
 - Update dependency fastapi to v0.162.6 ([#415](https://github.com/lorenzogirardi/flask-test-api/pull/415))
 - Update dependency fastapi to v0.162.7 ([#417](https://github.com/lorenzogirardi/flask-test-api/pull/417))
+- Update dependency fastapi to v0.163.0 ([#419](https://github.com/lorenzogirardi/flask-test-api/pull/419))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
