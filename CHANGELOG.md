@@ -169,6 +169,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency python-multipart to v0.0.34 ([#423](https://github.com/lorenzogirardi/flask-test-api/pull/423))
 - Update dependency fastapi to v0.163.2 ([#427](https://github.com/lorenzogirardi/flask-test-api/pull/427))
 - Update dependency ddtrace to v4.17.1 ([#426](https://github.com/lorenzogirardi/flask-test-api/pull/426))
+- Update step-security/harden-runner action to v2.23.0 ([#428](https://github.com/lorenzogirardi/flask-test-api/pull/428))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
