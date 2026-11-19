@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: lgirardi/pytbak
-  tag: "v2.0.417"
+  tag: "v2.0.418"
   pullPolicy: IfNotPresent
 
 service:
