@@ -176,6 +176,7 @@ Entries are added automatically on every merge to the default branch.
 - Update dependency pydantic to v2.14.4 ([#435](https://github.com/lorenzogirardi/flask-test-api/pull/435))
 - Update dependency ddtrace to v4.17.2 ([#434](https://github.com/lorenzogirardi/flask-test-api/pull/434))
 - Update postgres docker tag to v19 ([#437](https://github.com/lorenzogirardi/flask-test-api/pull/437))
+- Update trufflesecurity/trufflehog action to v3.100.0 ([#436](https://github.com/lorenzogirardi/flask-test-api/pull/436))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
