@@ -12,6 +12,12 @@ Two stages. `build` is `python:<version>-slim-trixie`: it creates the virtualenv
 only `/venv`, the application and the Alembic files. The first `FROM python:` line is still the one place the
 Python version is read from (`.github/actions/setup-python`), so keep it the first `FROM`.
 
+The runtime does not run the venv's interpreter: `/venv/bin/python` is a symlink into the build image's
+Python and does not exist in `lg-python`. Both `CMD` and `HEALTHCHECK` instead start the image's own `python3`
+with the venv's `site-packages` on `PYTHONPATH` (`ENV PYTHONPATH=/venv/lib/python3.15/site-packages`); the
+venv's `bin/` (interpreter and console scripts) is never executed. A build-time `RUN ["python3", "-c", ...]`
+import check fails the build, not the pod, if that path does not resolve.
+
 | | Before (`python:3.15.2-slim`) | Now (`lg-python`) |
 |---|---|---|
 | Image size | 356 MB | ~241 MB |
