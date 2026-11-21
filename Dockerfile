@@ -1,37 +1,33 @@
-FROM python:3.15.2-slim
+# Build stage: dependencies are installed here (it needs pip and, for some wheels, a toolchain). Only the
+# resulting virtualenv is copied to the runtime image. The `FROM python:` line below is the single place
+# the Python version is written for CI (.github/actions/setup-python reads it): keep it as the FIRST FROM.
+FROM python:3.15.2-slim-trixie AS build
 
+RUN python -m venv /venv
+COPY requirements.txt .
+RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Runtime: distroless CPython on lg-base (no shell, no apt, no curl), built and rebuilt weekly from
+# github.com/lorenzogirardi/ACT-lg-baseimg. Pinned to a dated tag; Renovate proposes the next one (renovate.json).
+# Keep the Python version here equal to the build stage above (the venv is tied to the interpreter).
+FROM lgirardi/lg-python:3.15.2-20261121
+
+# Same uid/gid as before and as the Helm chart's securityContext (runAsUser 10001).
 ARG UID=10001
 ARG GID=10001
-ARG USER=pytbak
 
-# Install system deps for network tools + healthcheck
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        iputils-ping traceroute dnsutils curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd --gid $GID $USER && \
-    useradd --uid $UID --gid $GID --no-create-home --shell /bin/false $USER
+COPY --from=build /venv /venv
+COPY --chown=$UID:$GID app/ /app/app/
+COPY --chown=$UID:$GID alembic/ /app/alembic/
+COPY --chown=$UID:$GID alembic.ini pyproject.toml /app/
 
 WORKDIR /app
-
-# Install Python deps
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy app code
-COPY app/ /app/app/
-COPY alembic/ /app/alembic/
-COPY alembic.ini /app/alembic.ini
-COPY pyproject.toml /app/
-
-RUN chown -R $USER:$USER /app
-USER $USER
-
+USER $UID:$GID
 EXPOSE 8000
 
+# No curl in the image: the check is Python, in exec form (Kubernetes uses its own httpGet probes).
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/mgmt/ready || exit 1
+    CMD ["/venv/bin/python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/mgmt/ready', timeout=4).status == 200 else 1)"]
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/venv/bin/python", "-m", "uvicorn"]
+CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8000"]

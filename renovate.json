@@ -10,6 +10,24 @@
         "github-actions"
       ],
       "automerge": true
+    },
+    {
+      "description": "The runtime image is rebuilt every week by ACT-lg-baseimg and published as <python>-<YYYYMMDD>. That tag is not semver: the regex tells Renovate how to order it, so a newer build date is a pull request. The agent pipeline builds the image from it, tests it and merges it.",
+      "matchPackageNames": [
+        "lgirardi/lg-python"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-(?<build>\\d{8})$"
+    },
+    {
+      "description": "The build stage (python) and the runtime (lgirardi/lg-python) must stay on the same Python minor: the virtualenv is tied to the interpreter. One pull request moves both.",
+      "matchPackageNames": [
+        "python",
+        "lgirardi/lg-python"
+      ],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "groupName": "python base images"
     }
   ]
 }
