@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=15s --retries=3 CMD ["python3", "-c", "impo
 # No ENTRYPOINT: the image's run contract stays as before, so `docker run <image> <command>`
 # (e.g. `python3 -m alembic upgrade head`, `python3 -c ...`) still runs that command instead of feeding it
 # to uvicorn. The console scripts under /venv/bin are never invoked: their shebang points at the build image.
-CMD ["python3", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

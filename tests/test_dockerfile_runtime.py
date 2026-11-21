@@ -47,7 +47,8 @@ def test_runtime_does_not_copy_the_venv_interpreter() -> None:
 def test_start_command_and_healthcheck_use_the_image_interpreter() -> None:
     text = _text()
     assert (
-        'CMD ["python3", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]'
+        # The base image's ENTRYPOINT is already python3: the CMD holds only its arguments.
+        'CMD ["-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]'
         in text
     )
     assert 'CMD ["python3", "-c", "import http.client,sys;' in text
