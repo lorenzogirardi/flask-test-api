@@ -67,7 +67,7 @@ def test_runtime_checks_the_site_packages_layout_at_build_time() -> None:
     # A venv path whose packages do not import must fail the build, not the running pod. The
     # C-extension packages are the ones a layout, ABI or glibc difference breaks, so the check has to
     # name them, not just the three pure-Python top-level packages.
-    prefix = 'RUN ["python3", "-c", "import importlib.util as u;'
+    prefix = 'RUN ["python3", "-c", "import importlib, importlib.util as u;'
     text = _text()
     assert prefix in text
     line = next(line for line in text.splitlines() if line.startswith(prefix))
