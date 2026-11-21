@@ -39,3 +39,18 @@ def test_start_command_and_healthcheck_use_the_image_interpreter() -> None:
         in text
     )
     assert 'CMD ["python3", "-c", "import http.client,sys;' in text
+
+
+def test_healthcheck_is_single_line_exec_form() -> None:
+    # A line continuation after HEALTHCHECK makes Docker treat the JSON as shell form and wrap it in
+    # `/bin/sh -c`; the distroless image has no /bin/sh, so the check would never run.
+    lines = [line for line in _text().splitlines() if line.startswith("HEALTHCHECK")]
+    assert len(lines) == 1, lines
+    assert not lines[0].rstrip().endswith("\\"), lines[0]
+    assert lines[0].rstrip().endswith("]"), lines[0]
+    assert 'CMD ["python3", "-c", "import http.client,sys;' in lines[0]
+
+
+def test_runtime_checks_the_site_packages_layout_at_build_time() -> None:
+    # A hard-coded venv path that does not import must fail the build, not the running pod.
+    assert 'RUN ["python3", "-c", "import uvicorn, fastapi, pydantic"]' in _text()

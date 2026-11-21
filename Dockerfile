@@ -26,6 +26,10 @@ COPY --chown=$UID:$GID alembic.ini pyproject.toml /app/
 # the app and finds the venv's packages through PYTHONPATH.
 ENV PYTHONPATH=/venv/lib/python3.15/site-packages
 
+# Fail the build (not the pod) if the venv's site-packages do not match this interpreter: a layout
+# mismatch would otherwise surface only as a CrashLoopBackOff. Exec form, so no shell is needed.
+RUN ["python3", "-c", "import uvicorn, fastapi, pydantic"]
+
 WORKDIR /app
 USER $UID:$GID
 EXPOSE 8000
@@ -34,8 +38,9 @@ EXPOSE 8000
 # http.client returns the response (including 5xx) instead of raising, so the status branch is always
 # reachable; any connection error exits non-zero on its own. The socket timeout stays below the
 # 15s HEALTHCHECK timeout, which also covers the process/startup cost of the readiness probe.
-HEALTHCHECK --interval=30s --timeout=15s --retries=3 \
-    CMD ["python3", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
+# Must stay on ONE line: with a line continuation Docker treats the JSON as a shell-form command and
+# wraps it in `/bin/sh -c`, and the distroless image has no /bin/sh.
+HEALTHCHECK --interval=30s --timeout=15s --retries=3 CMD ["python3", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
 
 # No ENTRYPOINT: the image's run contract stays as before, so `docker run <image> <command>`
 # (e.g. `python3 -m alembic upgrade head`, `python3 -c ...`) still runs that command instead of feeding it
