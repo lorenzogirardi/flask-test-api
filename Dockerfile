@@ -26,8 +26,12 @@ USER $UID:$GID
 EXPOSE 8000
 
 # No curl in the image: the check is Python, in exec form (Kubernetes uses its own httpGet probes).
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD ["/venv/bin/python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/mgmt/ready', timeout=4).status == 200 else 1)"]
+# http.client returns the response (including 5xx) instead of raising, so the status branch is always
+# reachable; any connection error exits non-zero on its own. The socket timeout stays below the
+# 15s HEALTHCHECK timeout, which also covers the process/startup cost of the readiness probe.
+HEALTHCHECK --interval=30s --timeout=15s --retries=3 \
+    CMD ["/venv/bin/python", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
 
-ENTRYPOINT ["/venv/bin/python", "-m", "uvicorn"]
-CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# No ENTRYPOINT: the image's run contract stays as before, so `docker run <image> <command>`
+# (e.g. `alembic upgrade head`, `python -c ...`) still runs that command instead of feeding it to uvicorn.
+CMD ["/venv/bin/python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
