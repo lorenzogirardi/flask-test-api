@@ -44,4 +44,4 @@ mcp==2.3.0
 pytest==9.2.0
 pytest-asyncio==1.5.0
 anyio==4.16.0
-coverage==7.17.3
+coverage==7.17.4
