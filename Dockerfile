@@ -46,7 +46,9 @@ EXPOSE 8000
 # wraps it in `/bin/sh -c`, and the distroless image has no /bin/sh.
 HEALTHCHECK --interval=30s --timeout=15s --retries=3 CMD ["python3", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
 
-# No ENTRYPOINT: the image's run contract stays as before, so `docker run <image> <command>`
-# (e.g. `python3 -m alembic upgrade head`, `python3 -c ...`) still runs that command instead of feeding it
-# to uvicorn. The console scripts under /venv/bin are never invoked: their shebang points at the build image.
+# The base image's ENTRYPOINT is `python3`, so the CMD above holds only its arguments and anything
+# passed to `docker run` is appended to that entrypoint too: the working form is
+# `docker run <image> -m alembic upgrade head` (or `-c '...'`), never
+# `docker run <image> python3 -m alembic upgrade head`, which would execute `python3 python3 -m ...`.
+# The console scripts under /venv/bin are never invoked: their shebang points at the build image.
 CMD ["-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
