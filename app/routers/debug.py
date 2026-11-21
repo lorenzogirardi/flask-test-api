@@ -101,6 +101,8 @@ async def network_scan(target: str = Query(..., description="host:port or hostna
             "output": stdout.decode(),
             "returncode": proc.returncode,
         }
+    except FileNotFoundError:
+        result.ping = {"error": "ping not installed"}
     except Exception as e:
         result.ping = {"error": str(e)}
 

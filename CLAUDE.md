@@ -16,6 +16,7 @@ FastAPI-based debug/test API application. Migrated from Flask v1. Serves as a de
 - **Rate Limiting**: slowapi
 - **MCP**: In-process MCP server (official `mcp` SDK, `FastMCP`) mounted at `/api/mcp`, Basic Auth protected — see `docs/11-mcp-server.md`
 - **Deployment**: Docker + docker-compose (dev), Helm chart (prod K8s)
+- **Runtime image**: distroless `lgirardi/lg-python` (no shell, no `ping`/`traceroute`/`curl`), see `docs/14-base-image.md`
 
 ### Key Architecture Decisions
 1. **Graceful fallback chain**: PG → Redis → In-Memory. All backends are optional. App starts and works with zero external deps.

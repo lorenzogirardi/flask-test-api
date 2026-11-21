@@ -77,3 +77,22 @@ async def test_cpu_spike(client, auth_headers):
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "started"
+
+
+@pytest.mark.anyio
+async def test_network_scan_without_ping_and_traceroute_binaries(client, auth_headers, monkeypatch):
+    """The runtime image is distroless: there is no ping or traceroute. The scan must say so for each tool
+    (and still answer DNS), not fail with a raw `[Errno 2]`."""
+    import app.routers.debug as debug
+
+    async def no_such_binary(*args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory")
+
+    monkeypatch.setattr(debug.asyncio, "create_subprocess_exec", no_such_binary)
+    monkeypatch.setattr(debug, "_guard_ssrf", lambda host, port=None: None)
+    resp = await client.get("/api/debug/network/scan?target=localhost", headers=auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ping"] == {"error": "ping not installed"}
+    assert body["traceroute"] == {"error": "traceroute not installed"}
+    assert "addresses" in body["dns"]
