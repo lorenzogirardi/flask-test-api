@@ -21,6 +21,11 @@ COPY --chown=$UID:$GID app/ /app/app/
 COPY --chown=$UID:$GID alembic/ /app/alembic/
 COPY --chown=$UID:$GID alembic.ini pyproject.toml /app/
 
+# The venv is used only for its packages: /venv/bin/python is a symlink into the interpreter of the
+# build image (python:3.15.2-slim-trixie) and does not exist here. The runtime image's own CPython starts
+# the app and finds the venv's packages through PYTHONPATH.
+ENV PYTHONPATH=/venv/lib/python3.15/site-packages
+
 WORKDIR /app
 USER $UID:$GID
 EXPOSE 8000
@@ -30,8 +35,9 @@ EXPOSE 8000
 # reachable; any connection error exits non-zero on its own. The socket timeout stays below the
 # 15s HEALTHCHECK timeout, which also covers the process/startup cost of the readiness probe.
 HEALTHCHECK --interval=30s --timeout=15s --retries=3 \
-    CMD ["/venv/bin/python", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
+    CMD ["python3", "-c", "import http.client,sys; c=http.client.HTTPConnection('127.0.0.1',8000,timeout=8); c.request('GET','/api/mgmt/ready'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
 
 # No ENTRYPOINT: the image's run contract stays as before, so `docker run <image> <command>`
-# (e.g. `alembic upgrade head`, `python -c ...`) still runs that command instead of feeding it to uvicorn.
-CMD ["/venv/bin/python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# (e.g. `python3 -m alembic upgrade head`, `python3 -c ...`) still runs that command instead of feeding it
+# to uvicorn. The console scripts under /venv/bin are never invoked: their shebang points at the build image.
+CMD ["python3", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
