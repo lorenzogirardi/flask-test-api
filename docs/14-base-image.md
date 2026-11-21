@@ -8,8 +8,8 @@ reaches this image through a version bump here, with no change to the applicatio
 ## How the Dockerfile is built
 
 Two stages. `build` is `python:<version>-slim-trixie`: it creates the virtualenv and installs
-`requirements.txt` (it needs pip). The runtime stage is `lgirardi/lg-python:<version>-<YYYYMMDD>` and receives
-only `/venv`, the application and the Alembic files. The first `FROM python:` line is still the one place the
+`requirements.txt` (it needs pip). The runtime stage is `lgirardi/lg-python:<version>-<YYYYMMDD>` and receives only the venv's
+`/venv/lib/python3.15/site-packages`, the application and the Alembic files. The first `FROM python:` line is still the one place the
 Python version is read from (`.github/actions/setup-python`), so keep it the first `FROM`.
 
 The runtime does not run the venv's interpreter: `/venv/bin/python` is a symlink into the build image's
