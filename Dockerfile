@@ -7,6 +7,19 @@ RUN python -m venv /venv
 COPY requirements.txt .
 RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
 
+# Network tools for the /api/debug endpoints (ping, traceroute): the runtime image has no apt, so they are
+# installed here (same Debian release as the base) and only the binaries plus the shared libraries they
+# link to are copied over. Everything ends up under /out, with the same paths as in the runtime image.
+FROM python:3.15.2-slim-trixie AS nettools
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends iputils-ping traceroute \
+    && mkdir -p /out/usr/bin \
+    && cp /usr/bin/ping /usr/bin/traceroute /out/usr/bin/ \
+    && for b in /usr/bin/ping /usr/bin/traceroute; do \
+         for lib in $(ldd "$b" | awk '$3 ~ /^\// {print $3}'); do \
+           d="/out$(readlink -f "$(dirname "$lib")")"; mkdir -p "$d"; cp -L "$lib" "$d/$(basename "$lib")"; \
+         done; \
+       done
+
 # Runtime: distroless CPython on lg-base (no shell, no apt, no curl), built and rebuilt weekly from
 # github.com/lorenzogirardi/ACT-lg-baseimg. Pinned to a dated tag; Renovate proposes the next one (renovate.json).
 # Keep the Python version here equal to the build stage above (the venv is tied to the interpreter).
@@ -16,6 +29,7 @@ FROM lgirardi/lg-python:3.15.2-20261121
 ARG UID=10001
 ARG GID=10001
 
+COPY --from=nettools /out/ /
 COPY --from=build /venv/lib/python3.15/site-packages /venv/lib/python3.15/site-packages
 COPY --chown=$UID:$GID app/ /app/app/
 COPY --chown=$UID:$GID alembic/ /app/alembic/

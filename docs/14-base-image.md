@@ -31,12 +31,15 @@ tags with a regex and opens a pull request when a newer build date exists; the b
 the same pull request. It goes through the same agent pipeline as any change: `PR Checks` builds the image and
 runs the integration suite against it, and it merges when certified and green.
 
+## What the image keeps on purpose
+
+- **`ping`, `traceroute`**: the debug endpoints shell out to them, so the Dockerfile's `nettools` stage installs
+  `iputils-ping` and `traceroute` and copies only the two binaries and the shared libraries they link to. They work
+  as uid 10001 with all capabilities dropped (ICMP datagram sockets), as in the Helm chart. The endpoints are opt-in
+  (`DEBUG_ENDPOINTS_ENABLED`) and off in production.
+
 ## What the image no longer has
 
-- **`ping`, `traceroute`**: `/api/debug/network/scan` reports `{"error": "ping not installed"}` /
-  `{"error": "traceroute not installed"}` for those two; DNS and the TCP check are Python and keep working.
-  The debug endpoints are opt-in (`DEBUG_ENDPOINTS_ENABLED`) and off in production. For a full scan in
-  development, run the app locally (`uvicorn`) or from a `python:slim` image with `iputils-ping traceroute`.
 - **`curl` for the container health check**: the Dockerfile's `HEALTHCHECK` uses Python. Kubernetes uses the chart's
   `httpGet` probes, which need nothing in the image.
 - **A shell to `exec` into**: `kubectl debug -it <pod> --image=busybox --target=pytbak`.
