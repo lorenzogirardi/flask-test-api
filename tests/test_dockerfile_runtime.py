@@ -32,6 +32,18 @@ def test_runtime_puts_the_venv_site_packages_on_the_path() -> None:
     assert "ENV PYTHONPATH=/venv/lib/python3.15/site-packages" in _text()
 
 
+def test_runtime_does_not_copy_the_venv_interpreter() -> None:
+    # Only the venv's site-packages are copied. /venv/bin holds the build image's ELF interpreter and
+    # console scripts pointing at it; shipping them makes the container start as /venv/bin/python and die
+    # with "SyntaxError: source code cannot contain null bytes".
+    text = _text()
+    assert "COPY --from=build /venv /venv" not in text
+    assert (
+        "COPY --from=build /venv/lib/python3.15/site-packages "
+        "/venv/lib/python3.15/site-packages" in text
+    )
+
+
 def test_start_command_and_healthcheck_use_the_image_interpreter() -> None:
     text = _text()
     assert (
@@ -52,5 +64,22 @@ def test_healthcheck_is_single_line_exec_form() -> None:
 
 
 def test_runtime_checks_the_site_packages_layout_at_build_time() -> None:
-    # A hard-coded venv path that does not import must fail the build, not the running pod.
-    assert 'RUN ["python3", "-c", "import uvicorn, fastapi, pydantic"]' in _text()
+    # A venv path whose packages do not import must fail the build, not the running pod. The
+    # C-extension packages are the ones a layout, ABI or glibc difference breaks, so the check has to
+    # name them, not just the three pure-Python top-level packages.
+    prefix = 'RUN ["python3", "-c", "import importlib.util as u;'
+    text = _text()
+    assert prefix in text
+    line = next(line for line in text.splitlines() if line.startswith(prefix))
+    for module in (
+        "uvicorn",
+        "fastapi",
+        "pydantic",
+        "pydantic_core",
+        "asyncpg",
+        "greenlet",
+        "uvloop",
+        "httptools",
+        "cryptography",
+    ):
+        assert module in line, (module, line)

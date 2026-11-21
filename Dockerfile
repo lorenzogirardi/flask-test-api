@@ -16,19 +16,23 @@ FROM lgirardi/lg-python:3.15.2-20261121
 ARG UID=10001
 ARG GID=10001
 
-COPY --from=build /venv /venv
+COPY --from=build /venv/lib/python3.15/site-packages /venv/lib/python3.15/site-packages
 COPY --chown=$UID:$GID app/ /app/app/
 COPY --chown=$UID:$GID alembic/ /app/alembic/
 COPY --chown=$UID:$GID alembic.ini pyproject.toml /app/
 
-# The venv is used only for its packages: /venv/bin/python is a symlink into the interpreter of the
-# build image (python:3.15.2-slim-trixie) and does not exist here. The runtime image's own CPython starts
-# the app and finds the venv's packages through PYTHONPATH.
+# Only the venv's site-packages are copied. The venv's interpreter and console scripts (whose shebangs
+# point at the build image, python:3.15.2-slim-trixie) are deliberately left behind: copying the ELF
+# `bin/python` into a distroless image is what made the container start as /venv/bin/python and die with
+# "SyntaxError: source code cannot contain null bytes". PYTHONPATH therefore points at the directory the
+# COPY above created (guaranteed by the build stage's interpreter), not at the runtime image's layout.
 ENV PYTHONPATH=/venv/lib/python3.15/site-packages
 
-# Fail the build (not the pod) if the venv's site-packages do not match this interpreter: a layout
-# mismatch would otherwise surface only as a CrashLoopBackOff. Exec form, so no shell is needed.
-RUN ["python3", "-c", "import uvicorn, fastapi, pydantic"]
+# Fail the build (not the pod) if the copied packages do not load under this interpreter: a layout or
+# ABI mismatch would otherwise surface only as a CrashLoopBackOff. The required set is imported
+# unconditionally, the ABI-tagged C extensions when the venv ships them. Exec form, so no shell is
+# needed; must stay on ONE line.
+RUN ["python3", "-c", "import importlib.util as u; required = ['uvicorn', 'fastapi', 'pydantic', 'pydantic_core', 'asyncpg', 'greenlet']; [u.import_module(m) for m in required]; optional = [m for m in ('uvloop', 'httptools', 'cryptography') if u.find_spec(m)]; [u.import_module(m) for m in optional]; print('imported', required + optional)"]
 
 WORKDIR /app
 USER $UID:$GID
