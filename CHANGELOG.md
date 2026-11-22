@@ -180,6 +180,7 @@ Entries are added automatically on every merge to the default branch.
 - Update lgirardi/pytbak docker tag to v2.0.423 ([#439](https://github.com/lorenzogirardi/flask-test-api/pull/439))
 - Update dependency coverage to v7.17.4 ([#440](https://github.com/lorenzogirardi/flask-test-api/pull/440))
 - Run on the distroless lg-python base image ([#442](https://github.com/lorenzogirardi/flask-test-api/pull/442))
+- Update lgirardi/lg-python docker tag to v3.15.2-20261122 ([#444](https://github.com/lorenzogirardi/flask-test-api/pull/444))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
