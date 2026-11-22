@@ -23,7 +23,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends iputils
 # Runtime: distroless CPython on lg-base (no shell, no apt, no curl), built and rebuilt weekly from
 # github.com/lorenzogirardi/ACT-lg-baseimg. Pinned to a dated tag; Renovate proposes the next one (renovate.json).
 # Keep the Python version here equal to the build stage above (the venv is tied to the interpreter).
-FROM lgirardi/lg-python:3.15.2-20261121
+FROM lgirardi/lg-python:3.15.2-20261122
 
 # Same uid/gid as before and as the Helm chart's securityContext (runAsUser 10001).
 ARG UID=10001
