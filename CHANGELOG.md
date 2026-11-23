@@ -183,6 +183,7 @@ Entries are added automatically on every merge to the default branch.
 - Update lgirardi/lg-python docker tag to v3.15.2-20261122 ([#444](https://github.com/lorenzogirardi/flask-test-api/pull/444))
 - Update dependency redis to v8.2.0 ([#445](https://github.com/lorenzogirardi/flask-test-api/pull/445))
 - Update trufflesecurity/trufflehog action to v3.100.1 ([#448](https://github.com/lorenzogirardi/flask-test-api/pull/448))
+- Update dependency coverage to v7.17.5 ([#447](https://github.com/lorenzogirardi/flask-test-api/pull/447))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
