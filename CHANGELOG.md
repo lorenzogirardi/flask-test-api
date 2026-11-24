@@ -185,6 +185,7 @@ Entries are added automatically on every merge to the default branch.
 - Update trufflesecurity/trufflehog action to v3.100.1 ([#448](https://github.com/lorenzogirardi/flask-test-api/pull/448))
 - Update dependency coverage to v7.17.5 ([#447](https://github.com/lorenzogirardi/flask-test-api/pull/447))
 - Update bridgecrewio/checkov-action action to v12.3143.0 ([#450](https://github.com/lorenzogirardi/flask-test-api/pull/450))
+- Update anchore/sbom-action action to v0.24.4 ([#449](https://github.com/lorenzogirardi/flask-test-api/pull/449))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
