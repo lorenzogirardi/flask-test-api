@@ -188,6 +188,7 @@ Entries are added automatically on every merge to the default branch.
 - Update anchore/sbom-action action to v0.24.4 ([#449](https://github.com/lorenzogirardi/flask-test-api/pull/449))
 - Update bridgecrewio/checkov-action action to v12.3144.0 ([#451](https://github.com/lorenzogirardi/flask-test-api/pull/451))
 - Update bridgecrewio/checkov-action action to v12.3145.0 ([#453](https://github.com/lorenzogirardi/flask-test-api/pull/453))
+- Update bridgecrewio/checkov-action action to v12.3146.0 ([#454](https://github.com/lorenzogirardi/flask-test-api/pull/454))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
