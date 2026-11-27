@@ -186,6 +186,25 @@ curl http://localhost:8000/api/contexts?delay_ms=3000
 curl http://localhost:8000/api/contexts?delay_ms=random
 ```
 
+### Dashboard Chaos & Tools panel
+
+The dashboard (`/api/`) has a **Chaos & Tools** section that sends the requests below
+from the browser, so nothing has to be typed by hand:
+
+- **Chaos on any endpoint** — appends `?inject_error=` / `?delay_ms=` to the chosen
+  endpoint (delay capped at `ERROR_INJECTION_MAX_DELAY_MS`). Shown when
+  `ERROR_INJECTION_ENABLED=true` (the default).
+- **Fibonacci** and **Sleep** — plain `/api/fib/{n}` and `/api/sleep/{n}` calls.
+- **Debug credentials** — the Basic Auth user/password used for the tools below. They
+  are kept in the page only and are never stored.
+- **CPU spike, Network scan, Ping, DNS resolve, TCP check, HTTP GET, Random error** —
+  the `/api/debug/*` tools. Shown only when `DEBUG_ENDPOINTS_ENABLED=true`, because
+  that flag is what mounts the debug router.
+
+The panel scripts live at `/api/static/js/tools.js`. The izanami Helm values
+(`helm/pytbak/values-izanami.yaml`) set `DEBUG_ENDPOINTS_ENABLED=true`, so that
+environment serves the debug tools; the base `values.yaml` leaves it off.
+
 ### CPU Spike
 ```bash
 curl -X POST http://localhost:8000/debug/cpu/spike \
