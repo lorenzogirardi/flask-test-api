@@ -24,6 +24,10 @@ postgresql:
   # Set via --set postgresql.url=... to avoid storing credentials in git
   url: ""
 
+env:
+  # izanami is a diagnostics service: expose /api/debug/* (Basic Auth, auth.password must not be the default)
+  DEBUG_ENDPOINTS_ENABLED: "true"
+
 networkPolicy:
   enabled: true
   # Egress to ports 5432 and 6379 already allowed in base NetworkPolicy (no namespace restriction)
