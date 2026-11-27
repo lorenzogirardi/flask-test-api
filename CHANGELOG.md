@@ -27,6 +27,7 @@ Entries are added automatically on every merge to the default branch.
 - Lower the Fibonacci input limit from 10000 to 5000 ([#193](https://github.com/lorenzogirardi/flask-test-api/pull/193))
 - Lower the sleep limit from 30 to 25 seconds ([#197](https://github.com/lorenzogirardi/flask-test-api/pull/197))
 - The readiness probe says which version is serving ([#302](https://github.com/lorenzogirardi/flask-test-api/pull/302))
+- Chaos & Tools panel, enable debug endpoints on izanami ([#460](https://github.com/lorenzogirardi/flask-test-api/pull/460))
 
 ### Changed
 - Moved all AI workflows to the `ci-shared` `v2` tag; the model is `deepseek/deepseek-v4.1-flash` (`OPENROUTER_MODEL`).
