@@ -38,16 +38,35 @@ app/
 ├── routers/
 │   ├── api.py           # /api — CRUD + fib/sleep/count
 │   ├── debug.py         # /debug — network scan, cpu spike, diag
+│   ├── home.py          # /api/ — dashboard (index.html) + static assets
 │   └── mgmt.py          # /mgmt — health, ready, info, env
 ├── services/
 │   ├── storage.py       # Unified storage with PG→Redis→Memory fallback
 │   ├── redis_client.py  # Async Redis with retry
 │   ├── health.py        # Shared health-check logic (REST /mgmt/health + MCP health tool)
 │   └── cache.py         # In-memory TTL cache
-└── middleware/
-    ├── error_injection.py
-    └── mcp_auth.py       # ASGI Basic Auth guard for the /api/mcp mount
+├── middleware/
+│   ├── error_injection.py
+│   └── mcp_auth.py       # ASGI Basic Auth guard for the /api/mcp mount
+├── static/js/tools.js   # dashboard Chaos & Tools panel client
+└── templates/index.html # dashboard page; cards gated by feature flags
 ```
+
+### Dashboard (`/api/`) — Chaos & Tools panel
+`app/routers/home.py` renders `app/templates/index.html` at `/api/`; the dashboard assets
+(`app/static/js/realtime.js`, `app/static/js/tools.js`) are served from `/api/static`. The
+page's **Chaos & Tools** section is driven by feature flags, not by hand-written HTML:
+
+- the *Chaos on any endpoint* card (`?inject_error=` / `?delay_ms=`, capped at
+  `ERROR_INJECTION_MAX_DELAY_MS`) is rendered only when `ERROR_INJECTION_ENABLED=true`;
+- *Fibonacci* and *Sleep* are always present;
+- the `/api/debug/*` cards (CPU spike, network scan, ping, dns, TCP check, HTTP GET,
+  random error) and the Basic Auth credential box appear only when
+  `DEBUG_ENDPOINTS_ENABLED=true` — the same flag that mounts `app.routers.debug` in
+  `app/main.py`. When it is false the page instead shows the disabled hint mentioning
+  `DEBUG_ENDPOINTS_ENABLED=true`.
+
+The credentials typed in the panel are kept in the page only and are never stored.
 
 ### Agent Pipeline (no person in the loop)
 Every pull request is reviewed, repaired, certified and merged by agents; the engine lives in
