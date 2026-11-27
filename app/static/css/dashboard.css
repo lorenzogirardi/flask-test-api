@@ -192,6 +192,48 @@ body {
 .action-arrow { margin-left: auto; color: var(--text-muted); font-size: .85rem; transition: var(--transition); }
 .action-card:hover .action-arrow { color: var(--accent); transform: translateX(2px); }
 
+/* ─── TOOLS PANEL ─── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: .75rem;
+  margin-bottom: .75rem;
+}
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.tool-card h3 { font-size: .9rem; font-weight: 600; }
+.tool-card label { display: flex; flex-direction: column; gap: .2rem; font-size: .72rem; color: var(--text-dim); }
+.tool-card input, .tool-card select {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+  padding: .4rem .6rem; font-family: var(--mono); font-size: .8rem;
+}
+.tool-card input:focus, .tool-card select:focus { outline: none; border-color: var(--accent); }
+.tool-hint { font-size: .72rem; color: var(--text-dim); }
+.tool-hint code { font-family: var(--mono); }
+.tool-btn {
+  margin-top: auto; cursor: pointer;
+  background: var(--accent); color: #fff; border: 0;
+  border-radius: var(--radius-sm); padding: .5rem .9rem;
+  font-weight: 600; font-size: .8rem; transition: var(--transition);
+}
+.tool-btn:hover { box-shadow: 0 4px 16px var(--accent-glow); }
+.tool-btn:disabled { opacity: .5; cursor: progress; }
+.tool-btn.danger { background: var(--red); }
+.tool-result {
+  background: var(--surface); border: 1px solid var(--card-border);
+  border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+  font-family: var(--mono); font-size: .75rem; color: var(--text-dim);
+  white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto;
+}
+.tool-result.ok  { border-color: var(--green); color: var(--text); }
+.tool-result.err { border-color: var(--red);   color: var(--text); }
+
 /* ─── STATUS PANEL ─── */
 .status-grid {
   display: grid;
