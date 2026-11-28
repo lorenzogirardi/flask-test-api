@@ -83,6 +83,18 @@ async def test_extra_headers_override_profile_defaults(client, auth_headers, ser
     assert seen["x-probe"] == "1"
 
 
+async def test_extra_headers_keep_the_profile_defaults(client, auth_headers, server, curl_env):
+    """DEBUG_CURL_HEADERS must be merged onto the impersonated defaults, not sent alone: with an extra
+    Accept-Language the browser User-Agent of the profile has to survive."""
+    curl_env(DEBUG_CURL_HEADERS='{"Accept-Language": "it-IT,it;q=0.9"}')
+    resp = await client.get("/api/debug/curl", params={"url": f"{server}/h"}, headers=auth_headers)
+    assert resp.status_code == 200
+    seen = _headers_seen(resp.text)
+    assert seen["accept-language"] == "it-IT,it;q=0.9"
+    assert seen["user-agent"].startswith("Mozilla/5.0")
+    assert "python-httpx" not in seen["user-agent"].lower()
+
+
 async def test_impersonation_can_be_switched_off(client, auth_headers, server, curl_env):
     curl_env(DEBUG_CURL_PROFILE="none")
     resp = await client.get("/api/debug/curl", params={"url": f"{server}/h"}, headers=auth_headers)
@@ -146,6 +158,33 @@ async def test_httpx_fallback_connects_to_the_pinned_address_without_dns(server,
     result = await http_fetch.fetch(f"http://pinned.invalid:{port}/h", "pinned.invalid", port, "127.0.0.1")
     assert result.status_code == 200
     assert _headers_seen(result.body.decode())["host"] == f"pinned.invalid:{port}"
+
+
+async def test_curl_cffi_pinning_connects_to_the_validated_address(server, curl_env):
+    """The impersonated path must accept the CURLOPT_RESOLVE entry built by _resolve_entry: the name below
+    does not resolve, so the request can only reach the test server by connecting to the pinned address."""
+    curl_env(DEBUG_CURL_PROFILE="chrome")
+    port = int(server.rsplit(":", 1)[1])
+    result = await http_fetch.fetch(f"http://pinned.invalid:{port}/h", "pinned.invalid", port, "127.0.0.1")
+    assert result.status_code == 200
+    seen = _headers_seen(result.body.decode())
+    assert seen["host"] == f"pinned.invalid:{port}"
+    assert seen["user-agent"].startswith("Mozilla/5.0")
+
+
+@pytest.mark.parametrize("profile", ["chrome", "none"])
+async def test_unreachable_target_raises_fetch_error(curl_env, profile):
+    curl_env(DEBUG_CURL_PROFILE=profile)
+    with pytest.raises(http_fetch.FetchError):
+        await http_fetch.fetch("http://127.0.0.1:1/", "127.0.0.1", 1)
+
+
+async def test_slow_target_raises_fetch_timeout(server, curl_env, monkeypatch):
+    curl_env(DEBUG_CURL_PROFILE="chrome")
+    monkeypatch.setattr(http_fetch, "TIMEOUT_SECONDS", 0.3)
+    port = int(server.rsplit(":", 1)[1])
+    with pytest.raises(http_fetch.FetchTimeout):
+        await http_fetch.fetch(f"{server}/slow", "127.0.0.1", port)
 
 
 def test_httpx_pinning_keeps_tls_server_name_and_ipv6_url():
