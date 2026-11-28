@@ -1,6 +1,8 @@
 """/api/debug/curl and the MCP `curl` tool: browser-impersonating GET, SSRF pinning, size cap, httpx fallback."""
 
+import os
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
@@ -19,6 +21,8 @@ class _Echo(BaseHTTPRequestHandler):
             self.send_header("Location", "http://127.0.0.1:1/never")
             self.end_headers()
             return
+        if self.path == "/slow":
+            time.sleep(1.5)
         if self.path == "/big":
             body = b"x" * (http_fetch.MAX_RESPONSE_BYTES + 4096)
             self.send_response(200)
@@ -98,15 +102,62 @@ async def test_response_body_is_capped(client, auth_headers, server):
     assert len(resp.content) == http_fetch.MAX_RESPONSE_BYTES
 
 
-async def test_unknown_profile_is_a_400_not_a_500(client, auth_headers, server, curl_env):
+async def test_unknown_profile_is_a_502_with_a_generic_detail(client, auth_headers, server, curl_env):
     curl_env(DEBUG_CURL_PROFILE="no-such-browser")
     resp = await client.get("/api/debug/curl", params={"url": f"{server}/h"}, headers=auth_headers)
-    assert resp.status_code == 400
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Upstream request failed"
 
 
-async def test_unreachable_target_is_a_400(client, auth_headers):
+@pytest.mark.parametrize("profile", ["chrome", "none"])
+async def test_unreachable_target_is_a_502_without_raw_exception_text(client, auth_headers, curl_env, profile):
+    curl_env(DEBUG_CURL_PROFILE=profile)
     resp = await client.get("/api/debug/curl", params={"url": "http://127.0.0.1:1/"}, headers=auth_headers)
-    assert resp.status_code == 400
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Upstream request failed"
+
+
+@pytest.mark.parametrize("profile", ["chrome", "none"])
+async def test_timeout_is_a_504(client, auth_headers, server, curl_env, monkeypatch, profile):
+    curl_env(DEBUG_CURL_PROFILE=profile)
+    monkeypatch.setattr(http_fetch, "TIMEOUT_SECONDS", 0.3)
+    resp = await client.get("/api/debug/curl", params={"url": f"{server}/slow"}, headers=auth_headers)
+    assert resp.status_code == 504
+    assert resp.json()["detail"] == "Upstream request timed out"
+
+
+async def test_failures_are_logged_with_the_exception(client, auth_headers):
+    from loguru import logger
+
+    seen = []
+    sink = logger.add(lambda m: seen.append(m.record), level="WARNING")
+    try:
+        await client.get("/api/debug/curl", params={"url": "http://127.0.0.1:1/"}, headers=auth_headers)
+    finally:
+        logger.remove(sink)
+    assert any("debug curl failed" in r["message"] and r["exception"] is not None for r in seen)
+
+
+async def test_httpx_fallback_connects_to_the_pinned_address_without_dns(server, curl_env):
+    """DEBUG_CURL_PROFILE=none must honour the validated address too: the name below does not resolve, so the
+    request can only succeed by connecting to the pinned IP, and the Host header must stay the original name."""
+    curl_env(DEBUG_CURL_PROFILE="none")
+    port = int(server.rsplit(":", 1)[1])
+    result = await http_fetch.fetch(f"http://pinned.invalid:{port}/h", "pinned.invalid", port, "127.0.0.1")
+    assert result.status_code == 200
+    assert _headers_seen(result.body.decode())["host"] == f"pinned.invalid:{port}"
+
+
+def test_httpx_pinning_keeps_tls_server_name_and_ipv6_url():
+    url, headers, ext = http_fetch._pin_httpx_request("https://example.test/x", "example.test", "2606:2800::1", {})
+    assert url == "https://[2606:2800::1]/x"
+    assert headers == {"Host": "example.test"}
+    assert ext == {"sni_hostname": "example.test"}
+
+
+def test_httpx_pinning_does_not_override_a_caller_host_header():
+    _, headers, _ = http_fetch._pin_httpx_request("http://h.test:8080/", "h.test", "93.184.216.34", {"host": "other"})
+    assert headers == {"host": "other"}
 
 
 async def test_non_http_scheme_is_rejected(client, auth_headers):
@@ -184,8 +235,26 @@ def test_settings_do_not_use_the_env_name_libcurl_impersonate_reads():
     assert Settings.model_fields["debug_curl_profile"].default == "chrome"
 
 
-async def test_stray_curl_impersonate_env_does_not_break_requests(client, auth_headers, server, monkeypatch):
-    """An operator-exported CURL_IMPERSONATE is dropped before the request; the profile is DEBUG_CURL_PROFILE."""
+async def test_stray_curl_impersonate_env_is_dropped_once_with_a_warning(client, auth_headers, server, monkeypatch):
+    """An operator-exported CURL_IMPERSONATE is dropped on the first impersonated request, with a warning, and
+    never touched again; the profile is DEBUG_CURL_PROFILE."""
+    from loguru import logger
+
+    monkeypatch.setattr(http_fetch, "_env_checked", False)
     monkeypatch.setenv("CURL_IMPERSONATE", "chrome")
-    resp = await client.get("/api/debug/curl", params={"url": f"{server}/h"}, headers=auth_headers)
-    assert resp.status_code == 200
+    seen = []
+    sink = logger.add(lambda m: seen.append(m.record["message"]), level="WARNING")
+    try:
+        resp = await client.get("/api/debug/curl", params={"url": f"{server}/h"}, headers=auth_headers)
+        assert resp.status_code == 200
+        assert "CURL_IMPERSONATE" not in os.environ
+        assert any("CURL_IMPERSONATE" in m for m in seen)
+    finally:
+        logger.remove(sink)
+
+
+def test_later_requests_do_not_touch_the_environment(monkeypatch):
+    monkeypatch.setattr(http_fetch, "_env_checked", True)
+    monkeypatch.setenv("CURL_IMPERSONATE", "chrome")
+    http_fetch._check_stray_impersonate_env()
+    assert os.environ["CURL_IMPERSONATE"] == "chrome"

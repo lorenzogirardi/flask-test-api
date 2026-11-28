@@ -15,7 +15,7 @@ from loguru import logger
 from app.auth import verify_credentials
 from app.config import get_settings
 from app.models.schemas import CpuSpikeRequest, CpuSpikeResponse, NetworkScanResult
-from app.services.http_fetch import fetch
+from app.services.http_fetch import FetchError, FetchTimeout, fetch
 
 router = APIRouter(prefix="/api/debug", tags=["Debug"])
 
@@ -252,8 +252,14 @@ async def curl(url: str = Query(...)):
     pinned = validated[0] if validated and not _is_ip_literal(host) else None
     try:
         result = await fetch(url, host, effective_port, pinned)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except FetchTimeout as e:
+        logger.opt(exception=e).warning("debug curl timed out: host={}", host)
+        raise HTTPException(status_code=504, detail="Upstream request timed out")
+    except FetchError as e:
+        # Input and guard errors were already rejected with 400 above; what reaches here is a fault of the
+        # target or of the server side (DNS, TLS, connect, libcurl, profile), so keep the raw text in the log only.
+        logger.opt(exception=e).warning("debug curl failed: host={}", host)
+        raise HTTPException(status_code=502, detail="Upstream request failed")
     return Response(content=result.body, status_code=result.status_code, media_type=result.content_type)
 
 

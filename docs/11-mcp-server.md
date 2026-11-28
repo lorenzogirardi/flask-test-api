@@ -231,7 +231,14 @@ sequenceDiagram
 | `debug_curl_headers` | `DEBUG_CURL_HEADERS` | `{}` | JSON object of extra request headers for `curl`, overriding the profile's defaults, e.g. `{"Accept-Language": "it-IT,it;q=0.9"}` |
 
 Do not export `CURL_IMPERSONATE`: libcurl-impersonate reads that variable itself, which is why the setting is
-called `DEBUG_CURL_PROFILE`. The app removes a stray `CURL_IMPERSONATE` before each request.
+called `DEBUG_CURL_PROFILE`. If it is set anyway, the app removes it once, on the first impersonated request, and
+logs a warning; the environment is not touched again after that.
+
+`curl` errors: input and guard problems (not an http(s) URL, no host, SSRF block) are `400`; a target that cannot be
+reached or a failing dependency (DNS, TLS, connect, libcurl error, unknown profile) is `502` with the generic detail
+`Upstream request failed`; no answer within 5 s is `504` (`Upstream request timed out`). The exception text goes
+to the application log only. With `DEBUG_CURL_PROFILE=none` and `SSRF_PROTECTION_ENABLED=true` the httpx fallback also
+connects to the address that passed the check (Host header and TLS server name stay the original host).
 
 Set `MCP_ENABLED=false` (the default) to keep the mount off entirely in a locked-down
 production deployment that only wants the plain REST API. The helm chart ships with both
