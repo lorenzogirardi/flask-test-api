@@ -224,6 +224,7 @@ sequenceDiagram
 | Setting | Env var | Default | Purpose |
 |---|---|---|---|
 | `mcp_enabled` | `MCP_ENABLED` | `false` | Mount `/api/mcp` at all (opt-in) |
+| `mcp_allowed_hosts` | `MCP_ALLOWED_HOSTS` | empty | Comma-separated extra `Host` header values the MCP transport accepts, on top of loopback (`127.0.0.1`, `localhost`, `[::1]`, with or without a port). Exact match, or `host:*` for any port, e.g. `pytbak.example.com,pytbak.example.com:*`. See 11.6.1 |
 | `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `false` | Independent of MCP — gates `/api/debug/*` REST routes only (opt-in) |
 | `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth. In `APP_ENV=production` the defaults are rejected at startup; real credentials are mandatory |
 | `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`) |
@@ -231,6 +232,23 @@ sequenceDiagram
 Set `MCP_ENABLED=false` (the default) to keep the mount off entirely in a locked-down
 production deployment that only wants the plain REST API. The helm chart ships with both
 flags off; the dev docker-compose and test suite enable them explicitly.
+
+### 11.6.1 Host header allow-list (421 Invalid Host header)
+
+The MCP SDK validates the `Host` (and `Origin`, when a browser sends one) header of every
+request against an allow-list, to stop DNS-rebinding attacks. By default only loopback is
+trusted, so a client that reaches the app through an ingress or load balancer
+(`Host: pytbak.example.com`) is answered `421 Invalid Host header` *after* Basic Auth has
+succeeded, while the same request through a port-forward to `localhost` works.
+
+Set `MCP_ALLOWED_HOSTS` to the hostnames clients use. The protection stays on: this is an
+allow-list, not a switch. Match is exact, so list the host with and without a port if both
+can occur (`example.com` for default ports, `example.com:*` for any port). `Origin` values
+are derived from the same list for `http` and `https`; non-browser MCP clients send none.
+
+```bash
+MCP_ALLOWED_HOSTS=pytbak.example.com
+```
 
 ## 11.7 Available Tools
 

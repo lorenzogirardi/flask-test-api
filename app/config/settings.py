@@ -40,6 +40,15 @@ class Settings(BaseSettings):
         default=False,
         description="Mount the MCP server at /api/mcp (opt-in; defaults off in production)",
     )
+    mcp_allowed_hosts: str = Field(
+        default="",
+        description=(
+            "Comma-separated extra Host header values accepted by the MCP transport (DNS-rebinding "
+            "protection stays on). Loopback hosts are always allowed. Exact match, or 'host:*' for any port, "
+            "e.g. 'pytbak.example.com,pytbak.example.com:*'. Without it a request through an ingress "
+            "hostname gets 421 Invalid Host header"
+        ),
+    )
 
     # --- SSRF guard for /api/debug and MCP network tools ---
     ssrf_protection_enabled: bool = Field(
