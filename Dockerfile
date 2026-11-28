@@ -46,7 +46,7 @@ ENV PYTHONPATH=/venv/lib/python3.15/site-packages
 # ABI mismatch would otherwise surface only as a CrashLoopBackOff. The required set is imported
 # unconditionally, the ABI-tagged C extensions when the venv ships them. Exec form, so no shell is
 # needed; must stay on ONE line.
-RUN ["python3", "-c", "import importlib, importlib.util as u; required = ['uvicorn', 'fastapi', 'pydantic', 'pydantic_core', 'asyncpg', 'greenlet']; [importlib.import_module(m) for m in required]; optional = [m for m in ('uvloop', 'httptools', 'cryptography') if u.find_spec(m)]; [importlib.import_module(m) for m in optional]; print('imported', required + optional)"]
+RUN ["python3", "-c", "import importlib, importlib.util as u; required = ['uvicorn', 'fastapi', 'pydantic', 'pydantic_core', 'asyncpg', 'greenlet', 'curl_cffi']; [importlib.import_module(m) for m in required]; optional = [m for m in ('uvloop', 'httptools', 'cryptography') if u.find_spec(m)]; [importlib.import_module(m) for m in optional]; print('imported', required + optional)"]
 
 WORKDIR /app
 USER $UID:$GID

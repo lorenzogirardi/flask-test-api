@@ -45,6 +45,7 @@ app/
 │   ├── storage.py       # Unified storage with PG→Redis→Memory fallback
 │   ├── redis_client.py  # Async Redis with retry
 │   ├── health.py        # Shared health-check logic (REST /mgmt/health + MCP health tool)
+│   ├── http_fetch.py    # Outbound GET for the debug curl tool: curl_cffi browser impersonation (DEBUG_CURL_PROFILE/DEBUG_CURL_HEADERS), httpx fallback, SSRF address pinning
 │   └── cache.py         # In-memory TTL cache
 ├── middleware/
 │   ├── error_injection.py

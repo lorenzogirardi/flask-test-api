@@ -227,7 +227,19 @@ sequenceDiagram
 | `mcp_allowed_hosts` | `MCP_ALLOWED_HOSTS` | empty | Comma-separated extra `Host` header values the MCP transport accepts, on top of loopback (`127.0.0.1`, `localhost`, `[::1]`, with or without a port). Exact match, or `host:*` for any port, e.g. `pytbak.example.com,pytbak.example.com:*`. See 11.6.1 |
 | `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `false` | Independent of MCP — gates `/api/debug/*` REST routes only (opt-in) |
 | `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth. In `APP_ENV=production` the defaults are rejected at startup; real credentials are mandatory |
-| `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`) |
+| `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`). For `curl` the connection is then pinned to the address that was checked, so a DNS answer that changes in between cannot reach a private target |
+| `debug_curl_profile` | `DEBUG_CURL_PROFILE` | `chrome` | Browser the `curl` tool (REST `/api/debug/curl` and MCP) presents: TLS ClientHello (JA3), HTTP/2 settings and default headers, via curl_cffi. Any curl_cffi profile name works (`chrome`, `safari`, `firefox`, or pinned such as `chrome131`). `none` (or `off`/`false`, or empty) uses plain httpx, whose `python-httpx` fingerprint basic bot protection usually blocks |
+| `debug_curl_headers` | `DEBUG_CURL_HEADERS` | `{}` | JSON object of extra request headers for `curl`, overriding the profile's defaults, e.g. `{"Accept-Language": "it-IT,it;q=0.9"}` |
+
+Do not export `CURL_IMPERSONATE`: libcurl-impersonate reads that variable itself, which is why the setting is
+called `DEBUG_CURL_PROFILE`. If it is set anyway, the app removes it once, on the first impersonated request, and
+logs a warning; the environment is not touched again after that.
+
+`curl` errors: input and guard problems (not an http(s) URL, no host, SSRF block) are `400`; a target that cannot be
+reached or a failing dependency (DNS, TLS, connect, libcurl error, unknown profile) is `502` with the generic detail
+`Upstream request failed`; no answer within 5 s is `504` (`Upstream request timed out`). The exception text goes
+to the application log only. With `DEBUG_CURL_PROFILE=none` and `SSRF_PROTECTION_ENABLED=true` the httpx fallback also
+connects to the address that passed the check (Host header and TLS server name stay the original host).
 
 Set `MCP_ENABLED=false` (the default) to keep the mount off entirely in a locked-down
 production deployment that only wants the plain REST API. The helm chart ships with both
