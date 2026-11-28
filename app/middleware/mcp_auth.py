@@ -22,7 +22,7 @@ import secrets
 from fastapi import HTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.auth import check_rate_limit, clear_failures, record_failure
+from app.auth import check_rate_limit, clear_failures, record_failure, resolve_client_ip
 from app.config import get_settings
 
 
@@ -49,7 +49,8 @@ class MCPBasicAuthMiddleware:
             return
 
         client = scope.get("client")
-        ip = client[0] if client else "unknown"
+        raw_headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in (scope.get("headers") or [])}
+        ip = resolve_client_ip(raw_headers.get, client[0] if client else None)
 
         try:
             check_rate_limit(ip)

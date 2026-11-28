@@ -171,6 +171,16 @@ The whole `/api/mcp` mount requires HTTP Basic Auth — same `DIAG_USERNAME` /
 same failure-tracking rate limiter as `app/auth.py` (`check_rate_limit`, `record_failure`,
 `clear_failures`), so brute-forcing either surface counts against the same backoff.
 
+The failure counter is keyed on the **resolved client address**, not on the raw peer
+address. Behind an ingress or reverse proxy every client arrives from the same peer, so
+`app/auth.py::resolve_client_ip` picks the bucket from `CF-Connecting-IP` first, then the
+first valid `X-Forwarded-For` entry, and falls back to the direct peer only when neither
+header is present. Forwarding headers are honoured **only when the direct peer is
+private, loopback or link-local**; a client connecting directly from a public address has
+both headers ignored and is bucketed by its own peer address. This keeps one client's
+repeated failures from locking out a different client reaching the app through the same
+proxy peer.
+
 This is **stricter than the REST API**, which leaves some endpoints (contexts CRUD,
 `/mgmt/info`) unauthenticated. The MCP mount gates everything uniformly — including tools
 like `list_contexts` and `fibonacci` that have no auth requirement over REST — because MCP
