@@ -209,3 +209,4 @@ Entries are added automatically on every merge to the default branch.
 - Sleep endpoint rejects values that are too long ([#191](https://github.com/lorenzogirardi/flask-test-api/pull/191))
 - Restore the documented error envelope for 400 responses ([#194](https://github.com/lorenzogirardi/flask-test-api/pull/194))
 - The image goes back to Python 3.14 until the agents' engine runs on 3.15 ([#319](https://github.com/lorenzogirardi/flask-test-api/pull/319))
+- Rate-limit failed debug logins per real client IP ([#462](https://github.com/lorenzogirardi/flask-test-api/pull/462))
