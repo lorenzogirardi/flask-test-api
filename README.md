@@ -101,6 +101,7 @@ helm upgrade pytbak ./helm/pytbak \
 | GET | `/api/redisping` | Webdis ping |
 
 ### Debug (`/debug`) — requires Basic Auth
+Failed logins are rate limited (backoff after a few wrong attempts within a 10-minute window). Attempts are keyed on the real client IP: `CF-Connecting-IP`, then the first `X-Forwarded-For` entry, then the direct peer. Forwarding headers are only honoured when the direct peer is a private/loopback/link-local address (ingress, sidecar, LB), so a directly connecting client cannot pick its own bucket. A client at a private address can still set these headers itself.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/debug/network/scan?target=host:port` | Network diagnostics (ping, dns, tcp, traceroute) |
@@ -124,6 +125,7 @@ helm upgrade pytbak ./helm/pytbak \
 | GET | `/mgmt/threaddump` | Thread dump |
 
 ### MCP Server (`/api/mcp`) — requires Basic Auth
+Failed Basic-Auth attempts share the same rate-limit counter and client-IP rules as the Debug endpoints above (mount-level auth runs at `/api/mcp/`).
 In-process [MCP](https://modelcontextprotocol.io) server, same container as the rest of
 pytbak. 23 tools mirroring the REST API for LLM clients (Claude, OpenCode, etc.) — see
 [docs/11-mcp-server.md](docs/11-mcp-server.md) for architecture, auth model, and full usage
