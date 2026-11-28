@@ -192,6 +192,7 @@ Entries are added automatically on every merge to the default branch.
 - Update bridgecrewio/checkov-action action to v12.3146.0 ([#454](https://github.com/lorenzogirardi/flask-test-api/pull/454))
 - Update bridgecrewio/checkov-action action to v12.3147.0 ([#456](https://github.com/lorenzogirardi/flask-test-api/pull/456))
 - Update dependency httpx to v0.29.0 ([#458](https://github.com/lorenzogirardi/flask-test-api/pull/458))
+- Update dependency uvicorn to v0.55.0 ([#463](https://github.com/lorenzogirardi/flask-test-api/pull/463))
 
 ### Removed
 - `ai-autofix-main` (a PR to repair a red `main`): `agent-main-guard.yml` already takes `main` back to the last green state and the change is redone by the agent pipeline, so two systems no longer react to the same failure.
