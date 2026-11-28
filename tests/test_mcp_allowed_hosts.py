@@ -26,17 +26,20 @@ _HEADERS = {
 }
 
 
-async def _initialize_status(monkeypatch, host: str, allowed: str | None) -> int:
+async def _initialize_status(monkeypatch, host: str, allowed: str | None, origin: str | None = None) -> int:
     if allowed is None:
         monkeypatch.delenv("MCP_ALLOWED_HOSTS", raising=False)
     else:
         monkeypatch.setenv("MCP_ALLOWED_HOSTS", allowed)
     get_settings.cache_clear()
     app = create_app()
+    headers = {**_HEADERS, "Host": host}
+    if origin is not None:
+        headers["Origin"] = origin
     try:
         async with app.router.lifespan_context(app):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-                resp = await ac.post("/api/mcp/", json=_INIT, headers={**_HEADERS, "Host": host})
+                resp = await ac.post("/api/mcp/", json=_INIT, headers=headers)
         return resp.status_code
     finally:
         get_settings.cache_clear()
@@ -68,3 +71,19 @@ async def test_unlisted_host_still_rejected_and_entries_are_trimmed(monkeypatch)
     allowed = " pytbak.example.com , other.example.com "
     assert await _initialize_status(monkeypatch, "evil.example.net", allowed) == 421
     assert await _initialize_status(monkeypatch, "other.example.com", allowed) == 200
+
+
+@pytest.mark.anyio
+async def test_configured_host_with_matching_origin_accepted(monkeypatch):
+    status = await _initialize_status(
+        monkeypatch, "pytbak.example.com", "pytbak.example.com", origin="https://pytbak.example.com"
+    )
+    assert status == 200
+
+
+@pytest.mark.anyio
+async def test_configured_host_with_foreign_origin_rejected(monkeypatch):
+    status = await _initialize_status(
+        monkeypatch, "pytbak.example.com", "pytbak.example.com", origin="http://evil.example.net"
+    )
+    assert status == 403
