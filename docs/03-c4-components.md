@@ -85,7 +85,7 @@ C4Component
 | `/debug/cpu/spike` | POST | `cpu_spike()` | multiprocessing.Process |
 | `/debug/ping` | GET | `ping_host()` | subprocess (ping) |
 | `/debug/dns` | GET | `dns_resolve()` | socket.getaddrinfo() |
-| `/debug/curl` | GET | `curl()` | httpx.AsyncClient |
+| `/debug/curl` | GET | `curl()` | `http_fetch.fetch()`: curl_cffi (browser TLS/HTTP2 impersonation), httpx when `DEBUG_CURL_PROFILE=none` |
 | `/debug/tcp-check` | GET | `tcp_check()` | socket.create_connection() |
 | `/debug/headers` | GET/POST/PUT/DELETE | `echo_headers()` | request.headers |
 | `/debug/echo` | POST/PUT | `echo_body()` | request.body() |

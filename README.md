@@ -108,7 +108,7 @@ Failed logins are rate limited (backoff after a few wrong attempts within a 10-m
 | POST | `/debug/cpu/spike` | Simulate CPU load |
 | GET | `/debug/ping?host=...` | Ping host |
 | GET | `/debug/dns?name=...` | DNS resolve |
-| GET | `/debug/curl?url=...` | HTTP GET |
+| GET | `/debug/curl?url=...` | HTTP GET presenting a browser TLS/HTTP2 fingerprint (see `DEBUG_CURL_PROFILE`) |
 | GET | `/debug/tcp-check?host=...&port=...` | TCP check |
 | GET/POST/PUT/DELETE | `/debug/headers` | Echo headers |
 | POST/PUT | `/debug/echo` | Echo body |

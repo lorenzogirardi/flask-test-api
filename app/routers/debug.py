@@ -9,20 +9,19 @@ import socket
 import time
 from urllib.parse import urlsplit
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from loguru import logger
 
 from app.auth import verify_credentials
 from app.config import get_settings
 from app.models.schemas import CpuSpikeRequest, CpuSpikeResponse, NetworkScanResult
+from app.services.http_fetch import fetch
 
 router = APIRouter(prefix="/api/debug", tags=["Debug"])
 
 # Host validation: RFC-compliant hostname or IPv4
 _HOST_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$")
 _MAX_ECHO_BODY = 1024 * 1024  # 1 MB
-_MAX_CURL_RESPONSE = 10 * 1024 * 1024  # 10 MB
 
 # Track CPU spike processes for cleanup
 _active_cpu_procs: list[multiprocessing.Process] = []
@@ -53,14 +52,28 @@ def _is_blocked_ip(ip_str: str) -> bool:
     return ip.is_loopback or ip.is_link_local or ip.is_private or ip.is_reserved or ip.is_multicast
 
 
-def _guard_ssrf(host: str, port: int | None = None) -> None:
-    """Reject loopback/private/link-local/metadata targets when protection is enabled."""
+def _guard_ssrf(host: str, port: int | None = None) -> list[str] | None:
+    """Reject loopback/private/link-local/metadata targets when protection is enabled.
+
+    Returns the addresses that passed the check (None when protection is off), so a caller that connects
+    afterwards can use one of them instead of resolving the name again.
+    """
     settings = get_settings()
     if not settings.ssrf_protection_enabled:
-        return
-    for ip in _host_to_ip(host, port):
+        return None
+    addresses = _host_to_ip(host, port)
+    for ip in addresses:
         if _is_blocked_ip(ip):
             raise HTTPException(status_code=400, detail="Target is a restricted/private address")
+    return addresses
+
+
+def _is_ip_literal(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return True
 
 
 def _url_host(url: str) -> tuple[str, int | None]:
@@ -232,22 +245,16 @@ async def dns_resolve(name: str = Query(...)):
 
 @router.get("/curl", summary="HTTP GET a URL", dependencies=[Depends(verify_credentials)])
 async def curl(url: str = Query(...)):
-    _guard_ssrf(*_url_host(url))
+    host, port = _url_host(url)
+    validated = _guard_ssrf(host, port)
+    effective_port = port or (443 if url.lower().startswith("https://") else 80)
+    # With the SSRF guard on, connect to the address that was just validated (not a second DNS lookup).
+    pinned = validated[0] if validated and not _is_ip_literal(host) else None
     try:
-        async with httpx.AsyncClient(
-            timeout=5,
-            follow_redirects=False,
-            max_redirects=0,
-        ) as client:
-            resp = await client.get(url)
-            body = resp.text[:_MAX_CURL_RESPONSE]
-            return Response(
-                content=body,
-                status_code=resp.status_code,
-                media_type=resp.headers.get("content-type"),
-            )
+        result = await fetch(url, host, effective_port, pinned)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    return Response(content=result.body, status_code=result.status_code, media_type=result.content_type)
 
 
 @router.get("/tcp-check", summary="TCP connection check", dependencies=[Depends(verify_credentials)])

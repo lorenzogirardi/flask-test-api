@@ -79,6 +79,7 @@ def test_runtime_checks_the_site_packages_layout_at_build_time() -> None:
         "pydantic_core",
         "asyncpg",
         "greenlet",
+        "curl_cffi",
         "uvloop",
         "httptools",
         "cryptography",

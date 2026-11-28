@@ -226,7 +226,12 @@ sequenceDiagram
 | `mcp_enabled` | `MCP_ENABLED` | `false` | Mount `/api/mcp` at all (opt-in) |
 | `debug_endpoints_enabled` | `DEBUG_ENDPOINTS_ENABLED` | `false` | Independent of MCP — gates `/api/debug/*` REST routes only (opt-in) |
 | `diag_username` / `diag_password` | `DIAG_USERNAME` / `DIAG_PASSWORD` | `admin` / `password` | Same credentials used for MCP Basic Auth. In `APP_ENV=production` the defaults are rejected at startup; real credentials are mandatory |
-| `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`) |
+| `ssrf_protection_enabled` | `SSRF_PROTECTION_ENABLED` | `false` | When true, blocks loopback/private/link-local/metadata targets in the network tools (`curl`, `network_scan`, `ping`, `dns`, `tcp_check`). For `curl` the connection is then pinned to the address that was checked, so a DNS answer that changes in between cannot reach a private target |
+| `debug_curl_profile` | `DEBUG_CURL_PROFILE` | `chrome` | Browser the `curl` tool (REST `/api/debug/curl` and MCP) presents: TLS ClientHello (JA3), HTTP/2 settings and default headers, via curl_cffi. Any curl_cffi profile name works (`chrome`, `safari`, `firefox`, or pinned such as `chrome131`). `none` uses plain httpx, whose `python-httpx` fingerprint basic bot protection usually blocks |
+| `debug_curl_headers` | `DEBUG_CURL_HEADERS` | `{}` | JSON object of extra request headers for `curl`, overriding the profile's defaults, e.g. `{"Accept-Language": "it-IT,it;q=0.9"}` |
+
+Do not export `CURL_IMPERSONATE`: libcurl-impersonate reads that variable itself, which is why the setting is
+called `DEBUG_CURL_PROFILE`. The app removes a stray `CURL_IMPERSONATE` before each request.
 
 Set `MCP_ENABLED=false` (the default) to keep the mount off entirely in a locked-down
 production deployment that only wants the plain REST API. The helm chart ships with both

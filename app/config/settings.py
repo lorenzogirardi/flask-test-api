@@ -47,6 +47,22 @@ class Settings(BaseSettings):
         description="Block loopback/private/link-local/metadata targets in curl/network_scan/ping/dns/tcp",
     )
 
+    # --- Outbound HTTP GET of /api/debug/curl and the MCP `curl` tool ---
+    # Do not name these CURL_*: libcurl-impersonate reads a CURL_IMPERSONATE environment variable itself, and
+    # setting it to a profile name makes every curl_cffi request fail with "Invalid multi handle".
+    debug_curl_profile: str = Field(
+        default="chrome",
+        description=(
+            "curl_cffi browser profile the outbound GET presents (TLS/JA3, HTTP/2 settings, default headers), "
+            "e.g. chrome, safari, firefox or a pinned one such as chrome131. Empty or 'none' uses the plain "
+            "httpx client (python-httpx fingerprint, which basic bot protection usually blocks)"
+        ),
+    )
+    debug_curl_headers: dict[str, str] = Field(
+        default_factory=dict,
+        description='Extra request headers as a JSON object, e.g. {"Accept-Language": "it-IT,it;q=0.9"}; they override the profile defaults',
+    )
+
     # --- Redis ---
     redis_url: str | None = Field(default=None, description="redis://host:port/db or http(s) endpoint in prod")
     redis_host: str = "localhost"

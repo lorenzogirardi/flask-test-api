@@ -38,6 +38,15 @@ runs the integration suite against it, and it merges when certified and green.
   as uid 10001 with all capabilities dropped (ICMP datagram sockets), as in the Helm chart. The endpoints are opt-in
   (`DEBUG_ENDPOINTS_ENABLED`) and off in production.
 
+- **`curl_cffi` (outbound `curl` debug tool)**: the `curl` tool (`/api/debug/curl`, MCP `curl`) presents a real
+  browser's TLS ClientHello, HTTP/2 settings and headers, because httpx's `python-httpx` fingerprint is rejected by
+  basic bot protection. `curl_cffi` is one abi3 wheel (linux amd64 and arm64, glibc >= 2.17) with libcurl-impersonate
+  and BoringSSL statically linked; its only shared dependencies are `libc` and `libpthread`, which `lg-python` has.
+  It adds about 40 MB unpacked to the venv (the 41 MB `_wrapper` shared object; the 14 MB wheel is what is
+  downloaded; `cffi` and `certifi` are already there through `cryptography` and `httpx`) and no process, so
+  there is no headless browser and nothing else to run. The build-time import check in the Dockerfile loads it, so
+  a wheel that does not fit the interpreter fails the build, not the pod.
+
 ## What the image no longer has
 
 - **`curl` for the container health check**: the Dockerfile's `HEALTHCHECK` uses Python. Kubernetes uses the chart's

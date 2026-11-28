@@ -13,7 +13,7 @@
 | A07 | **Auth Failures** | Medium | Brute force on Basic Auth | Rate limiting (100/min default); timing-safe comparison | Partially mitigated |
 | A08 | **Software/Data Integrity** | Low | Tampered container image | Non-root user in Dockerfile (UID 10001); Trivy scan in CI pipeline | Mitigated |
 | A09 | **Logging Failures** | Low | Missing audit trail | Structured JSON logging (loguru); request tracing (OTEL) | Mitigated |
-| A10 | **SSRF** | High | `/debug/curl` fetches arbitrary URLs | Auth required; timeout (5s); intended feature for testing | Accepted (auth-gated) |
+| A10 | **SSRF** | High | `/debug/curl` fetches arbitrary URLs | Auth required; timeout (5s); 10 MB cap; redirects not followed; with `SSRF_PROTECTION_ENABLED` the connection is pinned to the address that passed the private-range check (no second DNS lookup); intended feature for testing | Accepted (auth-gated) |
 
 ## 6.2 STRIDE Threat Model
 

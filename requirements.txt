@@ -7,6 +7,10 @@ pydantic-settings==2.16.3
 # Async
 httpx==0.29.0
 
+# Outbound GET of /api/debug/curl: browser TLS/HTTP2 impersonation (statically linked libcurl-impersonate,
+# no browser). One abi3 wheel per arch (linux amd64/arm64, glibc >= 2.17); needs only libc in the image.
+curl_cffi==0.17.0
+
 # Database
 sqlalchemy[asyncio]==2.1.9
 asyncpg==0.32.0
