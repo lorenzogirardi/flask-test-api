@@ -69,6 +69,24 @@ def _make_lifespan(mcp_server):
     return lifespan
 
 
+_MCP_LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "[::1]")
+
+
+def _mcp_transport_security(extra_hosts: str):
+    """DNS-rebinding protection for /api/mcp: loopback plus the hosts in MCP_ALLOWED_HOSTS.
+
+    The SDK default only trusts loopback, so a request arriving through an ingress
+    hostname is answered 421. Protection stays on; the extra hosts are an allow-list.
+    Origins (sent by browsers only) are derived from the same hosts, http and https.
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    extra = [h.strip() for h in extra_hosts.split(",") if h.strip()]
+    hosts = [h for base in _MCP_LOOPBACK_HOSTS for h in (base, f"{base}:*")] + extra
+    origins = [f"{scheme}://{h}" for h in hosts for scheme in ("http", "https")]
+    return TransportSecuritySettings(enable_dns_rebinding_protection=True, allowed_hosts=hosts, allowed_origins=origins)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
 
@@ -78,7 +96,11 @@ def create_app() -> FastAPI:
     if settings.mcp_enabled:
         from app.mcp.tools import mcp as mcp_server
 
-        mcp_asgi_app = mcp_server.streamable_http_app(streamable_http_path="/", stateless_http=True)  # lazily creates session_manager
+        mcp_asgi_app = mcp_server.streamable_http_app(  # lazily creates session_manager
+            streamable_http_path="/",
+            stateless_http=True,
+            transport_security=_mcp_transport_security(settings.mcp_allowed_hosts),
+        )
 
     app = FastAPI(
         title="pytbak API",

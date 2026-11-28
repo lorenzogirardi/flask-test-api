@@ -34,6 +34,8 @@ env:
   # this API is intentionally a diagnostics service for the cluster.
   # DEBUG_ENDPOINTS_ENABLED: "false"
   # MCP_ENABLED: "false"
+  # Host headers /api/mcp accepts besides loopback (comma-separated; "host" or "host:*"); without it ingress hostnames get 421:
+  # MCP_ALLOWED_HOSTS: "pytbak.example.com"
   ERROR_INJECTION_ENABLED: "true"
   ERROR_INJECTION_MAX_DELAY_MS: "10000"
   # Block loopback/private/link-local/metadata targets in network debug tools:

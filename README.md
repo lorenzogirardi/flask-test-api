@@ -467,6 +467,7 @@ All configuration via environment variables (Pydantic Settings). See [.env.examp
 | `DIAG_USERNAME` | admin | Basic auth user for /debug and /api/mcp |
 | `DIAG_PASSWORD` | password | Basic auth pass for /debug and /api/mcp |
 | `MCP_ENABLED` | true | Mount the MCP server at /api/mcp |
+| `MCP_ALLOWED_HOSTS` | (empty) | Extra Host header values accepted by /api/mcp besides loopback, comma-separated, `host` or `host:*`; needed behind an ingress (else 421) |
 | `OTEL_ENABLED` | false | Enable OpenTelemetry tracing |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | http://localhost:4317 | OTLP endpoint |
 | `PROMETHEUS_ENABLED` | true | Enable /metrics endpoint |
