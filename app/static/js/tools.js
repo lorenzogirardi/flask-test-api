@@ -41,7 +41,16 @@
   async function run(tool, values, btn) {
     const spec = TOOLS[tool](values);
     const headers = {};
-    if (spec.auth) Object.assign(headers, authHeader());
+    if (spec.auth) {
+      // an empty password is a guaranteed failure and would count against the rate limit
+      const p = document.getElementById('dbg-pass');
+      if (!p || !p.value) {
+        out.textContent = 'Enter the debug password first (no request sent).';
+        out.className = 'tool-result err';
+        return;
+      }
+      Object.assign(headers, authHeader());
+    }
     if (spec.body) headers['Content-Type'] = 'application/json';
 
     const method = spec.method || 'GET';

@@ -153,9 +153,9 @@
       {% if debug_enabled %}
       <div class="tool-card" data-tool="auth">
         <h3>&#x1F512; Debug credentials</h3>
-        <p class="tool-hint">Basic Auth for the tools below. Kept in this tab only.</p>
-        <label>user <input id="dbg-user" autocomplete="username" value="admin"></label>
-        <label>password <input id="dbg-pass" type="password" autocomplete="current-password"></label>
+        <p class="tool-hint">Basic Auth for the tools below. Kept in this tab only. Failed attempts are rate limited, so check the password before running a tool.</p>
+        <label>user <input id="dbg-user" autocomplete="off" value="admin"></label>
+        <label>password <input id="dbg-pass" type="password" autocomplete="new-password" placeholder="debug password"></label>
       </div>
 
       <form class="tool-card" data-tool="cpu">
